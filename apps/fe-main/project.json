@@ -1,9 +1,0 @@
-{
-  "name": "fe-main",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/fe-main/src",
-  "projectType": "application",
-  "tags": ["type:frontend"],
-  "// targets": "to see all targets run: nx show project fe-main --web",
-  "targets": {}
-}

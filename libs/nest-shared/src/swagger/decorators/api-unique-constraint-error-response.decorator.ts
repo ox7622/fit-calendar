@@ -1,4 +1,4 @@
-import { STATUS_CODES } from '@canalia/common';
+import { STATUS_CODES } from '@fitcalendar/shared';
 import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 

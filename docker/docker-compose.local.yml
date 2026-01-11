@@ -1,12 +1,15 @@
 services:
-  postgresdb:
-    image: postgres:17-alpine
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
     restart: unless-stopped
-    container_name: postgresdb-ca
-    env_file:
-      - ../packages/postgresdb/docker.env
+    container_name: fitcalendar-postgres
+    environment:
+      POSTGRES_DB: ${NX_DB_NAME:-fitcalendar}
+      POSTGRES_USER: ${NX_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${NX_DB_PASS:-postgres}
     ports:
-      - 4632:5432
+      - "${NX_DB_PORT:-5432}:5432"
     logging:
       driver: "json-file"
       options:
@@ -14,31 +17,27 @@ services:
         max-file: "2"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - "../packages/postgresdb/initdb.d:/docker-entrypoint-initdb.d"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NX_DB_USER:-postgres} -d ${NX_DB_NAME:-fitcalendar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # nats:
-  #   image: nats:2.10.9-alpine
-  #   restart: unless-stopped
-  #   container_name: nats-ca
-  #   command: "-c /etc/nats/nats.conf"
-  #   ports:
-  #     - 4222:4222
-  #   volumes:
-  #     - ../packages/nats/nats.conf:/etc/nats/nats.conf:ro
-  #   env_file:
-  #     - ../packages/nats/docker.env
-
+  # Redis (optional - for caching/sessions)
   # redis:
-  #   image: redis:7.4.1-alpine
+  #   image: redis:7-alpine
   #   restart: unless-stopped
-  #   container_name: redis-ca
+  #   container_name: fitcalendar-redis
   #   ports:
-  #     - 6379:6379
+  #     - "6379:6379"
   #   volumes:
-  #     - ../packages/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-  #     - ../packages/redis/.data:/data
-  #   env_file:
-  #     - ../packages/redis/docker.env
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
   postgres_data:
+  # redis_data:

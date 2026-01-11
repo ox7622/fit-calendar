@@ -1,0 +1,27 @@
+{
+    "name": "bot",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "apps/bot/src",
+    "projectType": "application",
+    "targets": {
+        "serve": {
+            "continuous": true,
+            "executor": "@nx/js:node",
+            "defaultConfiguration": "development",
+            "dependsOn": ["build"],
+            "options": {
+                "buildTarget": "bot:build",
+                "runBuildTargetDependencies": false
+            },
+            "configurations": {
+                "development": {
+                    "buildTarget": "bot:build:development"
+                },
+                "production": {
+                    "buildTarget": "bot:build:production"
+                }
+            }
+        }
+    },
+    "tags": []
+}

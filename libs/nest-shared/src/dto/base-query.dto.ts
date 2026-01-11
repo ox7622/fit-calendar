@@ -1,4 +1,4 @@
-import { ESortField, ESortOrder } from '@canalia/common';
+import { ESortField, ESortOrder } from '@fitcalendar/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsEnum } from 'class-validator';
 

@@ -28,9 +28,11 @@
         "strictPropertyInitialization": false,
         "jsx": "react-jsx",
         "paths": {
-            "@canalia/common": ["libs/common/src/index.ts"],
-            "@canalia/nest-shared": ["libs/nest-shared/src/index.ts"],
-            "@canalia/sdk/*": ["libs/sdk/src/*"]
+            "@fitcalendar/db": ["libs/db/src/index.ts"],
+            "@fitcalendar/nest-shared": ["libs/nest-shared/src/index.ts"],
+            "@fitcalendar/sdk/*": ["libs/sdk/src/*"],
+            "@fitcalendar/shared": ["libs/shared/src/index.ts"],
+            "@fitcalendar/ui": ["libs/ui/src/index.ts"]
         },
         "typeRoots": ["libs/sdk/src/types", "libs/nest-shared/src/types", "node_modules/@types"]
     },

@@ -6,7 +6,13 @@ export default [
     ...nx.configs['flat/typescript'],
     ...nx.configs['flat/javascript'],
     {
-        ignores: ['**/dist', '**/node_modules', '**/tmp'],
+        ignores: [
+            '**/dist',
+            '**/node_modules',
+            '**/tmp',
+            '**/vite.config.*.timestamp*',
+            '**/vitest.config.*.timestamp*',
+        ],
     },
 
     // Базовые правила для всех файлов
@@ -29,24 +35,27 @@ export default [
         },
     },
 
-    // Общие библиотеки (common, sdk) - базовая конфигурация
+    // Shared libraries (shared, sdk, db, ui) - base configuration
     {
         files: [
-            'libs/common/**/*.ts',
-            'libs/common/**/*.tsx',
-            'libs/common/**/*.js',
-            'libs/common/**/*.jsx',
+            'libs/shared/**/*.ts',
+            'libs/shared/**/*.tsx',
+            'libs/shared/**/*.js',
+            'libs/shared/**/*.jsx',
             'libs/sdk/**/*.ts',
             'libs/sdk/**/*.tsx',
             'libs/sdk/**/*.js',
             'libs/sdk/**/*.jsx',
+            'libs/db/**/*.ts',
+            'libs/ui/**/*.ts',
+            'libs/ui/**/*.tsx',
         ],
         ...base,
         languageOptions: {
             ...base.languageOptions,
             parserOptions: {
                 ...base.languageOptions.parserOptions,
-                project: ['libs/common/tsconfig*.json', 'libs/sdk/tsconfig*.json'],
+                project: ['libs/shared/tsconfig*.json', 'libs/sdk/tsconfig*.json', 'libs/db/tsconfig*.json', 'libs/ui/tsconfig*.json'],
             },
         },
     },
@@ -82,30 +91,53 @@ export default [
         },
     },
 
-    // React проекты (автоматически для всех fe-* приложений)
+    // React projects (admin, mini-app)
     {
-        files: ['apps/fe-*/**/*.ts', 'apps/fe-*/**/*.tsx', 'apps/fe-*/**/*.js', 'apps/fe-*/**/*.jsx'],
-        ignores: ['**/webpack.config.js', '**/*.config.js'],
+        files: [
+            'apps/admin/**/*.ts',
+            'apps/admin/**/*.tsx',
+            'apps/admin/**/*.js',
+            'apps/admin/**/*.jsx',
+            'apps/mini-app/**/*.ts',
+            'apps/mini-app/**/*.tsx',
+            'apps/mini-app/**/*.js',
+            'apps/mini-app/**/*.jsx',
+        ],
+        ignores: ['**/webpack.config.js', '**/*.config.js', '**/vite.config.ts'],
         ...react,
         languageOptions: {
             ...react.languageOptions,
             parserOptions: {
                 ...react.languageOptions.parserOptions,
-                project: ['apps/fe-*/tsconfig*.json'],
+                project: ['apps/admin/tsconfig*.json', 'apps/mini-app/tsconfig*.json'],
             },
         },
     },
 
-    // NestJS проекты (автоматически для всех be-* приложений)
+    // NestJS projects (api)
     {
-        files: ['apps/be-*/**/*.ts', 'apps/be-*/**/*.tsx', 'apps/be-*/**/*.js', 'apps/be-*/**/*.jsx'],
+        files: ['apps/api/**/*.ts', 'apps/api/**/*.js'],
         ignores: ['**/webpack.config.js', '**/*.config.js'],
         ...nestjs,
         languageOptions: {
             ...nestjs.languageOptions,
             parserOptions: {
                 ...nestjs.languageOptions.parserOptions,
-                project: ['apps/be-*/tsconfig*.json'],
+                project: ['apps/api/tsconfig*.json'],
+            },
+        },
+    },
+
+    // Node projects (bot)
+    {
+        files: ['apps/bot/**/*.ts', 'apps/bot/**/*.js'],
+        ignores: ['**/webpack.config.js', '**/*.config.js'],
+        ...base,
+        languageOptions: {
+            ...base.languageOptions,
+            parserOptions: {
+                ...base.languageOptions.parserOptions,
+                project: ['apps/bot/tsconfig*.json'],
             },
         },
     },

@@ -1,4 +1,4 @@
-import { STATUS_CODES } from '@canalia/common';
+import { STATUS_CODES } from '@fitcalendar/shared';
 import type { ReferenceObject, SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 
 /**

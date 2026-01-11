@@ -1,0 +1,73 @@
+{
+    "name": "api",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "apps/api/src",
+    "projectType": "application",
+    "tags": ["type:backend"],
+    "targets": {
+        "build": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "webpack-cli build --mode=production",
+                "cwd": "apps/api"
+            },
+            "configurations": {
+                "development": {
+                    "command": "webpack-cli build --mode=development",
+                    "cwd": "apps/api"
+                }
+            }
+        },
+        "serve": {
+            "continuous": true,
+            "executor": "@nx/js:node",
+            "defaultConfiguration": "development",
+            "dependsOn": ["build"],
+            "options": {
+                "buildTarget": "api:build",
+                "runBuildTargetDependencies": false
+            },
+            "configurations": {
+                "development": {
+                    "buildTarget": "api:build:development"
+                },
+                "production": {
+                    "buildTarget": "api:build:production"
+                }
+            }
+        },
+        "__build-open-api-generator": {
+            "executor": "@nx/webpack:webpack",
+            "outputs": ["{options.outputPath}"],
+            "defaultConfiguration": "development",
+            "options": {
+                "target": "node",
+                "compiler": "tsc",
+                "outputPath": "tmp/api-open-api-generator",
+                "main": "apps/api/scripts/generate-swagger.ts",
+                "tsConfig": "apps/api/tsconfig.app.json",
+                "webpackConfig": "apps/api/webpack.config.js"
+            },
+            "configurations": {
+                "development": {
+                    "optimization": false,
+                    "extractLicenses": false
+                }
+            }
+        },
+        "generate-open-api": {
+            "executor": "@nx/js:node",
+            "defaultConfiguration": "development",
+            "options": {
+                "buildTarget": "api:__build-open-api-generator",
+                "watch": false
+            },
+            "configurations": {
+                "development": {
+                    "buildTarget": "api:__build-open-api-generator:development",
+                    "args": ["-o", "../../../apps/api/api.yaml"]
+                }
+            }
+        }
+    }
+}

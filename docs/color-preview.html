@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitSchedule Color Palette Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+    .container { display: flex; min-height: 100vh; }
+    .theme { flex: 1; padding: 32px; }
+
+    /* Dark Theme */
+    .dark { background: #17272B; color: #FFFFFF; }
+    .dark .card { background: #1E3338; border: 1px solid #2A4449; }
+    .dark .text-secondary { color: #9E9E9E; }
+    .dark .divider { background: #2A4449; }
+
+    /* Light Theme */
+    .light { background: #BCDDE6; color: #0E0E0E; }
+    .light .card { background: #FFFFFF; border: 1px solid #9BC5D1; }
+    .light .text-secondary { color: #4A5568; }
+    .light .divider { background: #9BC5D1; }
+
+    /* Shared */
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+    h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+
+    .card { border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+
+    .btn-primary {
+      background: #229C8B;
+      color: #FFFFFF;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .btn-primary:hover { background: #2BB8A3; }
+    .dark .btn-primary:hover { background: #2BB8A3; }
+    .light .btn-primary:hover { background: #1A7A6D; }
+
+    .btn-secondary {
+      background: transparent;
+      color: #229C8B;
+      border: 2px solid #229C8B;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .color-swatch {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      margin-right: 16px;
+      margin-bottom: 16px;
+    }
+    .swatch {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .swatch-label { font-size: 11px; opacity: 0.7; }
+    .swatch-hex { font-size: 12px; font-weight: 600; font-family: monospace; }
+
+    .divider { height: 1px; margin: 24px 0; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    .badge-beginner { background: #22C55E; color: #0E0E0E; }
+    .badge-intermediate { background: #FFB300; color: #0E0E0E; }
+    .badge-advanced { background: #FF5252; color: #FFFFFF; }
+
+    .class-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .class-time {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .class-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .class-coach {
+      font-size: 13px;
+    }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #229C8B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .tab-bar {
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      margin-top: 24px;
+      border-radius: 12px;
+    }
+    .dark .tab-bar { background: #1E3338; }
+    .light .tab-bar { background: #FFFFFF; }
+
+    .tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+      gap: 4px;
+    }
+    .tab.active { color: #229C8B; }
+    .dark .tab.active { color: #2BB8A3; }
+    .tab svg { width: 24px; height: 24px; }
+
+    .accent-showcase {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .accent-box {
+      padding: 16px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .accent-primary { background: #229C8B; color: white; }
+    .accent-active-dark { background: #2BB8A3; color: white; }
+    .accent-active-light { background: #1A7A6D; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Dark Theme -->
+    <div class="theme dark">
+      <h1>Dark Theme</h1>
+
+      <h2>Background Colors</h2>
+      <div style="display: flex; flex-wrap: wrap;">
+        <div class="color-swatch">
+          <div class="swatch" style="background: #17272B;"></div>
+          <span class="swatch-label">bg-primary</span>
+          <span class="swatch-hex">#17272B</span>
+        </div>
+        <div class="color-swatch">
+          <div class="swatch" style="background: #1E3338;"></div>
+          <span class="swatch-label">bg-card</span>
+          <span class="swatch-hex">#1E3338</span>
+        </div>
+        <div class="color-swatch">
+          <div class="swatch" style="background: #2A4449;"></div>
+          <span class="swatch-label">divider</span>
+          <span class="swatch-hex">#2A4449</span>
+        </div>
+      </div>
+
+      <h2>Accent Colors</h2>
+      <div class="accent-showcase">
+        <div class="accent-box accent-primary">#229C8B</div>
+        <div class="accent-box accent-active-dark">#2BB8A3</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Sample Class Card</h2>
+      <div class="card">
+        <div class="class-card">
+          <div class="avatar">MK</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="class-name">Morning Yoga</span>
+              <span class="badge badge-beginner">Beginner</span>
+            </div>
+            <div class="text-secondary class-coach">Maria K. • 60 min</div>
+            <div class="class-time" style="margin-top: 4px;">09:00 - 10:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="class-card">
+          <div class="avatar">AT</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="class-name">HIIT Cardio</span>
+              <span class="badge badge-intermediate">Intermediate</span>
+            </div>
+            <div class="text-secondary class-coach">Alex T. • 45 min</div>
+            <div class="class-time" style="margin-top: 4px;">10:30 - 11:15</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="class-card">
+          <div class="avatar">VS</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="class-name">Power Strength</span>
+              <span class="badge badge-advanced">Advanced</span>
+            </div>
+            <div class="text-secondary class-coach">Viktor S. • 60 min</div>
+            <div class="class-time" style="margin-top: 4px;">12:00 - 13:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Buttons</h2>
+      <button class="btn-primary">Remind Me</button>
+      <button class="btn-secondary">Cancel</button>
+
+      <div class="tab-bar">
+        <div class="tab active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Schedule
+        </div>
+        <div class="tab text-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Coaches
+        </div>
+        <div class="tab text-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Reminders
+        </div>
+        <div class="tab text-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Club
+        </div>
+      </div>
+    </div>
+
+    <!-- Light Theme -->
+    <div class="theme light">
+      <h1>Light Theme</h1>
+
+      <h2>Background Colors</h2>
+      <div style="display: flex; flex-wrap: wrap;">
+        <div class="color-swatch">
+          <div class="swatch" style="background: #BCDDE6; border-color: #9BC5D1;"></div>
+          <span class="swatch-label">bg-primary</span>
+          <span class="swatch-hex">#BCDDE6</span>
+        </div>
+        <div class="color-swatch">
+          <div class="swatch" style="background: #FFFFFF; border-color: #9BC5D1;"></div>
+          <span class="swatch-label">bg-card</span>
+          <span class="swatch-hex">#FFFFFF</span>
+        </div>
+        <div class="color-swatch">
+          <div class="swatch" style="background: #9BC5D1; border-color: #9BC5D1;"></div>
+          <span class="swatch-label">divider</span>
+          <span class="swatch-hex">#9BC5D1</span>
+        </div>
+      </div>
+
+      <h2>Accent Colors</h2>
+      <div class="accent-showcase">
+        <div class="accent-box accent-primary">#229C8B</div>
+        <div class="accent-box accent-active-light">#1A7A6D</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Sample Class Card</h2>
+      <div class="card">
+        <div class="class-card">
+          <div class="avatar">MK</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="class-name">Morning Yoga</span>
+              <span class="badge badge-beginner">Beginner</span>
+            </div>
+            <div class="text-secondary class-coach">Maria K. • 60 min</div>
+            <div class="class-time" style="margin-top: 4px;">09:00 - 10:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="class-card">
+          <div class="avatar">AT</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="class-name">HIIT Cardio</span>
+              <span class="badge badge-intermediate">Intermediate</span>
+            </div>
+            <div class="text-secondary class-coach">Alex T. • 45 min</div>
+            <div class="class-time" style="margin-top: 4px;">10:30 - 11:15</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="class-card">
+          <div class="avatar">VS</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="class-name">Power Strength</span>
+              <span class="badge badge-advanced">Advanced</span>
+            </div>
+            <div class="text-secondary class-coach">Viktor S. • 60 min</div>
+            <div class="class-time" style="margin-top: 4px;">12:00 - 13:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Buttons</h2>
+      <button class="btn-primary">Remind Me</button>
+      <button class="btn-secondary">Cancel</button>
+
+      <div class="tab-bar">
+        <div class="tab active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Schedule
+        </div>
+        <div class="tab text-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Coaches
+        </div>
+        <div class="tab text-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Reminders
+        </div>
+        <div class="tab text-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Club
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

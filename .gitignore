@@ -13,3 +13,5 @@ build
 
 tmp
 .env.local
+vite.config.*.timestamp*
+vitest.config.*.timestamp*

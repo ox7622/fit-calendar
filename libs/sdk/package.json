@@ -1,5 +1,5 @@
 {
-    "name": "@canalia/sdk",
+    "name": "@fitcalendar/sdk",
     "version": "0.0.1",
     "type": "commonjs",
     "exports": {

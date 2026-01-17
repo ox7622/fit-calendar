@@ -10,8 +10,8 @@ Read available workflows from current team configuration's `workflows` field. Ea
 
 **Key Commands**:
 
-- `/workflows` - List workflows in current bundle or workflows folder
-- `/agent-list` - Show agents in current bundle
+-   `/workflows` - List workflows in current bundle or workflows folder
+-   `/agent-list` - Show agents in current bundle
 
 ## Workflow Commands
 
@@ -49,10 +49,10 @@ Shows next recommended agent and action.
 
 When transitioning, pass:
 
-- Previous artifacts
-- Current workflow stage
-- Expected outputs
-- Decisions/constraints
+-   Previous artifacts
+-   Current workflow stage
+-   Expected outputs
+-   Decisions/constraints
 
 ## Multi-Path Workflows
 

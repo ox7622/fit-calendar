@@ -10,9 +10,9 @@ Generate a standalone quality gate file that provides a clear pass/fail decision
 
 ## Prerequisites
 
-- Story has been reviewed (manually or via review-story task)
-- Review findings are available
-- Understanding of story requirements and implementation
+-   Story has been reviewed (manually or via review-story task)
+-   Review findings are available
+-   Understanding of story requirements and implementation
 
 ## Gate File Location
 
@@ -20,10 +20,10 @@ Generate a standalone quality gate file that provides a clear pass/fail decision
 
 Slug rules:
 
-- Convert to lowercase
-- Replace spaces with hyphens
-- Strip punctuation
-- Example: "User Auth - Login!" becomes "user-auth-login"
+-   Convert to lowercase
+-   Replace spaces with hyphens
+-   Strip punctuation
+-   Example: "User Auth - Login!" becomes "user-auth-login"
 
 ## Minimal Required Schema
 
@@ -48,14 +48,14 @@ status_reason: 'Missing rate limiting on auth endpoints poses security risk.'
 reviewer: 'Quinn'
 updated: '2025-01-12T10:15:00Z'
 top_issues:
-  - id: 'SEC-001'
-    severity: high # ONLY: low|medium|high
-    finding: 'No rate limiting on login endpoint'
-    suggested_action: 'Add rate limiting middleware before production'
-  - id: 'TEST-001'
-    severity: medium
-    finding: 'No integration tests for auth flow'
-    suggested_action: 'Add integration test coverage'
+    - id: 'SEC-001'
+      severity: high # ONLY: low|medium|high
+      finding: 'No rate limiting on login endpoint'
+      suggested_action: 'Add rate limiting middleware before production'
+    - id: 'TEST-001'
+      severity: medium
+      finding: 'No integration tests for auth flow'
+      suggested_action: 'Add integration test coverage'
 waiver: { active: false }
 ```
 
@@ -69,69 +69,69 @@ status_reason: 'Known issues accepted for MVP release.'
 reviewer: 'Quinn'
 updated: '2025-01-12T10:15:00Z'
 top_issues:
-  - id: 'PERF-001'
-    severity: low
-    finding: 'Dashboard loads slowly with 1000+ items'
-    suggested_action: 'Implement pagination in next sprint'
+    - id: 'PERF-001'
+      severity: low
+      finding: 'Dashboard loads slowly with 1000+ items'
+      suggested_action: 'Implement pagination in next sprint'
 waiver:
-  active: true
-  reason: 'MVP release - performance optimization deferred'
-  approved_by: 'Product Owner'
+    active: true
+    reason: 'MVP release - performance optimization deferred'
+    approved_by: 'Product Owner'
 ```
 
 ## Gate Decision Criteria
 
 ### PASS
 
-- All acceptance criteria met
-- No high-severity issues
-- Test coverage meets project standards
+-   All acceptance criteria met
+-   No high-severity issues
+-   Test coverage meets project standards
 
 ### CONCERNS
 
-- Non-blocking issues present
-- Should be tracked and scheduled
-- Can proceed with awareness
+-   Non-blocking issues present
+-   Should be tracked and scheduled
+-   Can proceed with awareness
 
 ### FAIL
 
-- Acceptance criteria not met
-- High-severity issues present
-- Recommend return to InProgress
+-   Acceptance criteria not met
+-   High-severity issues present
+-   Recommend return to InProgress
 
 ### WAIVED
 
-- Issues explicitly accepted
-- Requires approval and reason
-- Proceed despite known issues
+-   Issues explicitly accepted
+-   Requires approval and reason
+-   Proceed despite known issues
 
 ## Severity Scale
 
 **FIXED VALUES - NO VARIATIONS:**
 
-- `low`: Minor issues, cosmetic problems
-- `medium`: Should fix soon, not blocking
-- `high`: Critical issues, should block release
+-   `low`: Minor issues, cosmetic problems
+-   `medium`: Should fix soon, not blocking
+-   `high`: Critical issues, should block release
 
 ## Issue ID Prefixes
 
-- `SEC-`: Security issues
-- `PERF-`: Performance issues
-- `REL-`: Reliability issues
-- `TEST-`: Testing gaps
-- `MNT-`: Maintainability concerns
-- `ARCH-`: Architecture issues
-- `DOC-`: Documentation gaps
-- `REQ-`: Requirements issues
+-   `SEC-`: Security issues
+-   `PERF-`: Performance issues
+-   `REL-`: Reliability issues
+-   `TEST-`: Testing gaps
+-   `MNT-`: Maintainability concerns
+-   `ARCH-`: Architecture issues
+-   `DOC-`: Documentation gaps
+-   `REQ-`: Requirements issues
 
 ## Output Requirements
 
 1. **ALWAYS** create gate file at: `qa.qaLocation/gates` from `.bmad-core/core-config.yaml`
 2. **ALWAYS** append this exact format to story's QA Results section:
 
-   ```text
-   Gate: {STATUS} → qa.qaLocation/gates/{epic}.{story}-{slug}.yml
-   ```
+    ```text
+    Gate: {STATUS} → qa.qaLocation/gates/{epic}.{story}-{slug}.yml
+    ```
 
 3. Keep status_reason to 1-2 sentences maximum
 4. Use severity values exactly: `low`, `medium`, or `high`
@@ -156,8 +156,8 @@ Gate: CONCERNS → qa.qaLocation/gates/{epic}.{story}-{slug}.yml
 
 ## Key Principles
 
-- Keep it minimal and predictable
-- Fixed severity scale (low/medium/high)
-- Always write to standard path
-- Always update story with gate reference
-- Clear, actionable findings
+-   Keep it minimal and predictable
+-   Fixed severity scale (low/medium/high)
+-   Always write to standard path
+-   Always update story with gate reference
+-   Clear, actionable findings

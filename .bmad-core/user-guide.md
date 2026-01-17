@@ -164,9 +164,9 @@ graph TD
 
 Before installing BMad Method, ensure you have:
 
-- **Node.js** ≥ 18, **npm** ≥ 9
-- **Git** installed and configured
-- **(Optional)** VS Code with "Markdown All in One" + "Markdown Preview Mermaid Support" extensions
+-   **Node.js** ≥ 18, **npm** ≥ 9
+-   **Git** installed and configured
+-   **(Optional)** VS Code with "Markdown All in One" + "Markdown Preview Mermaid Support" extensions
 
 ## Installation
 
@@ -191,74 +191,82 @@ npx bmad-method install
 
 BMAD integrates with OpenCode via a project-level `opencode.jsonc`/`opencode.json` (JSON-only, no Markdown fallback).
 
-- Installation:
-  - Run `npx bmad-method install` and choose `OpenCode` in the IDE list.
-  - The installer will detect an existing `opencode.jsonc`/`opencode.json` or create a minimal `opencode.jsonc` if missing.
-  - It will:
-    - Ensure `instructions` includes `.bmad-core/core-config.yaml` (and each selected expansion pack’s `config.yaml`).
-    - Merge BMAD agents and commands using file references (`{file:./.bmad-core/...}`), idempotently.
-    - Preserve other top-level fields and user-defined entries.
+-   Installation:
 
-- Prefixes and collisions:
-  - You can opt-in to prefix agent keys with `bmad-` and command keys with `bmad:tasks:` to avoid name collisions.
-  - If a key already exists and is not BMAD-managed, the installer will skip it and suggest enabling prefixes.
+    -   Run `npx bmad-method install` and choose `OpenCode` in the IDE list.
+    -   The installer will detect an existing `opencode.jsonc`/`opencode.json` or create a minimal `opencode.jsonc` if missing.
+    -   It will:
+        -   Ensure `instructions` includes `.bmad-core/core-config.yaml` (and each selected expansion pack’s `config.yaml`).
+        -   Merge BMAD agents and commands using file references (`{file:./.bmad-core/...}`), idempotently.
+        -   Preserve other top-level fields and user-defined entries.
 
-- What gets added:
-  - `instructions`: `.bmad-core/core-config.yaml` plus any selected expansion pack `config.yaml` files.
-  - `agent`: BMAD agents from core and selected packs.
-    - `prompt`: `{file:./.bmad-core/agents/<id>.md}` (or pack path)
-    - `mode`: `primary` for orchestrators, otherwise `all`
-    - `tools`: `{ write: true, edit: true, bash: true }`
-    - `description`: extracted from the agent’s `whenToUse`
-  - `command`: BMAD tasks from core and selected packs.
-    - `template`: `{file:./.bmad-core/tasks/<id>.md}` (or pack path)
-    - `description`: extracted from the task’s “Purpose” section
+-   Prefixes and collisions:
 
-- Selected Packages Only:
-  - The installer includes agents and tasks only from the packages you selected in the earlier step (core and chosen packs).
+    -   You can opt-in to prefix agent keys with `bmad-` and command keys with `bmad:tasks:` to avoid name collisions.
+    -   If a key already exists and is not BMAD-managed, the installer will skip it and suggest enabling prefixes.
 
-- Refresh after changes:
-  - Re-run:
-    ```bash
-    npx bmad-method install -f -i opencode
-    ```
-  - The installer safely updates entries without duplication and preserves your custom fields and comments.
+-   What gets added:
 
-- Optional convenience script:
-  - You can add a script to your project’s `package.json` for quick refreshes:
-    ```json
-    {
-      "scripts": {
-        "bmad:opencode": "bmad-method install -f -i opencode"
-      }
-    }
-    ```
+    -   `instructions`: `.bmad-core/core-config.yaml` plus any selected expansion pack `config.yaml` files.
+    -   `agent`: BMAD agents from core and selected packs.
+        -   `prompt`: `{file:./.bmad-core/agents/<id>.md}` (or pack path)
+        -   `mode`: `primary` for orchestrators, otherwise `all`
+        -   `tools`: `{ write: true, edit: true, bash: true }`
+        -   `description`: extracted from the agent’s `whenToUse`
+    -   `command`: BMAD tasks from core and selected packs.
+        -   `template`: `{file:./.bmad-core/tasks/<id>.md}` (or pack path)
+        -   `description`: extracted from the task’s “Purpose” section
+
+-   Selected Packages Only:
+
+    -   The installer includes agents and tasks only from the packages you selected in the earlier step (core and chosen packs).
+
+-   Refresh after changes:
+
+    -   Re-run:
+        ```bash
+        npx bmad-method install -f -i opencode
+        ```
+    -   The installer safely updates entries without duplication and preserves your custom fields and comments.
+
+-   Optional convenience script:
+    -   You can add a script to your project’s `package.json` for quick refreshes:
+        ```json
+        {
+            "scripts": {
+                "bmad:opencode": "bmad-method install -f -i opencode"
+            }
+        }
+        ```
 
 ### Codex (CLI & Web)
 
 BMAD integrates with OpenAI Codex via `AGENTS.md` and committed core agent files.
 
-- Two installation modes:
-  - Codex (local only): keeps `.bmad-core/` ignored for local dev.
-    - `npx bmad-method install -f -i codex -d .`
-  - Codex Web Enabled: ensures `.bmad-core/` is tracked so you can commit it for Codex Web.
-    - `npx bmad-method install -f -i codex-web -d .`
+-   Two installation modes:
 
-- What gets generated:
-  - `AGENTS.md` at the project root with a BMAD section containing
-    - How-to-use with Codex (CLI & Web)
-    - Agent Directory (Title, ID, When To Use)
-    - Detailed per‑agent sections with source path, when-to-use, activation phrasing, and YAML
-    - Tasks with quick usage notes
-  - If a `package.json` exists, helpful scripts are added:
-    - `bmad:refresh`, `bmad:list`, `bmad:validate`
+    -   Codex (local only): keeps `.bmad-core/` ignored for local dev.
+        -   `npx bmad-method install -f -i codex -d .`
+    -   Codex Web Enabled: ensures `.bmad-core/` is tracked so you can commit it for Codex Web.
+        -   `npx bmad-method install -f -i codex-web -d .`
 
-- Using Codex:
-  - CLI: run `codex` in the project root and prompt naturally, e.g., “As dev, implement …”.
-  - Web: commit `.bmad-core/` and `AGENTS.md`, then open the repo in Codex and prompt the same way.
+-   What gets generated:
 
-- Refresh after changes:
-  - Re-run the appropriate install mode (`codex` or `codex-web`) to update the BMAD block in `AGENTS.md`.
+    -   `AGENTS.md` at the project root with a BMAD section containing
+        -   How-to-use with Codex (CLI & Web)
+        -   Agent Directory (Title, ID, When To Use)
+        -   Detailed per‑agent sections with source path, when-to-use, activation phrasing, and YAML
+        -   Tasks with quick usage notes
+    -   If a `package.json` exists, helpful scripts are added:
+        -   `bmad:refresh`, `bmad:list`, `bmad:validate`
+
+-   Using Codex:
+
+    -   CLI: run `codex` in the project root and prompt naturally, e.g., “As dev, implement …”.
+    -   Web: commit `.bmad-core/` and `AGENTS.md`, then open the repo in Codex and prompt the same way.
+
+-   Refresh after changes:
+    -   Re-run the appropriate install mode (`codex` or `codex-web`) to update the BMAD block in `AGENTS.md`.
 
 ## Special Agents
 
@@ -282,21 +290,21 @@ Each agent has a YAML section that defines its dependencies:
 
 ```yaml
 dependencies:
-  templates:
-    - prd-template.md
-    - user-story-template.md
-  tasks:
-    - create-doc.md
-    - shard-doc.md
-  data:
-    - bmad-kb.md
+    templates:
+        - prd-template.md
+        - user-story-template.md
+    tasks:
+        - create-doc.md
+        - shard-doc.md
+    data:
+        - bmad-kb.md
 ```
 
 **Key Points:**
 
-- Agents only load resources they need (lean context)
-- Dependencies are automatically resolved during bundling
-- Resources are shared across agents to maintain consistency
+-   Agents only load resources they need (lean context)
+-   Dependencies are automatically resolved during bundling
+-   Resources are shared across agents to maintain consistency
 
 #### Agent Interaction
 
@@ -315,18 +323,18 @@ dependencies:
 
 #### Interactive Modes
 
-- **Incremental Mode**: Step-by-step with user input
-- **YOLO Mode**: Rapid generation with minimal interaction
+-   **Incremental Mode**: Step-by-step with user input
+-   **YOLO Mode**: Rapid generation with minimal interaction
 
 ## IDE Integration
 
 ### IDE Best Practices
 
-- **Context Management**: Keep relevant files only in context, keep files as lean and focused as necessary
-- **Agent Selection**: Use appropriate agent for task
-- **Iterative Development**: Work in small, focused tasks
-- **File Organization**: Maintain clean project structure
-- **Commit Regularly**: Save your work frequently
+-   **Context Management**: Keep relevant files only in context, keep files as lean and focused as necessary
+-   **Agent Selection**: Use appropriate agent for task
+-   **Iterative Development**: Work in small, focused tasks
+-   **File Organization**: Maintain clean project structure
+-   **Commit Regularly**: Save your work frequently
 
 ## The Test Architect (QA Agent)
 
@@ -365,10 +373,10 @@ The documentation uses short forms for convenience. Both styles are valid:
 
 Identifies and assesses implementation risks:
 
-- **Categories**: Technical, Security, Performance, Data, Business, Operational
-- **Scoring**: Probability × Impact analysis (1-9 scale)
-- **Mitigation**: Specific strategies for each identified risk
-- **Gate Impact**: Risks ≥9 trigger FAIL, ≥6 trigger CONCERNS (see `tasks/risk-profile.md` for authoritative rules)
+-   **Categories**: Technical, Security, Performance, Data, Business, Operational
+-   **Scoring**: Probability × Impact analysis (1-9 scale)
+-   **Mitigation**: Specific strategies for each identified risk
+-   **Gate Impact**: Risks ≥9 trigger FAIL, ≥6 trigger CONCERNS (see `tasks/risk-profile.md` for authoritative rules)
 
 #### 2. Test Design (`*design`)
 
@@ -376,25 +384,25 @@ Identifies and assesses implementation risks:
 
 Creates comprehensive test strategies including:
 
-- Test scenarios for each acceptance criterion
-- Appropriate test level recommendations (unit vs integration vs E2E)
-- Risk-based prioritization (P0/P1/P2)
-- Test data requirements and mock strategies
-- Execution strategies for CI/CD integration
+-   Test scenarios for each acceptance criterion
+-   Appropriate test level recommendations (unit vs integration vs E2E)
+-   Risk-based prioritization (P0/P1/P2)
+-   Test data requirements and mock strategies
+-   Execution strategies for CI/CD integration
 
 **Example output:**
 
 ```yaml
 test_summary:
-  total: 24
-  by_level:
-    unit: 15
-    integration: 7
-    e2e: 2
-  by_priority:
-    P0: 8 # Must have - linked to critical risks
-    P1: 10 # Should have - medium risks
-    P2: 6 # Nice to have - low risks
+    total: 24
+    by_level:
+        unit: 15
+        integration: 7
+        e2e: 2
+    by_priority:
+        P0: 8 # Must have - linked to critical risks
+        P1: 10 # Should have - medium risks
+        P2: 6 # Nice to have - low risks
 ```
 
 #### 3. Requirements Tracing (`*trace`)
@@ -403,10 +411,10 @@ test_summary:
 
 Maps requirements to test coverage:
 
-- Documents which tests validate each acceptance criterion
-- Uses Given-When-Then for clarity (documentation only, not BDD code)
-- Identifies coverage gaps with severity ratings
-- Creates traceability matrix for audit purposes
+-   Documents which tests validate each acceptance criterion
+-   Uses Given-When-Then for clarity (documentation only, not BDD code)
+-   Identifies coverage gaps with severity ratings
+-   Creates traceability matrix for audit purposes
 
 #### 4. NFR Assessment (`*nfr`)
 
@@ -414,9 +422,9 @@ Maps requirements to test coverage:
 
 Validates non-functional requirements:
 
-- **Core Four**: Security, Performance, Reliability, Maintainability
-- **Evidence-Based**: Looks for actual implementation proof
-- **Gate Integration**: NFR failures directly impact quality gates
+-   **Core Four**: Security, Performance, Reliability, Maintainability
+-   **Evidence-Based**: Looks for actual implementation proof
+-   **Gate Integration**: NFR failures directly impact quality gates
 
 #### 5. Comprehensive Test Architecture Review (`*review`)
 
@@ -424,11 +432,11 @@ Validates non-functional requirements:
 
 When you run `@qa *review {story}`, Quinn performs:
 
-- **Requirements Traceability**: Maps every acceptance criterion to its validating tests
-- **Test Level Analysis**: Ensures appropriate testing at unit, integration, and E2E levels
-- **Coverage Assessment**: Identifies gaps and redundant test coverage
-- **Active Refactoring**: Improves code quality directly when safe
-- **Quality Gate Decision**: Issues PASS/CONCERNS/FAIL status based on findings
+-   **Requirements Traceability**: Maps every acceptance criterion to its validating tests
+-   **Test Level Analysis**: Ensures appropriate testing at unit, integration, and E2E levels
+-   **Coverage Assessment**: Identifies gaps and redundant test coverage
+-   **Active Refactoring**: Improves code quality directly when safe
+-   **Quality Gate Decision**: Issues PASS/CONCERNS/FAIL status based on findings
 
 #### 6. Quality Gates (`*gate`)
 
@@ -436,10 +444,10 @@ When you run `@qa *review {story}`, Quinn performs:
 
 Manages quality gate decisions:
 
-- **Deterministic Rules**: Clear criteria for PASS/CONCERNS/FAIL
-- **Parallel Authority**: QA owns gate files in `docs/qa/gates/`
-- **Advisory Nature**: Provides recommendations, not blocks
-- **Waiver Support**: Documents accepted risks when needed
+-   **Deterministic Rules**: Clear criteria for PASS/CONCERNS/FAIL
+-   **Parallel Authority**: QA owns gate files in `docs/qa/gates/`
+-   **Advisory Nature**: Provides recommendations, not blocks
+-   **Waiver Support**: Documents accepted risks when needed
 
 **Note:** Gates are advisory; teams choose their quality bar. WAIVED requires reason, approver, and expiry date. See `templates/qa-gate-tmpl.yaml` for schema and `tasks/review-story.md` (gate rules) and `tasks/risk-profile.md` for scoring.
 
@@ -480,50 +488,50 @@ The Test Architect provides value throughout the entire development lifecycle. H
 
 Quinn enforces these test quality principles:
 
-- **No Flaky Tests**: Ensures reliability through proper async handling
-- **No Hard Waits**: Dynamic waiting strategies only
-- **Stateless & Parallel-Safe**: Tests run independently
-- **Self-Cleaning**: Tests manage their own test data
-- **Appropriate Test Levels**: Unit for logic, integration for interactions, E2E for journeys
-- **Explicit Assertions**: Keep assertions in tests, not helpers
+-   **No Flaky Tests**: Ensures reliability through proper async handling
+-   **No Hard Waits**: Dynamic waiting strategies only
+-   **Stateless & Parallel-Safe**: Tests run independently
+-   **Self-Cleaning**: Tests manage their own test data
+-   **Appropriate Test Levels**: Unit for logic, integration for interactions, E2E for journeys
+-   **Explicit Assertions**: Keep assertions in tests, not helpers
 
 ### Gate Status Meanings
 
-- **PASS**: All critical requirements met, no blocking issues
-- **CONCERNS**: Non-critical issues found, team should review
-- **FAIL**: Critical issues that should be addressed (security risks, missing P0 tests)
-- **WAIVED**: Issues acknowledged but explicitly accepted by team
+-   **PASS**: All critical requirements met, no blocking issues
+-   **CONCERNS**: Non-critical issues found, team should review
+-   **FAIL**: Critical issues that should be addressed (security risks, missing P0 tests)
+-   **WAIVED**: Issues acknowledged but explicitly accepted by team
 
 ### Special Situations
 
 **High-Risk Stories:**
 
-- Always run `*risk` and `*design` before development starts
-- Consider mid-development `*trace` and `*nfr` checkpoints
+-   Always run `*risk` and `*design` before development starts
+-   Consider mid-development `*trace` and `*nfr` checkpoints
 
 **Complex Integrations:**
 
-- Run `*trace` during development to ensure all integration points tested
-- Follow up with `*nfr` to validate performance across integrations
+-   Run `*trace` during development to ensure all integration points tested
+-   Follow up with `*nfr` to validate performance across integrations
 
 **Performance-Critical:**
 
-- Run `*nfr` early and often during development
-- Don't wait until review to discover performance issues
+-   Run `*nfr` early and often during development
+-   Don't wait until review to discover performance issues
 
 **Brownfield/Legacy Code:**
 
-- Start with `*risk` to identify regression dangers
-- Use `*review` with extra focus on backward compatibility
+-   Start with `*risk` to identify regression dangers
+-   Use `*review` with extra focus on backward compatibility
 
 ### Best Practices
 
-- **Early Engagement**: Run `*design` and `*risk` during story drafting
-- **Risk-Based Focus**: Let risk scores drive test prioritization
-- **Iterative Improvement**: Use QA feedback to improve future stories
-- **Gate Transparency**: Share gate decisions with the team
-- **Continuous Learning**: QA documents patterns for team knowledge sharing
-- **Brownfield Care**: Pay extra attention to regression risks in existing systems
+-   **Early Engagement**: Run `*design` and `*risk` during story drafting
+-   **Risk-Based Focus**: Let risk scores drive test prioritization
+-   **Iterative Improvement**: Use QA feedback to improve future stories
+-   **Gate Transparency**: Share gate decisions with the team
+-   **Continuous Learning**: QA documents patterns for team knowledge sharing
+-   **Brownfield Care**: Pay extra attention to regression risks in existing systems
 
 ### Output Paths Reference
 
@@ -556,9 +564,9 @@ Define which files the dev agent should always load:
 
 ```yaml
 devLoadAlwaysFiles:
-  - docs/architecture/coding-standards.md
-  - docs/architecture/tech-stack.md
-  - docs/architecture/project-structure.md
+    - docs/architecture/coding-standards.md
+    - docs/architecture/tech-stack.md
+    - docs/architecture/project-structure.md
 ```
 
 You will want to verify from sharding your architecture that these documents exist, that they are as lean as possible, and contain exactly the information you want your dev agent to ALWAYS load into its context. These are the rules the agent will follow.
@@ -567,10 +575,10 @@ As your project grows and the code starts to build consistent patterns, coding s
 
 ## Getting Help
 
-- **Discord Community**: [Join Discord](https://discord.gg/gk8jAdXWmj)
-- **GitHub Issues**: [Report bugs](https://github.com/bmadcode/bmad-method/issues)
-- **Documentation**: [Browse docs](https://github.com/bmadcode/bmad-method/docs)
-- **YouTube**: [BMadCode Channel](https://www.youtube.com/@BMadCode)
+-   **Discord Community**: [Join Discord](https://discord.gg/gk8jAdXWmj)
+-   **GitHub Issues**: [Report bugs](https://github.com/bmadcode/bmad-method/issues)
+-   **Documentation**: [Browse docs](https://github.com/bmadcode/bmad-method/docs)
+-   **YouTube**: [BMadCode Channel](https://www.youtube.com/@BMadCode)
 
 ## Conclusion
 

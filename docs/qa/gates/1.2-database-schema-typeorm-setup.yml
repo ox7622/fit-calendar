@@ -1,17 +1,17 @@
 schema: 1
-story: '1.2'
-story_title: 'Database Schema & TypeORM Setup'
+story: "1.2"
+story_title: "Database Schema & TypeORM Setup"
 gate: PASS
-status_reason: 'All 7 TypeORM entities implemented correctly with proper relations, indexes, migration, seed script, and 21 unit tests passing. Database connectivity verified via direct query.'
-reviewer: 'Quinn (Test Architect)'
-updated: '2026-01-17T12:00:00Z'
+status_reason: "All 7 TypeORM entities implemented correctly with proper relations, indexes, migration, seed script, and 21 unit tests passing. Database connectivity verified via direct query."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-01-17T12:00:00Z"
 
 top_issues: []
 waiver:
   active: false
 
 quality_score: 100
-expires: '2026-01-31T12:00:00Z'
+expires: "2026-01-31T12:00:00Z"
 
 evidence:
   tests_reviewed: 21
@@ -23,21 +23,21 @@ evidence:
 nfr_validation:
   security:
     status: PASS
-    notes: 'AdminUser stores bcrypt password hash correctly. No plaintext credentials. No SQL injection risks.'
+    notes: "AdminUser stores bcrypt password hash correctly. No plaintext credentials. No SQL injection risks."
   performance:
     status: PASS
-    notes: 'All required indexes created. BIGINT for telegramId. JSONB for workingHours.'
+    notes: "All required indexes created. BIGINT for telegramId. JSONB for workingHours."
   reliability:
     status: PASS
-    notes: 'Proper CASCADE deletes on reminders. Transaction support in seed script.'
+    notes: "Proper CASCADE deletes on reminders. Transaction support in seed script."
   maintainability:
     status: PASS
-    notes: 'Clean entity structure. Proper TypeORM patterns. Type-safe with TypeScript strict mode.'
+    notes: "Clean entity structure. Proper TypeORM patterns. Type-safe with TypeScript strict mode."
 
 recommendations:
   immediate: []
   future:
-    - action: 'Add partial index on idx_reminders_notify_at WHERE status = pending for optimization'
-      refs: ['libs/db/src/entities/reminder.entity.ts']
-    - action: 'Document db:seed command in README when documentation is requested'
-      refs: ['README.md']
+    - action: "Add partial index on idx_reminders_notify_at WHERE status = pending for optimization"
+      refs: ["libs/db/src/entities/reminder.entity.ts"]
+    - action: "Document db:seed command in README when documentation is requested"
+      refs: ["README.md"]

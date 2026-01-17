@@ -16,12 +16,12 @@ Brownfield development refers to adding features, fixing bugs, or modernizing ex
 
 ## When to Use BMad for Brownfield
 
-- Add significant new features to existing applications
-- Modernize legacy codebases
-- Integrate new technologies or services
-- Refactor complex systems
-- Fix bugs that require architectural understanding
-- Document undocumented systems
+-   Add significant new features to existing applications
+-   Modernize legacy codebases
+-   Integrate new technologies or services
+-   Refactor complex systems
+-   Fix bugs that require architectural understanding
+-   Document undocumented systems
 
 ## When NOT to use a Brownfield Flow
 
@@ -69,10 +69,10 @@ Starting in an IDE with large context and good models (Its important to use qual
 
 The PM will:
 
-- **Ask about your enhancement** requirements
-- **Explore the codebase** to understand current state
-- **Identify affected areas** that need documentation
-- **Create focused PRD** with clear scope
+-   **Ask about your enhancement** requirements
+-   **Explore the codebase** to understand current state
+-   **Identify affected areas** that need documentation
+-   **Create focused PRD** with clear scope
 
 **Key Advantage**: The PRD identifies which parts of your monorepo/large codebase actually need documentation!
 
@@ -87,25 +87,25 @@ The PM will:
 
 The architect will:
 
-- **Ask about your focus** if no PRD was provided
-- **Offer options**: Create PRD, provide requirements, or describe the enhancement
-- **Reference the PRD/description** to understand scope
-- **Focus on relevant modules** identified in PRD or your description
-- **Skip unrelated areas** to keep docs lean
-- **Generate ONE architecture document** for all environments
+-   **Ask about your focus** if no PRD was provided
+-   **Offer options**: Create PRD, provide requirements, or describe the enhancement
+-   **Reference the PRD/description** to understand scope
+-   **Focus on relevant modules** identified in PRD or your description
+-   **Skip unrelated areas** to keep docs lean
+-   **Generate ONE architecture document** for all environments
 
 The architect creates:
 
-- **One comprehensive architecture document** following fullstack-architecture template
-- **Covers all system aspects** in a single file
-- **Easy to copy and save** as `docs/architecture.md`
-- **Can be sharded later** in IDE if desired
+-   **One comprehensive architecture document** following fullstack-architecture template
+-   **Covers all system aspects** in a single file
+-   **Easy to copy and save** as `docs/architecture.md`
+-   **Can be sharded later** in IDE if desired
 
 For example, if you say "Add payment processing to user service":
 
-- Documents only: user service, API endpoints, database schemas, payment integrations
-- Creates focused source tree showing only payment-related code paths
-- Skips: admin panels, reporting modules, unrelated microservices
+-   Documents only: user service, API endpoints, database schemas, payment integrations
+-   Creates focused source tree showing only payment-related code paths
+-   Skips: admin panels, reporting modules, unrelated microservices
 
 ### Approach B: Document-First Workflow
 
@@ -115,8 +115,8 @@ For example, if you say "Add payment processing to user service":
 
 1. **Go to Gemini Web** (gemini.google.com)
 2. **Upload your project**:
-   - **Option A**: Paste your GitHub repository URL directly
-   - **Option B**: Upload your flattened-codebase.xml file
+    - **Option A**: Paste your GitHub repository URL directly
+    - **Option B**: Upload your flattened-codebase.xml file
 3. **Load the architect agent**: Upload `dist/agents/architect.txt`
 4. **Run documentation**: Type `*document-project`
 
@@ -135,23 +135,23 @@ The architect will generate comprehensive documentation of everything.
 
 The PM agent will:
 
-- **Analyze existing documentation** from Phase 1
-- **Request specific enhancement details** from you
-- **Assess complexity** and recommend approach
-- **Create epic/story structure** for the enhancement
-- **Identify risks and integration points**
+-   **Analyze existing documentation** from Phase 1
+-   **Request specific enhancement details** from you
+-   **Assess complexity** and recommend approach
+-   **Create epic/story structure** for the enhancement
+-   **Identify risks and integration points**
 
 **How PM Agent Gets Project Context**:
 
-- In Gemini Web: Already has full project context from Phase 1 documentation
-- In IDE: Will ask "Please provide the path to your existing project documentation"
+-   In Gemini Web: Already has full project context from Phase 1 documentation
+-   In IDE: Will ask "Please provide the path to your existing project documentation"
 
 **Key Prompts You'll Encounter**:
 
-- "What specific enhancement or feature do you want to add?"
-- "Are there any existing systems or APIs this needs to integrate with?"
-- "What are the critical constraints we must respect?"
-- "What is your timeline and team size?"
+-   "What specific enhancement or feature do you want to add?"
+-   "Are there any existing systems or APIs this needs to integrate with?"
+-   "What are the critical constraints we must respect?"
+-   "What is your timeline and team size?"
 
 **2. Create Brownfield Architecture**:
 
@@ -162,11 +162,11 @@ The PM agent will:
 
 The architect will:
 
-- **Review the brownfield PRD**
-- **Design integration strategy**
-- **Plan migration approach** if needed
-- **Identify technical risks**
-- **Define compatibility requirements**
+-   **Review the brownfield PRD**
+-   **Design integration strategy**
+-   **Plan migration approach** if needed
+-   **Identify technical risks**
+-   **Define compatibility requirements**
 
 ##### Option B: Quick Enhancement (For Focused Changes)
 
@@ -179,10 +179,10 @@ The architect will:
 
 Use when:
 
-- Enhancement is well-defined and isolated
-- Existing documentation is comprehensive
-- Changes don't impact multiple systems
-- You need quick turnaround
+-   Enhancement is well-defined and isolated
+-   Existing documentation is comprehensive
+-   Changes don't impact multiple systems
+-   You need quick turnaround
 
 **For Single Story**:
 
@@ -193,10 +193,10 @@ Use when:
 
 Use when:
 
-- Bug fix or tiny feature
-- Very isolated change
-- No architectural impact
-- Clear implementation path
+-   Bug fix or tiny feature
+-   Very isolated change
+-   No architectural impact
+-   Clear implementation path
 
 ### Phase 3: Validate Planning Artifacts
 
@@ -207,10 +207,10 @@ Use when:
 
 The PO ensures:
 
-- Compatibility with existing system
-- No breaking changes planned
-- Risk mitigation strategies in place
-- Clear integration approach
+-   Compatibility with existing system
+-   No breaking changes planned
+-   Risk mitigation strategies in place
+-   Clear integration approach
 
 ### Phase 4: Save and Shard Documents
 
@@ -221,15 +221,15 @@ The PO ensures:
 2. Shard your docs:
    In your IDE
 
-   ```bash
-   @po
-   shard docs/prd.md
-   ```
+    ```bash
+    @po
+    shard docs/prd.md
+    ```
 
-   ```bash
-   @po
-   shard docs/architecture.md
-   ```
+    ```bash
+    @po
+    shard docs/architecture.md
+    ```
 
 ### Phase 5: Transition to Development
 
@@ -241,27 +241,27 @@ The PO ensures:
 
 Even if you think you know the codebase:
 
-- Run `document-project` to capture current state
-- AI agents need this context
-- Discovers undocumented patterns
+-   Run `document-project` to capture current state
+-   AI agents need this context
+-   Discovers undocumented patterns
 
 ### 2. Respect Existing Patterns
 
 The brownfield templates specifically look for:
 
-- Current coding conventions
-- Existing architectural patterns
-- Technology constraints
-- Team preferences
+-   Current coding conventions
+-   Existing architectural patterns
+-   Technology constraints
+-   Team preferences
 
 ### 3. Plan for Gradual Rollout
 
 Brownfield changes should:
 
-- Support feature flags
-- Plan rollback strategies
-- Include migration scripts
-- Maintain backwards compatibility
+-   Support feature flags
+-   Plan rollback strategies
+-   Include migration scripts
+-   Maintain backwards compatibility
 
 ### 4. Test Integration Thoroughly
 
@@ -351,12 +351,12 @@ The Test Architect addresses unique brownfield complexities:
 
 The review specifically analyzes:
 
-- **API Breaking Changes**: Validates all existing contracts maintained
-- **Data Migration Safety**: Checks transformation logic and rollback procedures
-- **Performance Regression**: Compares against baseline metrics
-- **Integration Points**: Validates all touchpoints with legacy code
-- **Feature Flag Logic**: Ensures proper toggle behavior
-- **Dependency Impacts**: Maps affected downstream systems
+-   **API Breaking Changes**: Validates all existing contracts maintained
+-   **Data Migration Safety**: Checks transformation logic and rollback procedures
+-   **Performance Regression**: Compares against baseline metrics
+-   **Integration Points**: Validates all touchpoints with legacy code
+-   **Feature Flag Logic**: Ensures proper toggle behavior
+-   **Dependency Impacts**: Maps affected downstream systems
 
 ##### Stage 4: Post-Review (Gate Updates)
 
@@ -386,13 +386,13 @@ The Test Architect uses enhanced risk scoring for brownfield:
 
 Quinn enforces additional standards for brownfield:
 
-- **Regression Test Coverage**: Every touched legacy module needs tests
-- **Performance Baselines**: Must maintain or improve current metrics
-- **Rollback Procedures**: Every change needs a rollback plan
-- **Feature Flags**: All risky changes behind toggles
-- **Integration Tests**: Cover all legacy touchpoints
-- **Contract Tests**: Validate API compatibility
-- **Data Validation**: Migration correctness checks
+-   **Regression Test Coverage**: Every touched legacy module needs tests
+-   **Performance Baselines**: Must maintain or improve current metrics
+-   **Rollback Procedures**: Every change needs a rollback plan
+-   **Feature Flags**: All risky changes behind toggles
+-   **Integration Tests**: Cover all legacy touchpoints
+-   **Contract Tests**: Validate API compatibility
+-   **Data Validation**: Migration correctness checks
 
 #### Quick Reference: Brownfield Test Commands
 
@@ -409,37 +409,40 @@ Quinn enforces additional standards for brownfield:
 **Scenario-Specific Guidance:**
 
 1. **Legacy Code Modernization**
-   - Start with `*risk` to map all dependencies
-   - Use `*design` to plan strangler fig approach
-   - Run `*trace` frequently to ensure nothing breaks
-   - `*review` with focus on gradual migration
+
+    - Start with `*risk` to map all dependencies
+    - Use `*design` to plan strangler fig approach
+    - Run `*trace` frequently to ensure nothing breaks
+    - `*review` with focus on gradual migration
 
 2. **Adding Features to Monolith**
-   - `*risk` identifies integration complexity
-   - `*design` plans isolation strategies
-   - `*nfr` monitors performance impact
-   - `*review` validates no monolith degradation
+
+    - `*risk` identifies integration complexity
+    - `*design` plans isolation strategies
+    - `*nfr` monitors performance impact
+    - `*review` validates no monolith degradation
 
 3. **Microservice Extraction**
-   - `*risk` maps service boundaries
-   - `*trace` ensures functionality preservation
-   - `*nfr` validates network overhead acceptable
-   - `*gate` documents accepted trade-offs
+
+    - `*risk` maps service boundaries
+    - `*trace` ensures functionality preservation
+    - `*nfr` validates network overhead acceptable
+    - `*gate` documents accepted trade-offs
 
 4. **Database Schema Changes**
-   - `*risk` assesses migration complexity
-   - `*design` plans backward-compatible approach
-   - `*trace` maps all affected queries
-   - `*review` validates migration safety
+    - `*risk` assesses migration complexity
+    - `*design` plans backward-compatible approach
+    - `*trace` maps all affected queries
+    - `*review` validates migration safety
 
 ### 5. Communicate Changes
 
 Document:
 
-- What changed and why
-- Migration instructions
-- New patterns introduced
-- Deprecation notices
+-   What changed and why
+-   Migration instructions
+-   New patterns introduced
+-   Deprecation notices
 
 ## Common Brownfield Scenarios
 
@@ -448,13 +451,13 @@ Document:
 1. Document existing system
 2. Create brownfield PRD focusing on integration
 3. **Test Architect Early Involvement**:
-   - Run `@qa *risk` on draft stories to identify integration risks
-   - Use `@qa *design` to plan regression test strategy
+    - Run `@qa *risk` on draft stories to identify integration risks
+    - Use `@qa *design` to plan regression test strategy
 4. Architecture emphasizes compatibility
 5. Stories include integration tasks with test requirements
 6. **During Development**:
-   - Developer runs `@qa *trace` to verify coverage
-   - Use `@qa *nfr` to monitor performance impact
+    - Developer runs `@qa *trace` to verify coverage
+    - Use `@qa *nfr` to monitor performance impact
 7. **Review Stage**: `@qa *review` validates integration safety
 
 ### Scenario 2: Modernizing Legacy Code
@@ -462,13 +465,13 @@ Document:
 1. Extensive documentation phase
 2. PRD includes migration strategy
 3. **Test Architect Strategy Planning**:
-   - `@qa *risk` assesses modernization complexity
-   - `@qa *design` plans parallel testing approach
+    - `@qa *risk` assesses modernization complexity
+    - `@qa *design` plans parallel testing approach
 4. Architecture plans gradual transition (strangler fig pattern)
 5. Stories follow incremental modernization with:
-   - Regression tests for untouched legacy code
-   - Integration tests for new/old boundaries
-   - Performance benchmarks at each stage
+    - Regression tests for untouched legacy code
+    - Integration tests for new/old boundaries
+    - Performance benchmarks at each stage
 6. **Continuous Validation**: Run `@qa *trace` after each increment
 7. **Gate Management**: Use `@qa *gate` to track technical debt acceptance
 
@@ -481,28 +484,28 @@ Document:
 5. **During Fix**: Use `@qa *trace` to map affected functionality
 6. **Before Commit**: Run `@qa *review` for comprehensive validation
 7. Test Architect validates no side effects using:
-   - Risk profiling for side effect analysis (probability × impact scoring)
-   - Trace matrix to ensure fix doesn't break related features
-   - NFR assessment to verify performance/security unchanged
-   - Gate decision documents fix safety
+    - Risk profiling for side effect analysis (probability × impact scoring)
+    - Trace matrix to ensure fix doesn't break related features
+    - NFR assessment to verify performance/security unchanged
+    - Gate decision documents fix safety
 
 ### Scenario 4: API Integration
 
 1. Document existing API patterns
 2. PRD defines integration requirements
 3. **Test Architect Contract Analysis**:
-   - `@qa *risk` identifies breaking change potential
-   - `@qa *design` creates contract test strategy
+    - `@qa *risk` identifies breaking change potential
+    - `@qa *design` creates contract test strategy
 4. Architecture ensures consistent patterns
 5. **API Testing Focus**:
-   - Contract tests for backward compatibility
-   - Integration tests for new endpoints
-   - Performance tests for added load
+    - Contract tests for backward compatibility
+    - Integration tests for new endpoints
+    - Performance tests for added load
 6. Stories include API documentation updates
 7. **Validation Checkpoints**:
-   - `@qa *trace` maps all API consumers
-   - `@qa *nfr` validates response times
-   - `@qa *review` ensures no breaking changes
+    - `@qa *trace` maps all API consumers
+    - `@qa *nfr` validates response times
+    - `@qa *review` ensures no breaking changes
 8. **Gate Decision**: Document any accepted breaking changes with migration path
 
 ## Troubleshooting

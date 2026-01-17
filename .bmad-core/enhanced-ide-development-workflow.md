@@ -100,25 +100,28 @@ The Test Architect (Quinn) provides comprehensive quality assurance throughout t
 **What Happens During Review:**
 
 1. **Deep Code Analysis**
-   - Architecture pattern compliance
-   - Code quality and maintainability
-   - Security vulnerability scanning
-   - Performance bottleneck detection
+
+    - Architecture pattern compliance
+    - Code quality and maintainability
+    - Security vulnerability scanning
+    - Performance bottleneck detection
 
 2. **Active Refactoring**
-   - Improves code directly when safe
-   - Fixes obvious issues immediately
-   - Suggests complex refactoring for dev
+
+    - Improves code directly when safe
+    - Fixes obvious issues immediately
+    - Suggests complex refactoring for dev
 
 3. **Test Validation**
-   - Coverage at all levels (unit/integration/E2E)
-   - Test quality (no flaky tests, proper assertions)
-   - Regression test adequacy
+
+    - Coverage at all levels (unit/integration/E2E)
+    - Test quality (no flaky tests, proper assertions)
+    - Regression test adequacy
 
 4. **Gate Decision**
-   - Creates: `docs/qa/gates/{epic}.{story}-{slug}.yml`
-   - Adds: QA Results section to story file
-   - Status: PASS/CONCERNS/FAIL/WAIVED
+    - Creates: `docs/qa/gates/{epic}.{story}-{slug}.yml`
+    - Adds: QA Results section to story file
+    - Status: PASS/CONCERNS/FAIL/WAIVED
 
 ### Stage 4: Post-Review (After Addressing Issues)
 
@@ -170,37 +173,37 @@ The Test Architect uses risk scoring to prioritize testing:
 
 #### Complex Integrations
 
-- Run `*trace` multiple times during development
-- Focus on integration test coverage
-- Use `*nfr` to validate cross-system performance
-- Review with extra attention to API contracts
+-   Run `*trace` multiple times during development
+-   Focus on integration test coverage
+-   Use `*nfr` to validate cross-system performance
+-   Review with extra attention to API contracts
 
 #### Performance-Critical Features
 
-- Run `*nfr` early and often (not just at review)
-- Establish performance baselines before changes
-- Document acceptable performance degradation
-- Consider load testing requirements in `*design`
+-   Run `*nfr` early and often (not just at review)
+-   Establish performance baselines before changes
+-   Document acceptable performance degradation
+-   Consider load testing requirements in `*design`
 
 ### Test Quality Standards Enforced
 
 Quinn ensures all tests meet these standards:
 
-- **No Flaky Tests**: Proper async handling, explicit waits
-- **No Hard Waits**: Dynamic strategies only (polling, events)
-- **Stateless**: Tests run independently and in parallel
-- **Self-Cleaning**: Tests manage their own test data
-- **Appropriate Levels**: Unit for logic, integration for interactions, E2E for journeys
-- **Clear Assertions**: Keep assertions in tests, not buried in helpers
+-   **No Flaky Tests**: Proper async handling, explicit waits
+-   **No Hard Waits**: Dynamic strategies only (polling, events)
+-   **Stateless**: Tests run independently and in parallel
+-   **Self-Cleaning**: Tests manage their own test data
+-   **Appropriate Levels**: Unit for logic, integration for interactions, E2E for journeys
+-   **Clear Assertions**: Keep assertions in tests, not buried in helpers
 
 ### Documentation & Audit Trail
 
 All Test Architect activities create permanent records:
 
-- **Assessment Reports**: Timestamped analysis in `docs/qa/assessments/`
-- **Gate Files**: Decision records in `docs/qa/gates/`
-- **Story Updates**: QA Results sections in story files
-- **Traceability**: Requirements to test mapping maintained
+-   **Assessment Reports**: Timestamped analysis in `docs/qa/assessments/`
+-   **Gate Files**: Decision records in `docs/qa/gates/`
+-   **Story Updates**: QA Results sections in story files
+-   **Traceability**: Requirements to test mapping maintained
 
 ## Commit Changes and Push
 
@@ -240,9 +243,9 @@ All Test Architect activities create permanent records:
 
 The Test Architect helps achieve:
 
-- **Zero regression defects** in production
-- **100% requirements coverage** with tests
-- **Clear quality gates** for go/no-go decisions
-- **Documented risk acceptance** for technical debt
-- **Consistent test quality** across the team
-- **Shift-left testing** with early risk identification
+-   **Zero regression defects** in production
+-   **100% requirements coverage** with tests
+-   **Clear quality gates** for go/no-go decisions
+-   **Documented risk acceptance** for technical debt
+-   **Consistent test quality** across the team
+-   **Shift-left testing** with early risk identification

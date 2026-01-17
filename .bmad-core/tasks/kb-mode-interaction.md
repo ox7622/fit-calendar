@@ -33,25 +33,25 @@ Or ask me about anything else related to BMad-Method!
 
 ### 3. Respond Contextually
 
-- Wait for user's specific question or topic selection
-- Provide focused, relevant information from the knowledge base
-- Offer to dive deeper or explore related topics
-- Keep responses concise unless user asks for detailed explanations
+-   Wait for user's specific question or topic selection
+-   Provide focused, relevant information from the knowledge base
+-   Offer to dive deeper or explore related topics
+-   Keep responses concise unless user asks for detailed explanations
 
 ### 4. Interactive Exploration
 
-- After answering, suggest related topics they might find helpful
-- Maintain conversational flow rather than data dumping
-- Use examples when appropriate
-- Reference specific documentation sections when relevant
+-   After answering, suggest related topics they might find helpful
+-   Maintain conversational flow rather than data dumping
+-   Use examples when appropriate
+-   Reference specific documentation sections when relevant
 
 ### 5. Exit Gracefully
 
 When user is done or wants to exit KB mode:
 
-- Summarize key points discussed if helpful
-- Remind them they can return to KB mode anytime with \*kb-mode
-- Suggest next steps based on what was discussed
+-   Summarize key points discussed if helpful
+-   Remind them they can return to KB mode anytime with \*kb-mode
+-   Suggest next steps based on what was discussed
 
 ## Example Interaction
 

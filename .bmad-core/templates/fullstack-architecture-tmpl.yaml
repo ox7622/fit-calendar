@@ -157,29 +157,11 @@ sections:
         columns: [Category, Technology, Version, Purpose, Rationale]
         rows:
           - ["Frontend Language", "{{fe_language}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
-          - [
-              "Frontend Framework",
-              "{{fe_framework}}",
-              "{{version}}",
-              "{{purpose}}",
-              "{{why_chosen}}",
-            ]
-          - [
-              "UI Component Library",
-              "{{ui_library}}",
-              "{{version}}",
-              "{{purpose}}",
-              "{{why_chosen}}",
-            ]
+          - ["Frontend Framework", "{{fe_framework}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
+          - ["UI Component Library", "{{ui_library}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
           - ["State Management", "{{state_mgmt}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
           - ["Backend Language", "{{be_language}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
-          - [
-              "Backend Framework",
-              "{{be_framework}}",
-              "{{version}}",
-              "{{purpose}}",
-              "{{why_chosen}}",
-            ]
+          - ["Backend Framework", "{{be_framework}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
           - ["API Style", "{{api_style}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
           - ["Database", "{{database}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]
           - ["Cache", "{{cache}}", "{{version}}", "{{purpose}}", "{{why_chosen}}"]

@@ -1,1 +1,2 @@
-export * from './lib/db';
+export * from './entities';
+export * from './data-source';

@@ -5,8 +5,8 @@ import { DocumentBuilder } from '@nestjs/swagger';
  */
 export function createSwaggerConfig() {
     return new DocumentBuilder()
-        .setTitle('Canalia API')
-        .setDescription('API для работы с данными Canalia')
+        .setTitle('FitCalendar API')
+        .setDescription('API для работы с данными FitCalendar')
         .setVersion('1.0')
         .addTag('API')
         .build();

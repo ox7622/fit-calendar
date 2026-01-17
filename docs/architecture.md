@@ -11,32 +11,34 @@ This unified approach combines what would traditionally be separate backend and 
 **Base:** Existing Nx monorepo starter with NestJS + React
 
 **Adaptations Required:**
-- Migrate frontend bundler from Webpack to Vite
-- Keep TypeORM (existing migrations infrastructure)
-- Rename and restructure apps to match PRD requirements
+
+-   Migrate frontend bundler from Webpack to Vite
+-   Keep TypeORM (existing migrations infrastructure)
+-   Rename and restructure apps to match PRD requirements
 
 **App Restructuring:**
 
-| Current | New Name | Purpose |
-|---------|----------|---------|
-| `fe-main` | `admin` | Admin Panel (React + Vite) |
-| `be-api-main` | `api` | NestJS Backend API |
-| *(new)* | `mini-app` | Telegram Mini App (React + Vite) |
-| *(new)* | `bot` | Telegram Bot (grammY) |
+| Current       | New Name   | Purpose                          |
+| ------------- | ---------- | -------------------------------- |
+| `fe-main`     | `admin`    | Admin Panel (React + Vite)       |
+| `be-api-main` | `api`      | NestJS Backend API               |
+| _(new)_       | `mini-app` | Telegram Mini App (React + Vite) |
+| _(new)_       | `bot`      | Telegram Bot (grammY)            |
 
 **Retained from Starter:**
-- Nx 21 workspace configuration
-- NestJS 11 with TypeORM
-- PostgreSQL database setup
-- Docker Compose for local development
-- ESLint + Prettier configuration
-- Commit conventions (commitlint, husky)
+
+-   Nx 21 workspace configuration
+-   NestJS 11 with TypeORM
+-   PostgreSQL database setup
+-   Docker Compose for local development
+-   ESLint + Prettier configuration
+-   Commit conventions (commitlint, husky)
 
 ### 1.2 Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2026-01-09 | 1.0 | Initial Architecture Document | Winston (Architect) |
+| Date       | Version | Description                   | Author              |
+| ---------- | ------- | ----------------------------- | ------------------- |
+| 2026-01-09 | 1.0     | Initial Architecture Document | Winston (Architect) |
 
 ---
 
@@ -116,52 +118,52 @@ graph TB
 
 ### 2.5 Architectural Patterns
 
-- **Monolithic API:** Single NestJS service handles all business logic — appropriate for MVP scale
-- **Module-Based Backend:** NestJS modules for domain separation (schedule, coaches, users, reminders)
-- **Shared Component Library:** Common UI components in `libs/ui` for consistent design
-- **Repository Pattern:** TypeORM repositories abstract data access
-- **Webhook-Based Bot:** grammY with webhook mode for production efficiency
-- **API-First Design:** OpenAPI/Swagger documentation generated from decorators
+-   **Monolithic API:** Single NestJS service handles all business logic — appropriate for MVP scale
+-   **Module-Based Backend:** NestJS modules for domain separation (schedule, coaches, users, reminders)
+-   **Shared Component Library:** Common UI components in `libs/ui` for consistent design
+-   **Repository Pattern:** TypeORM repositories abstract data access
+-   **Webhook-Based Bot:** grammY with webhook mode for production efficiency
+-   **API-First Design:** OpenAPI/Swagger documentation generated from decorators
 
 ---
 
 ## 3. Tech Stack
 
-| Category | Technology | Version | Purpose |
-|----------|------------|---------|---------|
-| Frontend Language | TypeScript | 5.8 | Type-safe frontend code |
-| Frontend Framework | React | 19.0 | UI components |
-| Build Tool | Vite | 6.x | Frontend bundling |
-| UI Components | Custom + Radix | - | Accessible primitives |
-| CSS Framework | Tailwind CSS | 3.x | Utility-first styling |
-| State Management | Zustand | 5.x | Client state |
-| Animation | Framer Motion | 11.x | Gestures & animations |
-| Backend Language | TypeScript | 5.8 | Type-safe backend |
-| Backend Framework | NestJS | 11.0 | API server |
-| API Style | REST + OpenAPI | 3.0 | API specification |
-| Database | PostgreSQL | 16.x | Primary data store |
-| ORM | TypeORM | 0.3.x | Database access |
-| Bot Framework | grammY | 1.x | Telegram bot |
-| Authentication | Telegram WebApp + JWT | - | User auth |
-| File Storage | Cloudinary | - | Image optimization |
-| Frontend Testing | Vitest | 3.x | Unit/component tests |
-| Backend Testing | Jest | 29.x | Unit/integration tests |
-| E2E Testing | Playwright | 1.x | End-to-end tests |
-| Monorepo | Nx | 21.x | Workspace management |
-| Package Manager | pnpm | 9.x | Dependency management |
-| CI/CD | GitHub Actions | - | Automated pipelines |
-| Containerization | Docker | - | Deployment |
-| Logging | Pino | 9.x | Structured logging |
-| Monitoring | Sentry | - | Error tracking |
-| Icons | Lucide React | - | Icon library |
+| Category           | Technology            | Version | Purpose                 |
+| ------------------ | --------------------- | ------- | ----------------------- |
+| Frontend Language  | TypeScript            | 5.8     | Type-safe frontend code |
+| Frontend Framework | React                 | 19.0    | UI components           |
+| Build Tool         | Vite                  | 6.x     | Frontend bundling       |
+| UI Components      | Custom + Radix        | -       | Accessible primitives   |
+| CSS Framework      | Tailwind CSS          | 3.x     | Utility-first styling   |
+| State Management   | Zustand               | 5.x     | Client state            |
+| Animation          | Framer Motion         | 11.x    | Gestures & animations   |
+| Backend Language   | TypeScript            | 5.8     | Type-safe backend       |
+| Backend Framework  | NestJS                | 11.0    | API server              |
+| API Style          | REST + OpenAPI        | 3.0     | API specification       |
+| Database           | PostgreSQL            | 16.x    | Primary data store      |
+| ORM                | TypeORM               | 0.3.x   | Database access         |
+| Bot Framework      | grammY                | 1.x     | Telegram bot            |
+| Authentication     | Telegram WebApp + JWT | -       | User auth               |
+| File Storage       | Cloudinary            | -       | Image optimization      |
+| Frontend Testing   | Vitest                | 3.x     | Unit/component tests    |
+| Backend Testing    | Jest                  | 29.x    | Unit/integration tests  |
+| E2E Testing        | Playwright            | 1.x     | End-to-end tests        |
+| Monorepo           | Nx                    | 21.x    | Workspace management    |
+| Package Manager    | pnpm                  | 9.x     | Dependency management   |
+| CI/CD              | GitHub Actions        | -       | Automated pipelines     |
+| Containerization   | Docker                | -       | Deployment              |
+| Logging            | Pino                  | 9.x     | Structured logging      |
+| Monitoring         | Sentry                | -       | Error tracking          |
+| Icons              | Lucide React          | -       | Icon library            |
 
 ### Key Technology Decisions
 
-- **Zustand over Redux:** Mini App needs minimal state, Zustand is ~2KB vs Redux ~30KB
-- **Vitest over Jest (frontend):** Native Vite integration, faster execution
-- **grammY over Telegraf:** TypeScript-first, modern API, active maintenance
-- **Pino over Winston:** 5x faster, JSON output, lower memory footprint
-- **No Redis initially:** In-memory cache sufficient for single instance MVP
+-   **Zustand over Redux:** Mini App needs minimal state, Zustand is ~2KB vs Redux ~30KB
+-   **Vitest over Jest (frontend):** Native Vite integration, faster execution
+-   **grammY over Telegraf:** TypeScript-first, modern API, active maintenance
+-   **Pino over Winston:** 5x faster, JSON output, lower memory footprint
+-   **No Redis initially:** In-memory cache sufficient for single instance MVP
 
 ---
 
@@ -169,104 +171,104 @@ graph TB
 
 ### 4.1 Entity Overview
 
-| Entity | Purpose |
-|--------|---------|
-| **User** | Telegram user interacting with Mini App/Bot |
-| **Coach** | Fitness instructor who teaches classes |
-| **TrainingType** | Definition of a class type with difficulty/impact |
-| **ScheduleEntry** | Specific class instance on the schedule |
-| **Reminder** | User subscription for class notification |
-| **ClubInfo** | Singleton with club contact information |
-| **AdminUser** | Staff member with admin panel access |
+| Entity            | Purpose                                           |
+| ----------------- | ------------------------------------------------- |
+| **User**          | Telegram user interacting with Mini App/Bot       |
+| **Coach**         | Fitness instructor who teaches classes            |
+| **TrainingType**  | Definition of a class type with difficulty/impact |
+| **ScheduleEntry** | Specific class instance on the schedule           |
+| **Reminder**      | User subscription for class notification          |
+| **ClubInfo**      | Singleton with club contact information           |
+| **AdminUser**     | Staff member with admin panel access              |
 
 ### 4.2 TypeScript Interfaces
 
 ```typescript
 // User - Telegram user
 interface User {
-  id: string;
-  telegramId: number;
-  firstName: string;
-  lastName: string | null;
-  username: string | null;
-  reminderMinutes: number; // default: 30
-  createdAt: Date;
-  updatedAt: Date;
+    id: string;
+    telegramId: number;
+    firstName: string;
+    lastName: string | null;
+    username: string | null;
+    reminderMinutes: number; // default: 30
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // Coach - Fitness instructor
 interface Coach {
-  id: string;
-  name: string;
-  bio: string | null;
-  photoUrl: string | null;
-  specializations: string[];
-  certifications: string[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+    id: string;
+    name: string;
+    bio: string | null;
+    photoUrl: string | null;
+    specializations: string[];
+    certifications: string[];
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // TrainingType - Class definition
 interface TrainingType {
-  id: string;
-  name: string;
-  description: string | null;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  impactTypes: ('cardio' | 'strength' | 'flexibility' | 'balance')[];
-  equipment: string[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+    id: string;
+    name: string;
+    description: string | null;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    impactTypes: ('cardio' | 'strength' | 'flexibility' | 'balance')[];
+    equipment: string[];
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // ScheduleEntry - Specific class instance
 interface ScheduleEntry {
-  id: string;
-  trainingTypeId: string;
-  coachId: string;
-  startTime: Date;
-  durationMinutes: number;
-  status: 'scheduled' | 'cancelled';
-  cancellationReason: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+    id: string;
+    trainingTypeId: string;
+    coachId: string;
+    startTime: Date;
+    durationMinutes: number;
+    status: 'scheduled' | 'cancelled';
+    cancellationReason: string | null;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // Reminder - Notification subscription
 interface Reminder {
-  id: string;
-  userId: string;
-  scheduleEntryId: string;
-  notifyAt: Date;
-  status: 'pending' | 'sent' | 'failed';
-  sentAt: Date | null;
-  createdAt: Date;
+    id: string;
+    userId: string;
+    scheduleEntryId: string;
+    notifyAt: Date;
+    status: 'pending' | 'sent' | 'failed';
+    sentAt: Date | null;
+    createdAt: Date;
 }
 
 // ClubInfo - Singleton
 interface ClubInfo {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  workingHours: Record<string, { open: string; close: string } | null>;
-  latitude: number | null;
-  longitude: number | null;
-  logoUrl: string | null;
-  updatedAt: Date;
+    id: string;
+    name: string;
+    address: string;
+    phone: string;
+    workingHours: Record<string, { open: string; close: string } | null>;
+    latitude: number | null;
+    longitude: number | null;
+    logoUrl: string | null;
+    updatedAt: Date;
 }
 
 // AdminUser - Staff member
 interface AdminUser {
-  id: string;
-  email: string;
-  passwordHash: string;
-  name: string;
-  isActive: boolean;
-  lastLoginAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+    id: string;
+    email: string;
+    passwordHash: string;
+    name: string;
+    isActive: boolean;
+    lastLoginAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
 }
 ```
 
@@ -326,55 +328,57 @@ erDiagram
 **Documentation:** Swagger UI at `/api/docs`
 
 **Authentication:**
-- Mini App: Telegram `initData` in `X-Telegram-Init-Data` header
-- Admin Panel: JWT Bearer token
-- Bot: Internal service (localhost only)
+
+-   Mini App: Telegram `initData` in `X-Telegram-Init-Data` header
+-   Admin Panel: JWT Bearer token
+-   Bot: Internal service (localhost only)
 
 ### 5.2 Public & Mini App Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/schedule/today` | Today's classes |
-| GET | `/schedule/week` | Current week's classes |
-| GET | `/schedule/:date` | Classes for specific date |
-| GET | `/schedule/:id` | Single class details |
-| GET | `/coaches` | List active coaches |
-| GET | `/coaches/:id` | Coach profile |
-| GET | `/coaches/:id/schedule` | Coach's upcoming classes |
-| GET | `/reminders` | User's active reminders |
-| POST | `/reminders` | Subscribe to reminder |
-| DELETE | `/reminders/:id` | Cancel reminder |
-| GET | `/users/me` | Current user profile |
-| PUT | `/users/settings` | Update preferences |
-| GET | `/club-info` | Club details |
-| GET | `/training-types` | All training types |
+| Method | Endpoint                | Description               |
+| ------ | ----------------------- | ------------------------- |
+| GET    | `/schedule/today`       | Today's classes           |
+| GET    | `/schedule/week`        | Current week's classes    |
+| GET    | `/schedule/:date`       | Classes for specific date |
+| GET    | `/schedule/:id`         | Single class details      |
+| GET    | `/coaches`              | List active coaches       |
+| GET    | `/coaches/:id`          | Coach profile             |
+| GET    | `/coaches/:id/schedule` | Coach's upcoming classes  |
+| GET    | `/reminders`            | User's active reminders   |
+| POST   | `/reminders`            | Subscribe to reminder     |
+| DELETE | `/reminders/:id`        | Cancel reminder           |
+| GET    | `/users/me`             | Current user profile      |
+| PUT    | `/users/settings`       | Update preferences        |
+| GET    | `/club-info`            | Club details              |
+| GET    | `/training-types`       | All training types        |
 
 **Schedule Query Parameters:**
-- `difficultyLevel`, `impactType`, `coachId`, `trainingTypeId`, `includeCancelled`
+
+-   `difficultyLevel`, `impactType`, `coachId`, `trainingTypeId`, `includeCancelled`
 
 ### 5.3 Admin Endpoints
 
 All require JWT authentication via `/admin/auth/login`.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/admin/auth/login` | Login |
-| GET | `/admin/schedule` | List classes |
-| POST | `/admin/schedule` | Create class |
-| PUT | `/admin/schedule/:id` | Update class |
-| POST | `/admin/schedule/:id/cancel` | Cancel + notify |
-| DELETE | `/admin/schedule/:id` | Delete class |
-| GET | `/admin/coaches` | List coaches |
-| POST | `/admin/coaches` | Create coach |
-| PUT | `/admin/coaches/:id` | Update coach |
-| POST | `/admin/coaches/:id/photo` | Upload photo |
-| PUT | `/admin/club-info` | Update club info |
+| Method | Endpoint                     | Description      |
+| ------ | ---------------------------- | ---------------- |
+| POST   | `/admin/auth/login`          | Login            |
+| GET    | `/admin/schedule`            | List classes     |
+| POST   | `/admin/schedule`            | Create class     |
+| PUT    | `/admin/schedule/:id`        | Update class     |
+| POST   | `/admin/schedule/:id/cancel` | Cancel + notify  |
+| DELETE | `/admin/schedule/:id`        | Delete class     |
+| GET    | `/admin/coaches`             | List coaches     |
+| POST   | `/admin/coaches`             | Create coach     |
+| PUT    | `/admin/coaches/:id`         | Update coach     |
+| POST   | `/admin/coaches/:id/photo`   | Upload photo     |
+| PUT    | `/admin/club-info`           | Update club info |
 
 ### 5.4 Bot Webhook
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/bot/webhook` | Telegram updates (signature validated) |
+| Method | Endpoint       | Description                            |
+| ------ | -------------- | -------------------------------------- |
+| POST   | `/bot/webhook` | Telegram updates (signature validated) |
 
 ---
 
@@ -382,78 +386,90 @@ All require JWT authentication via `/admin/auth/login`.
 
 ### 6.1 Backend Modules (NestJS)
 
-| Module | Purpose | Dependencies |
-|--------|---------|--------------|
-| **ScheduleModule** | Classes CRUD, filtering, date queries | CoachModule, TrainingTypeModule |
-| **CoachModule** | Coach management, photo uploads | CloudinaryModule |
-| **ReminderModule** | Reminder subscriptions, status tracking | ScheduleModule, UserModule |
-| **NotificationModule** | Send reminders via Telegram | BotModule, ReminderModule |
-| **AuthModule** | JWT + Telegram initData validation | UserModule |
-| **UserModule** | User profile, settings | - |
-| **BotModule** | grammY bot, webhook handler | All modules |
-| **AdminModule** | Admin CRUD operations | All modules |
-| **ClubInfoModule** | Club details singleton | - |
-| **TrainingTypeModule** | Training type management | - |
+| Module                 | Purpose                                 | Dependencies                    |
+| ---------------------- | --------------------------------------- | ------------------------------- |
+| **ScheduleModule**     | Classes CRUD, filtering, date queries   | CoachModule, TrainingTypeModule |
+| **CoachModule**        | Coach management, photo uploads         | CloudinaryModule                |
+| **ReminderModule**     | Reminder subscriptions, status tracking | ScheduleModule, UserModule      |
+| **NotificationModule** | Send reminders via Telegram             | BotModule, ReminderModule       |
+| **AuthModule**         | JWT + Telegram initData validation      | UserModule                      |
+| **UserModule**         | User profile, settings                  | -                               |
+| **BotModule**          | grammY bot, webhook handler             | All modules                     |
+| **AdminModule**        | Admin CRUD operations                   | All modules                     |
+| **ClubInfoModule**     | Club details singleton                  | -                               |
+| **TrainingTypeModule** | Training type management                | -                               |
 
 ### 6.2 Frontend Components (Mini App)
 
 **Core Layout:**
-- `AppShell` — Main layout with navigation
-- `BottomNav` — Tab bar (Schedule, Coaches, Reminders, Club)
-- `Header` — Date selector, filters
+
+-   `AppShell` — Main layout with navigation
+-   `BottomNav` — Tab bar (Schedule, Coaches, Reminders, Club)
+-   `Header` — Date selector, filters
 
 **Schedule:**
-- `ScheduleView` — Day/week toggle with class list
-- `ClassCard` — Individual class display
-- `ClassDetails` — Full class info modal
-- `FilterSheet` — Bottom sheet with filters
+
+-   `ScheduleView` — Day/week toggle with class list
+-   `ClassCard` — Individual class display
+-   `ClassDetails` — Full class info modal
+-   `FilterSheet` — Bottom sheet with filters
 
 **Coaches:**
-- `CoachList` — Grid of coach cards
-- `CoachCard` — Coach photo, name, specializations
-- `CoachProfile` — Full profile with schedule
+
+-   `CoachList` — Grid of coach cards
+-   `CoachCard` — Coach photo, name, specializations
+-   `CoachProfile` — Full profile with schedule
 
 **Reminders:**
-- `ReminderList` — User's active reminders
-- `ReminderCard` — Single reminder with cancel action
+
+-   `ReminderList` — User's active reminders
+-   `ReminderCard` — Single reminder with cancel action
 
 **Club:**
-- `ClubInfo` — Contact details, map, hours
+
+-   `ClubInfo` — Contact details, map, hours
 
 ### 6.3 Frontend Components (Admin Panel)
 
 **Layout:**
-- `AdminLayout` — Sidebar + main content
-- `Sidebar` — Navigation menu
-- `TopBar` — User menu, notifications
+
+-   `AdminLayout` — Sidebar + main content
+-   `Sidebar` — Navigation menu
+-   `TopBar` — User menu, notifications
 
 **Schedule Management:**
-- `ScheduleCalendar` — Weekly calendar view
-- `ClassForm` — Create/edit class modal
-- `BulkScheduler` — Recurring class creation
+
+-   `ScheduleCalendar` — Weekly calendar view
+-   `ClassForm` — Create/edit class modal
+-   `BulkScheduler` — Recurring class creation
 
 **Coach Management:**
-- `CoachTable` — Data table with actions
-- `CoachForm` — Create/edit coach
-- `PhotoUploader` — Cloudinary integration
+
+-   `CoachTable` — Data table with actions
+-   `CoachForm` — Create/edit coach
+-   `PhotoUploader` — Cloudinary integration
 
 **Settings:**
-- `ClubInfoForm` — Edit club details
-- `AdminUserTable` — Manage admin users
+
+-   `ClubInfoForm` — Edit club details
+-   `AdminUserTable` — Manage admin users
 
 ### 6.4 Shared Library (libs/ui)
 
 **Primitives:**
-- `Button`, `Input`, `Select`, `Checkbox`
-- `Card`, `Modal`, `Sheet`, `Toast`
-- `Avatar`, `Badge`, `Spinner`
+
+-   `Button`, `Input`, `Select`, `Checkbox`
+-   `Card`, `Modal`, `Sheet`, `Toast`
+-   `Avatar`, `Badge`, `Spinner`
 
 **Layout:**
-- `Container`, `Stack`, `Grid`
-- `Divider`, `Spacer`
+
+-   `Container`, `Stack`, `Grid`
+-   `Divider`, `Spacer`
 
 **Feedback:**
-- `Alert`, `Skeleton`, `EmptyState`
+
+-   `Alert`, `Skeleton`, `EmptyState`
 
 ---
 
@@ -464,6 +480,7 @@ All require JWT authentication via `/admin/auth/login`.
 **Purpose:** Bot commands, notifications, Mini App launch
 
 **Integration:**
+
 ```typescript
 // grammY bot setup
 import { Bot } from 'grammy';
@@ -495,6 +512,7 @@ bot.api.setWebhook(`${DOMAIN}/api/bot/webhook`);
 **Purpose:** Mini App authentication, native features
 
 **Integration:**
+
 ```typescript
 // Frontend initialization
 import WebApp from '@twa-dev/sdk';
@@ -524,23 +542,24 @@ const colorScheme = WebApp.colorScheme; // 'dark' | 'light'
 **Purpose:** Coach photo storage and optimization
 
 **Integration:**
+
 ```typescript
 // Backend upload
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // Upload with transformations
 const result = await cloudinary.uploader.upload(file.path, {
-  folder: 'fitcalendar/coaches',
-  transformation: [
-    { width: 400, height: 400, crop: 'fill', gravity: 'face' },
-    { quality: 'auto', fetch_format: 'auto' }
-  ]
+    folder: 'fitcalendar/coaches',
+    transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+        { quality: 'auto', fetch_format: 'auto' },
+    ],
 });
 ```
 
@@ -830,26 +849,26 @@ apps/mini-app/
 ```typescript
 // stores/userStore.ts
 interface UserState {
-  user: User | null;
-  reminderMinutes: number;
-  setUser: (user: User) => void;
-  setReminderMinutes: (minutes: number) => void;
+    user: User | null;
+    reminderMinutes: number;
+    setUser: (user: User) => void;
+    setReminderMinutes: (minutes: number) => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
-  user: null,
-  reminderMinutes: 30,
-  setUser: (user) => set({ user }),
-  setReminderMinutes: (minutes) => set({ reminderMinutes: minutes }),
+    user: null,
+    reminderMinutes: 30,
+    setUser: (user) => set({ user }),
+    setReminderMinutes: (minutes) => set({ reminderMinutes: minutes }),
 }));
 
 // stores/filterStore.ts
 interface FilterState {
-  difficulty: Difficulty | null;
-  impactType: ImpactType | null;
-  coachId: string | null;
-  setFilters: (filters: Partial<FilterState>) => void;
-  clearFilters: () => void;
+    difficulty: Difficulty | null;
+    impactType: ImpactType | null;
+    coachId: string | null;
+    setFilters: (filters: Partial<FilterState>) => void;
+    clearFilters: () => void;
 }
 ```
 
@@ -862,28 +881,28 @@ import WebApp from '@twa-dev/sdk';
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export const apiClient = {
-  async get<T>(path: string): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: {
-        'X-Telegram-Init-Data': WebApp.initData,
-      },
-    });
-    if (!res.ok) throw new ApiError(res);
-    return res.json();
-  },
+    async get<T>(path: string): Promise<T> {
+        const res = await fetch(`${API_BASE}${path}`, {
+            headers: {
+                'X-Telegram-Init-Data': WebApp.initData,
+            },
+        });
+        if (!res.ok) throw new ApiError(res);
+        return res.json();
+    },
 
-  async post<T>(path: string, data: unknown): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Telegram-Init-Data': WebApp.initData,
-      },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new ApiError(res);
-    return res.json();
-  },
+    async post<T>(path: string, data: unknown): Promise<T> {
+        const res = await fetch(`${API_BASE}${path}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Telegram-Init-Data': WebApp.initData,
+            },
+            body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new ApiError(res);
+        return res.json();
+    },
 };
 ```
 
@@ -894,22 +913,16 @@ export const apiClient = {
 import WebApp from '@twa-dev/sdk';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>(
-    WebApp.colorScheme || 'light'
-  );
+    const [theme, setTheme] = useState<'light' | 'dark'>(WebApp.colorScheme || 'light');
 
-  useEffect(() => {
-    // Listen for Telegram theme changes
-    WebApp.onEvent('themeChanged', () => {
-      setTheme(WebApp.colorScheme);
-    });
-  }, []);
+    useEffect(() => {
+        // Listen for Telegram theme changes
+        WebApp.onEvent('themeChanged', () => {
+            setTheme(WebApp.colorScheme);
+        });
+    }, []);
 
-  return (
-    <div className={`theme-${theme}`}>
-      {children}
-    </div>
-  );
+    return <div className={`theme-${theme}`}>{children}</div>;
 }
 ```
 
@@ -961,50 +974,46 @@ apps/api/
 // common/guards/telegram-auth.guard.ts
 @Injectable()
 export class TelegramAuthGuard implements CanActivate {
-  constructor(private userService: UserService) {}
+    constructor(private userService: UserService) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const initData = request.headers['x-telegram-init-data'];
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const request = context.switchToHttp().getRequest();
+        const initData = request.headers['x-telegram-init-data'];
 
-    if (!initData) {
-      throw new UnauthorizedException('Missing Telegram init data');
+        if (!initData) {
+            throw new UnauthorizedException('Missing Telegram init data');
+        }
+
+        // Validate initData signature
+        const isValid = this.validateInitData(initData);
+        if (!isValid) {
+            throw new UnauthorizedException('Invalid Telegram init data');
+        }
+
+        // Parse user data and attach to request
+        const userData = this.parseInitData(initData);
+        request.telegramUser = await this.userService.upsert(userData);
+
+        return true;
     }
 
-    // Validate initData signature
-    const isValid = this.validateInitData(initData);
-    if (!isValid) {
-      throw new UnauthorizedException('Invalid Telegram init data');
+    private validateInitData(initData: string): boolean {
+        // HMAC-SHA256 validation per Telegram docs
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+
+        const dataCheckString = [...params.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}=${v}`)
+            .join('\n');
+
+        const secretKey = createHmac('sha256', 'WebAppData').update(process.env.TELEGRAM_BOT_TOKEN).digest();
+
+        const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+        return hash === calculatedHash;
     }
-
-    // Parse user data and attach to request
-    const userData = this.parseInitData(initData);
-    request.telegramUser = await this.userService.upsert(userData);
-
-    return true;
-  }
-
-  private validateInitData(initData: string): boolean {
-    // HMAC-SHA256 validation per Telegram docs
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    params.delete('hash');
-
-    const dataCheckString = [...params.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `${k}=${v}`)
-      .join('\n');
-
-    const secretKey = createHmac('sha256', 'WebAppData')
-      .update(process.env.TELEGRAM_BOT_TOKEN)
-      .digest();
-
-    const calculatedHash = createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
-
-    return hash === calculatedHash;
-  }
 }
 ```
 
@@ -1014,35 +1023,27 @@ export class TelegramAuthGuard implements CanActivate {
 // modules/notification/notification.service.ts
 @Injectable()
 export class NotificationService {
-  constructor(
-    private reminderRepo: ReminderRepository,
-    private botService: BotService,
-    private logger: Logger,
-  ) {}
+    constructor(private reminderRepo: ReminderRepository, private botService: BotService, private logger: Logger) {}
 
-  @Cron('* * * * *') // Every minute
-  async processReminders() {
-    const pendingReminders = await this.reminderRepo.findPending();
+    @Cron('* * * * *') // Every minute
+    async processReminders() {
+        const pendingReminders = await this.reminderRepo.findPending();
 
-    for (const reminder of pendingReminders) {
-      try {
-        await this.sendReminder(reminder);
-        await this.reminderRepo.markSent(reminder.id);
-      } catch (error) {
-        this.logger.error(`Failed to send reminder ${reminder.id}`, error);
-        await this.reminderRepo.markFailed(reminder.id);
-      }
+        for (const reminder of pendingReminders) {
+            try {
+                await this.sendReminder(reminder);
+                await this.reminderRepo.markSent(reminder.id);
+            } catch (error) {
+                this.logger.error(`Failed to send reminder ${reminder.id}`, error);
+                await this.reminderRepo.markFailed(reminder.id);
+            }
+        }
     }
-  }
 
-  private async sendReminder(reminder: Reminder) {
-    const message = this.formatReminderMessage(reminder);
-    await this.botService.sendMessage(
-      reminder.user.telegramId,
-      message,
-      { parse_mode: 'HTML' }
-    );
-  }
+    private async sendReminder(reminder: Reminder) {
+        const message = this.formatReminderMessage(reminder);
+        await this.botService.sendMessage(reminder.user.telegramId, message, { parse_mode: 'HTML' });
+    }
 }
 ```
 
@@ -1162,25 +1163,27 @@ pnpm nx run-many -t serve -p api,bot,mini-app,admin
 
 ### 13.2 Nx Commands
 
-| Command | Description |
-|---------|-------------|
-| `nx serve api` | Start API in dev mode |
-| `nx serve mini-app` | Start Mini App dev server |
-| `nx build api --prod` | Production build |
-| `nx test api` | Run API tests |
-| `nx lint mini-app` | Lint Mini App |
-| `nx affected -t test` | Test affected projects |
-| `nx graph` | Visualize dependencies |
+| Command               | Description               |
+| --------------------- | ------------------------- |
+| `nx serve api`        | Start API in dev mode     |
+| `nx serve mini-app`   | Start Mini App dev server |
+| `nx build api --prod` | Production build          |
+| `nx test api`         | Run API tests             |
+| `nx lint mini-app`    | Lint Mini App             |
+| `nx affected -t test` | Test affected projects    |
+| `nx graph`            | Visualize dependencies    |
 
 ### 13.3 Git Workflow
 
 **Branches:**
-- `main` — Production releases
-- `develop` — Integration branch
-- `feature/*` — Feature branches
-- `fix/*` — Bug fixes
+
+-   `main` — Production releases
+-   `develop` — Integration branch
+-   `feature/*` — Feature branches
+-   `fix/*` — Bug fixes
 
 **Commit Convention:**
+
 ```
 <type>(<scope>): <description>
 
@@ -1200,61 +1203,61 @@ docs(api): update swagger descriptions
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt
-    depends_on:
-      - api
-      - mini-app
-      - admin
+    nginx:
+        image: nginx:alpine
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+            - /etc/letsencrypt:/etc/letsencrypt
+        depends_on:
+            - api
+            - mini-app
+            - admin
 
-  api:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.api
-    environment:
-      - DATABASE_URL
-      - TELEGRAM_BOT_TOKEN
-      - JWT_SECRET
-    depends_on:
-      - postgres
+    api:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.api
+        environment:
+            - DATABASE_URL
+            - TELEGRAM_BOT_TOKEN
+            - JWT_SECRET
+        depends_on:
+            - postgres
 
-  bot:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.bot
-    environment:
-      - TELEGRAM_BOT_TOKEN
-      - API_URL=http://api:3000
+    bot:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.bot
+        environment:
+            - TELEGRAM_BOT_TOKEN
+            - API_URL=http://api:3000
 
-  mini-app:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.mini-app
-    # Static files served by nginx
+    mini-app:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.mini-app
+        # Static files served by nginx
 
-  admin:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.admin
-    # Static files served by nginx
+    admin:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.admin
+        # Static files served by nginx
 
-  postgres:
-    image: postgres:16-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=fitcalendar
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
+    postgres:
+        image: postgres:16-alpine
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_DB=fitcalendar
+            - POSTGRES_USER
+            - POSTGRES_PASSWORD
 
 volumes:
-  postgres_data:
+    postgres_data:
 ```
 
 ### 14.2 Nginx Configuration
@@ -1311,38 +1314,38 @@ server {
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+    push:
+        branches: [main]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: pnpm nx affected -t test --base=HEAD~1
+            - name: Run tests
+              run: pnpm nx affected -t test --base=HEAD~1
 
-      - name: Build
-        run: pnpm nx run-many -t build --prod
+            - name: Build
+              run: pnpm nx run-many -t build --prod
 
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /opt/fitcalendar
-            git pull
-            docker compose build
-            docker compose up -d
+            - name: Deploy to VPS
+              uses: appleboy/ssh-action@v1
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  script: |
+                      cd /opt/fitcalendar
+                      git pull
+                      docker compose build
+                      docker compose up -d
 ```
 
 ---
@@ -1351,34 +1354,34 @@ jobs:
 
 ### 15.1 Security Measures
 
-| Area | Implementation |
-|------|----------------|
-| **Authentication** | Telegram initData HMAC validation, JWT for admin |
-| **API Security** | Rate limiting (100 req/min), CORS whitelist |
-| **Data Protection** | bcrypt for admin passwords, no PII logging |
-| **HTTPS** | Let's Encrypt certificates, HSTS headers |
-| **Input Validation** | class-validator DTOs, sanitize all inputs |
-| **SQL Injection** | TypeORM parameterized queries |
-| **XSS** | React auto-escaping, CSP headers |
+| Area                 | Implementation                                   |
+| -------------------- | ------------------------------------------------ |
+| **Authentication**   | Telegram initData HMAC validation, JWT for admin |
+| **API Security**     | Rate limiting (100 req/min), CORS whitelist      |
+| **Data Protection**  | bcrypt for admin passwords, no PII logging       |
+| **HTTPS**            | Let's Encrypt certificates, HSTS headers         |
+| **Input Validation** | class-validator DTOs, sanitize all inputs        |
+| **SQL Injection**    | TypeORM parameterized queries                    |
+| **XSS**              | React auto-escaping, CSP headers                 |
 
 ### 15.2 Performance Optimizations
 
-| Area | Implementation |
-|------|----------------|
-| **Database** | Connection pooling (20 connections), indexed queries |
-| **Caching** | In-memory cache for club info, training types |
-| **Images** | Cloudinary auto-format, lazy loading |
-| **Bundle Size** | Vite code splitting, tree shaking |
-| **API Responses** | Gzip compression, pagination |
+| Area              | Implementation                                       |
+| ----------------- | ---------------------------------------------------- |
+| **Database**      | Connection pooling (20 connections), indexed queries |
+| **Caching**       | In-memory cache for club info, training types        |
+| **Images**        | Cloudinary auto-format, lazy loading                 |
+| **Bundle Size**   | Vite code splitting, tree shaking                    |
+| **API Responses** | Gzip compression, pagination                         |
 
 ### 15.3 Performance Targets
 
-| Metric | Target |
-|--------|--------|
-| API Response (p95) | < 200ms |
-| Mini App TTI | < 2s |
+| Metric                | Target  |
+| --------------------- | ------- |
+| API Response (p95)    | < 200ms |
+| Mini App TTI          | < 2s    |
 | Bundle Size (gzipped) | < 100KB |
-| Lighthouse Score | > 90 |
+| Lighthouse Score      | > 90    |
 
 ---
 
@@ -1386,44 +1389,45 @@ jobs:
 
 ### 16.1 Testing Pyramid
 
-| Level | Tools | Coverage Target |
-|-------|-------|-----------------|
-| **Unit** | Jest (backend), Vitest (frontend) | 80% |
-| **Integration** | Jest + Supertest | Key flows |
-| **E2E** | Playwright | Critical paths |
+| Level           | Tools                             | Coverage Target |
+| --------------- | --------------------------------- | --------------- |
+| **Unit**        | Jest (backend), Vitest (frontend) | 80%             |
+| **Integration** | Jest + Supertest                  | Key flows       |
+| **E2E**         | Playwright                        | Critical paths  |
 
 ### 16.2 Backend Testing
 
 ```typescript
 // Example: schedule.service.spec.ts
 describe('ScheduleService', () => {
-  let service: ScheduleService;
-  let repo: MockRepository<ScheduleEntry>;
+    let service: ScheduleService;
+    let repo: MockRepository<ScheduleEntry>;
 
-  beforeEach(async () => {
-    const module = await Test.createTestingModule({
-      providers: [
-        ScheduleService,
-        { provide: getRepositoryToken(ScheduleEntry), useClass: MockRepository },
-      ],
-    }).compile();
+    beforeEach(async () => {
+        const module = await Test.createTestingModule({
+            providers: [ScheduleService, { provide: getRepositoryToken(ScheduleEntry), useClass: MockRepository }],
+        }).compile();
 
-    service = module.get(ScheduleService);
-    repo = module.get(getRepositoryToken(ScheduleEntry));
-  });
+        service = module.get(ScheduleService);
+        repo = module.get(getRepositoryToken(ScheduleEntry));
+    });
 
-  it('should return today classes sorted by time', async () => {
-    const mockClasses = [/* ... */];
-    repo.find.mockResolvedValue(mockClasses);
+    it('should return today classes sorted by time', async () => {
+        const mockClasses = [
+            /* ... */
+        ];
+        repo.find.mockResolvedValue(mockClasses);
 
-    const result = await service.getToday();
+        const result = await service.getToday();
 
-    expect(result).toHaveLength(mockClasses.length);
-    expect(repo.find).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.any(Object),
-      order: { startTime: 'ASC' },
-    }));
-  });
+        expect(result).toHaveLength(mockClasses.length);
+        expect(repo.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.any(Object),
+                order: { startTime: 'ASC' },
+            }),
+        );
+    });
 });
 ```
 
@@ -1432,22 +1436,22 @@ describe('ScheduleService', () => {
 ```typescript
 // Example: ClassCard.test.tsx
 describe('ClassCard', () => {
-  it('renders class information correctly', () => {
-    const mockClass = {
-      id: '1',
-      trainingType: { name: 'Yoga', difficulty: 'beginner' },
-      coach: { name: 'Maria K.' },
-      startTime: new Date('2026-01-09T09:00:00'),
-      durationMinutes: 60,
-    };
+    it('renders class information correctly', () => {
+        const mockClass = {
+            id: '1',
+            trainingType: { name: 'Yoga', difficulty: 'beginner' },
+            coach: { name: 'Maria K.' },
+            startTime: new Date('2026-01-09T09:00:00'),
+            durationMinutes: 60,
+        };
 
-    render(<ClassCard class={mockClass} />);
+        render(<ClassCard class={mockClass} />);
 
-    expect(screen.getByText('Yoga')).toBeInTheDocument();
-    expect(screen.getByText('Maria K.')).toBeInTheDocument();
-    expect(screen.getByText('09:00')).toBeInTheDocument();
-    expect(screen.getByText('Beginner')).toBeInTheDocument();
-  });
+        expect(screen.getByText('Yoga')).toBeInTheDocument();
+        expect(screen.getByText('Maria K.')).toBeInTheDocument();
+        expect(screen.getByText('09:00')).toBeInTheDocument();
+        expect(screen.getByText('Beginner')).toBeInTheDocument();
+    });
 });
 ```
 
@@ -1460,16 +1464,16 @@ describe('ClassCard', () => {
 ```json
 // tsconfig.base.json
 {
-  "compilerOptions": {
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
+    "compilerOptions": {
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    }
 }
 ```
 
@@ -1478,31 +1482,28 @@ describe('ClassCard', () => {
 ```javascript
 // .eslintrc.js
 module.exports = {
-  extends: [
-    'plugin:@nx/typescript',
-    'plugin:@typescript-eslint/recommended',
-  ],
-  rules: {
-    '@typescript-eslint/explicit-function-return-type': 'error',
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/no-unused-vars': 'error',
-    'no-console': 'warn',
-  },
+    extends: ['plugin:@nx/typescript', 'plugin:@typescript-eslint/recommended'],
+    rules: {
+        '@typescript-eslint/explicit-function-return-type': 'error',
+        '@typescript-eslint/no-explicit-any': 'error',
+        '@typescript-eslint/no-unused-vars': 'error',
+        'no-console': 'warn',
+    },
 };
 ```
 
 ### 17.3 Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files (components) | PascalCase | `ClassCard.tsx` |
-| Files (utilities) | camelCase | `dateUtils.ts` |
-| Files (types) | kebab-case | `schedule-types.ts` |
-| Components | PascalCase | `ClassCard` |
-| Functions | camelCase | `getSchedule` |
-| Constants | SCREAMING_SNAKE | `MAX_REMINDERS` |
-| Types/Interfaces | PascalCase | `ScheduleEntry` |
-| Enums | PascalCase | `Difficulty` |
+| Element            | Convention      | Example             |
+| ------------------ | --------------- | ------------------- |
+| Files (components) | PascalCase      | `ClassCard.tsx`     |
+| Files (utilities)  | camelCase       | `dateUtils.ts`      |
+| Files (types)      | kebab-case      | `schedule-types.ts` |
+| Components         | PascalCase      | `ClassCard`         |
+| Functions          | camelCase       | `getSchedule`       |
+| Constants          | SCREAMING_SNAKE | `MAX_REMINDERS`     |
+| Types/Interfaces   | PascalCase      | `ScheduleEntry`     |
+| Enums              | PascalCase      | `Difficulty`        |
 
 ---
 
@@ -1532,37 +1533,37 @@ interface ApiError {
 
 ### 18.2 Error Codes
 
-| Code | Meaning |
-|------|---------|
-| 400 | Bad Request - Invalid input |
-| 401 | Unauthorized - Auth required |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource missing |
-| 409 | Conflict - Duplicate reminder |
-| 429 | Too Many Requests - Rate limited |
-| 500 | Internal Error - Server issue |
+| Code | Meaning                              |
+| ---- | ------------------------------------ |
+| 400  | Bad Request - Invalid input          |
+| 401  | Unauthorized - Auth required         |
+| 403  | Forbidden - Insufficient permissions |
+| 404  | Not Found - Resource missing         |
+| 409  | Conflict - Duplicate reminder        |
+| 429  | Too Many Requests - Rate limited     |
+| 500  | Internal Error - Server issue        |
 
 ### 18.3 Frontend Error Handling
 
 ```typescript
 // Global error boundary
 class ErrorBoundary extends React.Component {
-  state = { hasError: false };
+    state = { hasError: false };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    Sentry.captureException(error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <ErrorFallback />;
+    static getDerivedStateFromError() {
+        return { hasError: true };
     }
-    return this.props.children;
-  }
+
+    componentDidCatch(error: Error) {
+        Sentry.captureException(error);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return <ErrorFallback />;
+        }
+        return this.props.children;
+    }
 }
 ```
 
@@ -1577,12 +1578,12 @@ class ErrorBoundary extends React.Component {
 import pino from 'pino';
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-    options: { colorize: process.env.NODE_ENV !== 'production' },
-  },
-  redact: ['req.headers.authorization', 'req.headers["x-telegram-init-data"]'],
+    level: process.env.LOG_LEVEL || 'info',
+    transport: {
+        target: 'pino-pretty',
+        options: { colorize: process.env.NODE_ENV !== 'production' },
+    },
+    redact: ['req.headers.authorization', 'req.headers["x-telegram-init-data"]'],
 });
 ```
 
@@ -1593,9 +1594,9 @@ export const logger = pino({
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: 0.1,
 });
 ```
 
@@ -1605,21 +1606,21 @@ Sentry.init({
 // health.controller.ts
 @Controller('health')
 export class HealthController {
-  @Get()
-  check() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    };
-  }
+    @Get()
+    check() {
+        return {
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+        };
+    }
 
-  @Get('ready')
-  async ready() {
-    // Check database connection
-    await this.dataSource.query('SELECT 1');
-    return { status: 'ready' };
-  }
+    @Get('ready')
+    async ready() {
+        // Check database connection
+        await this.dataSource.query('SELECT 1');
+        return { status: 'ready' };
+    }
 }
 ```
 
@@ -1629,26 +1630,26 @@ export class HealthController {
 
 ### Architecture Checklist
 
-- [x] All PRD features have corresponding components
-- [x] Tech stack matches PRD requirements (with documented adaptations)
-- [x] Data models support all required functionality
-- [x] API endpoints cover all user flows
-- [x] Security measures documented
-- [x] Performance targets defined
-- [x] Testing strategy complete
-- [x] Deployment pipeline specified
-- [x] Error handling standardized
-- [x] Monitoring configured
+-   [x] All PRD features have corresponding components
+-   [x] Tech stack matches PRD requirements (with documented adaptations)
+-   [x] Data models support all required functionality
+-   [x] API endpoints cover all user flows
+-   [x] Security measures documented
+-   [x] Performance targets defined
+-   [x] Testing strategy complete
+-   [x] Deployment pipeline specified
+-   [x] Error handling standardized
+-   [x] Monitoring configured
 
 ### Adaptation Notes
 
-| PRD Requirement | Adaptation | Rationale |
-|-----------------|------------|-----------|
-| Prisma ORM | TypeORM | Existing migration infrastructure |
-| Webpack | Vite | Modern tooling, faster builds |
-| Project name | FitCalendar | User preference |
+| PRD Requirement | Adaptation  | Rationale                         |
+| --------------- | ----------- | --------------------------------- |
+| Prisma ORM      | TypeORM     | Existing migration infrastructure |
+| Webpack         | Vite        | Modern tooling, faster builds     |
+| Project name    | FitCalendar | User preference                   |
 
 ---
 
-*Document generated by Winston (Architect Agent)*
-*Last updated: 2026-01-09*
+_Document generated by Winston (Architect Agent)_
+_Last updated: 2026-01-09_

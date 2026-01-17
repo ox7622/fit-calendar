@@ -1,15 +1,35 @@
 import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { Logger as PinoLogger } from 'nestjs-pino';
 
 import { ApiModule } from './api.module';
+import { HttpExceptionFilter } from './common/filters';
 import { setupSwagger } from './config/swagger';
 
 async function bootstrap() {
-    const app = await NestFactory.create(ApiModule);
+    const app = await NestFactory.create(ApiModule, { bufferLogs: true });
+
+    // Use Pino logger
+    app.useLogger(app.get(PinoLogger));
 
     // подключение конфига
     const configService = app.get(ConfigService);
+
+    // Global exception filter
+    app.useGlobalFilters(new HttpExceptionFilter());
+
+    // CORS configuration
+    app.enableCors({
+        origin: [
+            configService.get<string>('CORS_ORIGIN_MINI_APP'),
+            configService.get<string>('CORS_ORIGIN_ADMIN'),
+            /localhost:\d+$/,
+        ].filter(Boolean) as (string | RegExp)[],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Telegram-Init-Data'],
+    });
 
     // Настройка глобальных пайпов для валидации и трансформации
     app.useGlobalPipes(

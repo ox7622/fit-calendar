@@ -14,6 +14,21 @@
                 "tsConfig": "libs/db/tsconfig.lib.json",
                 "assets": ["libs/db/*.md"]
             }
+        },
+        "test": {
+            "executor": "@nx/vite:test",
+            "outputs": ["{workspaceRoot}/coverage/libs/db"],
+            "options": {
+                "config": "libs/db/vite.config.ts"
+            }
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint",
+            "outputs": ["{options.outputFile}"],
+            "options": {
+                "lintFilePatterns": ["libs/db/src/**/*.ts"],
+                "fix": true
+            }
         }
     }
 }

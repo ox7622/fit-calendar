@@ -4,11 +4,11 @@
 
 ### 1.1 Goals
 
-- Provide fitness club members with instant, convenient access to the class schedule via Telegram
-- Enable members to discover classes that match their fitness level and preferences through filtering
-- Keep members informed about schedule changes and upcoming classes through timely notifications
-- Empower club administrators to manage schedule and content without technical knowledge
-- Establish a foundation for future features (booking, payments) while delivering immediate value
+-   Provide fitness club members with instant, convenient access to the class schedule via Telegram
+-   Enable members to discover classes that match their fitness level and preferences through filtering
+-   Keep members informed about schedule changes and upcoming classes through timely notifications
+-   Empower club administrators to manage schedule and content without technical knowledge
+-   Establish a foundation for future features (booking, payments) while delivering immediate value
 
 ### 1.2 Background Context
 
@@ -18,9 +18,9 @@ This application addresses these pain points by creating a Telegram-native solut
 
 ### 1.3 Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2026-01-08 | 1.0 | Initial PRD creation | PM (John) |
+| Date       | Version | Description          | Author    |
+| ---------- | ------- | -------------------- | --------- |
+| 2026-01-08 | 1.0     | Initial PRD creation | PM (John) |
 
 ---
 
@@ -28,51 +28,51 @@ This application addresses these pain points by creating a Telegram-native solut
 
 ### 2.1 Functional Requirements
 
-| ID | Requirement |
-|----|-------------|
-| FR1 | The system shall display the fitness class schedule for today and upcoming days |
-| FR2 | The system shall show class details including name, time, duration, and assigned coach |
-| FR3 | The system shall provide both daily and weekly calendar views of the schedule |
-| FR4 | The system shall display training difficulty levels (beginner, intermediate, advanced) |
-| FR5 | The system shall show training impact types (cardio, strength, flexibility, balance) |
-| FR6 | The system shall display equipment requirements for each training class |
-| FR7 | The system shall allow filtering schedule by training type |
-| FR8 | The system shall allow filtering schedule by difficulty level |
-| FR9 | The system shall allow filtering schedule by coach |
-| FR10 | The system shall support multiple simultaneous filters |
+| ID   | Requirement                                                                              |
+| ---- | ---------------------------------------------------------------------------------------- |
+| FR1  | The system shall display the fitness class schedule for today and upcoming days          |
+| FR2  | The system shall show class details including name, time, duration, and assigned coach   |
+| FR3  | The system shall provide both daily and weekly calendar views of the schedule            |
+| FR4  | The system shall display training difficulty levels (beginner, intermediate, advanced)   |
+| FR5  | The system shall show training impact types (cardio, strength, flexibility, balance)     |
+| FR6  | The system shall display equipment requirements for each training class                  |
+| FR7  | The system shall allow filtering schedule by training type                               |
+| FR8  | The system shall allow filtering schedule by difficulty level                            |
+| FR9  | The system shall allow filtering schedule by coach                                       |
+| FR10 | The system shall support multiple simultaneous filters                                   |
 | FR11 | The system shall display coach profiles with photos, specializations, and certifications |
-| FR12 | The system shall show a coach's upcoming class schedule from their profile |
+| FR12 | The system shall show a coach's upcoming class schedule from their profile               |
 | FR13 | The system shall display club information including address, working hours, and contacts |
-| FR14 | The system shall provide a link to open club location in a map application |
-| FR15 | The system shall allow users to subscribe to reminders for specific classes |
-| FR16 | The system shall send reminder notifications N minutes before subscribed classes |
-| FR17 | The system shall notify subscribed users when a class time changes |
-| FR18 | The system shall notify subscribed users when a class is cancelled |
-| FR19 | The system shall allow users to configure their reminder time preference |
-| FR20 | The system shall provide an admin panel for managing the schedule |
-| FR21 | The system shall allow admins to add, edit, and delete training sessions |
-| FR22 | The system shall allow admins to manage coach profiles |
-| FR23 | The system shall allow admins to update club information |
+| FR14 | The system shall provide a link to open club location in a map application               |
+| FR15 | The system shall allow users to subscribe to reminders for specific classes              |
+| FR16 | The system shall send reminder notifications N minutes before subscribed classes         |
+| FR17 | The system shall notify subscribed users when a class time changes                       |
+| FR18 | The system shall notify subscribed users when a class is cancelled                       |
+| FR19 | The system shall allow users to configure their reminder time preference                 |
+| FR20 | The system shall provide an admin panel for managing the schedule                        |
+| FR21 | The system shall allow admins to add, edit, and delete training sessions                 |
+| FR22 | The system shall allow admins to manage coach profiles                                   |
+| FR23 | The system shall allow admins to update club information                                 |
 
 ### 2.2 Non-Functional Requirements
 
-| ID | Requirement |
-|----|-------------|
-| NFR1 | The Mini App shall load initial content within 2 seconds on 3G connection |
-| NFR2 | The Bot shall respond to commands within 1 second |
-| NFR3 | The system shall support at least 500 concurrent users |
-| NFR4 | The Mini App shall work on iOS and Android Telegram clients |
-| NFR5 | The interface shall be in Russian language |
-| NFR6 | The system shall use Telegram's native authentication (no separate login) |
-| NFR7 | All API endpoints shall be secured with HTTPS |
-| NFR8 | Admin panel shall require email/password authentication |
-| NFR9 | The system shall handle Telegram API rate limits gracefully |
+| ID    | Requirement                                                                                 |
+| ----- | ------------------------------------------------------------------------------------------- |
+| NFR1  | The Mini App shall load initial content within 2 seconds on 3G connection                   |
+| NFR2  | The Bot shall respond to commands within 1 second                                           |
+| NFR3  | The system shall support at least 500 concurrent users                                      |
+| NFR4  | The Mini App shall work on iOS and Android Telegram clients                                 |
+| NFR5  | The interface shall be in Russian language                                                  |
+| NFR6  | The system shall use Telegram's native authentication (no separate login)                   |
+| NFR7  | All API endpoints shall be secured with HTTPS                                               |
+| NFR8  | Admin panel shall require email/password authentication                                     |
+| NFR9  | The system shall handle Telegram API rate limits gracefully                                 |
 | NFR10 | The system shall continue functioning if notification delivery fails (graceful degradation) |
-| NFR11 | The database shall be backed up daily |
-| NFR12 | The system shall log all admin actions for audit purposes |
-| NFR13 | Images shall be optimized for mobile viewing (max 500KB) |
-| NFR14 | The Mini App shall work offline for previously loaded schedule data |
-| NFR15 | The system shall be deployable via Docker containers |
+| NFR11 | The database shall be backed up daily                                                       |
+| NFR12 | The system shall log all admin actions for audit purposes                                   |
+| NFR13 | Images shall be optimized for mobile viewing (max 500KB)                                    |
+| NFR14 | The Mini App shall work offline for previously loaded schedule data                         |
+| NFR15 | The system shall be deployable via Docker containers                                        |
 
 ---
 
@@ -84,32 +84,34 @@ A fast, intuitive, Telegram-native experience that feels like a natural extensio
 
 ### 3.2 Key Interaction Paradigms
 
-- **Quick Access**: Bot commands (`/today`, `/week`) for instant schedule info
-- **Rich Browsing**: Mini App for calendar views, filtering, coach profiles
-- **Proactive Notifications**: Reminders and alerts pushed to chat
-- **Minimal Input**: Tap-based navigation, pre-filled filters, smart defaults
+-   **Quick Access**: Bot commands (`/today`, `/week`) for instant schedule info
+-   **Rich Browsing**: Mini App for calendar views, filtering, coach profiles
+-   **Proactive Notifications**: Reminders and alerts pushed to chat
+-   **Minimal Input**: Tap-based navigation, pre-filled filters, smart defaults
 
 ### 3.3 Core Screens and Views
 
 **Mini App:**
-- Today's Schedule (default landing)
-- Weekly Calendar View
-- Training Detail View
-- Filter Panel (slide-up sheet)
-- Coach List
-- Coach Profile
-- Club Information
-- My Reminders
-- Settings (reminder preferences)
+
+-   Today's Schedule (default landing)
+-   Weekly Calendar View
+-   Training Detail View
+-   Filter Panel (slide-up sheet)
+-   Coach List
+-   Coach Profile
+-   Club Information
+-   My Reminders
+-   Settings (reminder preferences)
 
 **Admin Panel:**
-- Login
-- Dashboard (weekly schedule overview)
-- Schedule Management (calendar + list views)
-- Class Create/Edit Form
-- Coach Management
-- Training Types Settings
-- Club Information Settings
+
+-   Login
+-   Dashboard (weekly schedule overview)
+-   Schedule Management (calendar + list views)
+-   Class Create/Edit Form
+-   Coach Management
+-   Training Types Settings
+-   Club Information Settings
 
 ### 3.4 Accessibility
 
@@ -121,9 +123,9 @@ Clean, modern fitness aesthetic. Primary colors aligned with club branding (to b
 
 ### 3.6 Target Platforms
 
-- **Mini App**: Telegram for iOS and Android (WebApp)
-- **Bot**: All Telegram clients
-- **Admin Panel**: Web responsive (desktop-first, mobile-friendly)
+-   **Mini App**: Telegram for iOS and Android (WebApp)
+-   **Bot**: All Telegram clients
+-   **Admin Panel**: Web responsive (desktop-first, mobile-friendly)
 
 ---
 
@@ -134,14 +136,16 @@ Clean, modern fitness aesthetic. Primary colors aligned with club branding (to b
 **Monorepo** using Nx workspace (existing repository structure)
 
 Apps:
-- `apps/api` - NestJS backend API
-- `apps/bot` - Telegram Bot (grammY)
-- `apps/mini-app` - React + Vite Mini App
-- `apps/admin` - React + Vite Admin Panel
+
+-   `apps/api` - NestJS backend API
+-   `apps/bot` - Telegram Bot (grammY)
+-   `apps/mini-app` - React + Vite Mini App
+-   `apps/admin` - React + Vite Admin Panel
 
 Libs:
-- `libs/shared` - Shared types, utilities, constants
-- `libs/prisma` - Database client and schema
+
+-   `libs/shared` - Shared types, utilities, constants
+-   `libs/prisma` - Database client and schema
 
 ### 4.2 Service Architecture
 
@@ -149,37 +153,37 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 
 ### 4.3 Testing Requirements
 
-- Unit tests for business logic (Jest)
-- Integration tests for API endpoints
-- E2E tests for critical user flows (Playwright for Admin)
-- Manual testing convenience: CLI commands for triggering notifications, seeding test data
+-   Unit tests for business logic (Jest)
+-   Integration tests for API endpoints
+-   E2E tests for critical user flows (Playwright for Admin)
+-   Manual testing convenience: CLI commands for triggering notifications, seeding test data
 
 ### 4.4 Additional Technical Assumptions
 
-- **Backend Framework**: NestJS with TypeScript
-- **Bot Library**: grammY (modern, TypeScript-first Telegram bot framework)
-- **Database**: PostgreSQL with Prisma ORM
-- **Mini App Framework**: React 18+ with Vite bundler
-- **Admin Panel**: React with Vite, shared component library with Mini App
-- **Styling**: Tailwind CSS for both Mini App and Admin
-- **Image Storage**: Cloudinary for coach photos and club images
-- **CI/CD**: GitHub Actions for testing, building, deployment
-- **Containerization**: Docker with docker-compose for local development
-- **Hosting**: To be determined (Railway, Render, or VPS recommended)
-- **Environment Management**: dotenv with validation (zod)
+-   **Backend Framework**: NestJS with TypeScript
+-   **Bot Library**: grammY (modern, TypeScript-first Telegram bot framework)
+-   **Database**: PostgreSQL with Prisma ORM
+-   **Mini App Framework**: React 18+ with Vite bundler
+-   **Admin Panel**: React with Vite, shared component library with Mini App
+-   **Styling**: Tailwind CSS for both Mini App and Admin
+-   **Image Storage**: Cloudinary for coach photos and club images
+-   **CI/CD**: GitHub Actions for testing, building, deployment
+-   **Containerization**: Docker with docker-compose for local development
+-   **Hosting**: To be determined (Railway, Render, or VPS recommended)
+-   **Environment Management**: dotenv with validation (zod)
 
 ---
 
 ## 5. Epic Overview
 
-| Epic | Title | Goal |
-|------|-------|------|
-| 1 | Foundation & Bot Setup | Establish project infrastructure, Telegram bot registration, and Mini App shell with authentication |
-| 2 | Schedule Display | Enable users to view the fitness schedule in daily and weekly formats via Mini App and Bot |
-| 3 | Training Details & Filtering | Provide detailed training information and filtering capabilities by type, difficulty, and coach |
-| 4 | Coach Profiles & Club Info | Display coach profiles and club information to build trust and help members find trainers |
-| 5 | Reminders & Notifications | Allow members to subscribe to class reminders and receive schedule change notifications |
-| 6 | Admin Panel | Provide administrators with tools to manage schedule, coaches, and club information |
+| Epic | Title                        | Goal                                                                                                |
+| ---- | ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1    | Foundation & Bot Setup       | Establish project infrastructure, Telegram bot registration, and Mini App shell with authentication |
+| 2    | Schedule Display             | Enable users to view the fitness schedule in daily and weekly formats via Mini App and Bot          |
+| 3    | Training Details & Filtering | Provide detailed training information and filtering capabilities by type, difficulty, and coach     |
+| 4    | Coach Profiles & Club Info   | Display coach profiles and club information to build trust and help members find trainers           |
+| 5    | Reminders & Notifications    | Allow members to subscribe to class reminders and receive schedule change notifications             |
+| 6    | Admin Panel                  | Provide administrators with tools to manage schedule, coaches, and club information                 |
 
 ---
 
@@ -194,6 +198,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can begin implementing features with proper project structure.
 
 **Acceptance Criteria:**
+
 1. Nx workspace contains apps: `api`, `bot`, `mini-app`, `admin`
 2. Nx workspace contains libs: `shared`, `prisma`
 3. TypeScript configured with strict mode across all projects
@@ -211,6 +216,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can store and retrieve schedule, coach, and user data.
 
 **Acceptance Criteria:**
+
 1. Prisma schema defines models: User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo
 2. User model includes Telegram ID, preferences, created/updated timestamps
 3. Coach model includes name, bio, photo URL, specializations, certifications, active status
@@ -229,6 +235,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I have a working backend to build features upon.
 
 **Acceptance Criteria:**
+
 1. NestJS app starts successfully on configured port
 2. GET `/health` returns 200 with status and timestamp
 3. CORS configured for Mini App and Admin origins
@@ -246,6 +253,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** users can interact with the bot.
 
 **Acceptance Criteria:**
+
 1. Bot registered with BotFather, token stored securely in environment
 2. grammY bot instance configured with webhook mode
 3. Webhook endpoint `/bot/webhook` receives Telegram updates
@@ -264,6 +272,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can access the fitness schedule interface.
 
 **Acceptance Criteria:**
+
 1. React + Vite Mini App builds and runs successfully
 2. Mini App configured with Telegram WebApp SDK
 3. Telegram initData validated on backend for authentication
@@ -282,6 +291,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** code quality is maintained and deployments are consistent.
 
 **Acceptance Criteria:**
+
 1. GitHub Actions workflow runs on push to main and pull requests
 2. Workflow executes lint, type-check, and unit tests for all affected projects
 3. Workflow builds Docker images for API and Bot
@@ -303,6 +313,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can display schedule data in the Mini App and Bot.
 
 **Acceptance Criteria:**
+
 1. GET `/api/schedule/today` returns today's classes sorted by time
 2. GET `/api/schedule/week` returns classes for the current week grouped by day
 3. GET `/api/schedule/:date` returns classes for a specific date (YYYY-MM-DD format)
@@ -320,6 +331,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can quickly check what's available today.
 
 **Acceptance Criteria:**
+
 1. Today's schedule is the default landing view
 2. Classes displayed as cards in chronological order
 3. Each card shows: class name, time, duration, coach name with thumbnail
@@ -338,6 +350,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can plan my workouts in advance.
 
 **Acceptance Criteria:**
+
 1. Weekly view accessible via tab/toggle from daily view
 2. Calendar displays 7 days starting from today
 3. Each day shows condensed class list (time + name)
@@ -356,6 +369,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can quickly check classes without opening the Mini App.
 
 **Acceptance Criteria:**
+
 1. Bot responds to `/today` command
 2. Response lists all classes for today with time, name, coach
 3. Classes formatted as readable text list (not overwhelming)
@@ -373,6 +387,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can quickly scan the schedule.
 
 **Acceptance Criteria:**
+
 1. Reusable ClassCard component created for Mini App
 2. Card displays: class name (prominent), time range, duration badge
 3. Card shows coach thumbnail and name
@@ -394,6 +409,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can make an informed decision about whether it suits my fitness level and goals.
 
 **Acceptance Criteria:**
+
 1. Tapping a class card in the schedule opens a detail view
 2. Detail view displays: class name, coach name with photo, date/time, duration
 3. Detail view shows difficulty level with visual indicator (badge/icon)
@@ -412,6 +428,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can populate filter options and display training details.
 
 **Acceptance Criteria:**
+
 1. GET `/api/training-types` returns list of all training types with names and icons
 2. GET `/api/difficulty-levels` returns difficulty options (beginner, intermediate, advanced)
 3. GET `/api/impact-types` returns impact categories (cardio, strength, flexibility, balance)
@@ -429,6 +446,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** users can retrieve only classes matching their criteria.
 
 **Acceptance Criteria:**
+
 1. GET `/api/schedule` accepts `difficultyLevel` query parameter
 2. GET `/api/schedule` accepts `impactType` query parameter (supports multiple values)
 3. GET `/api/schedule` accepts `coachId` query parameter
@@ -447,6 +465,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can quickly find classes that match my preferences.
 
 **Acceptance Criteria:**
+
 1. Filter panel is accessible via filter icon/button on schedule views
 2. Filter options include: Training Type, Difficulty Level, Coach
 3. Multiple filters can be applied simultaneously
@@ -465,6 +484,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can balance my weekly workout routine.
 
 **Acceptance Criteria:**
+
 1. Impact types (cardio, strength, flexibility, balance) display as colored icons/badges
 2. Icons are consistent across class cards and detail views
 3. Each impact type has distinct color for quick recognition
@@ -485,6 +505,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can explore who teaches classes and learn about their expertise.
 
 **Acceptance Criteria:**
+
 1. GET `/api/coaches` returns list of all active coaches
 2. Response includes: id, name, photo URL, primary specialization
 3. Coaches are sorted alphabetically by default
@@ -502,6 +523,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can learn about their background, certifications, and specializations.
 
 **Acceptance Criteria:**
+
 1. GET `/api/coaches/:id` returns full coach profile
 2. Profile displays: full name, photo, bio/description
 3. Profile shows list of specializations (e.g., yoga, strength training)
@@ -519,6 +541,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can plan to attend sessions with my preferred trainer.
 
 **Acceptance Criteria:**
+
 1. Coach profile includes "View Schedule" action
 2. Clicking shows filtered schedule with only that coach's classes
 3. Schedule displays in chronological order (upcoming first)
@@ -536,6 +559,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can easily find how to reach or contact the club.
 
 **Acceptance Criteria:**
+
 1. GET `/api/club-info` returns club details
 2. Club page displays: name, address, phone number, working hours
 3. Phone number is clickable (initiates call on mobile)
@@ -552,6 +576,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can get directions to the fitness club.
 
 **Acceptance Criteria:**
+
 1. Club info page includes "Show on Map" button
 2. Button opens location in Telegram's native map or external map app
 3. Coordinates are stored in club settings (latitude, longitude)
@@ -572,6 +597,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I get notified before classes I plan to attend.
 
 **Acceptance Criteria:**
+
 1. Training detail view includes "Remind Me" button
 2. POST `/api/reminders` creates reminder subscription for user + class
 3. Button toggles to "Cancel Reminder" when subscription active
@@ -589,6 +615,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** notifications arrive at a time that works for my schedule.
 
 **Acceptance Criteria:**
+
 1. Settings page includes reminder time preference
 2. Options: 15 minutes, 30 minutes, 1 hour, 2 hours before class
 3. Default value is 30 minutes
@@ -606,6 +633,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I have time to prepare and get to the gym.
 
 **Acceptance Criteria:**
+
 1. Scheduled job checks for upcoming reminders to send
 2. Notification sent via Telegram Bot at user's preferred time before class
 3. Message includes: class name, time, coach name
@@ -623,6 +651,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can adjust my plans accordingly.
 
 **Acceptance Criteria:**
+
 1. When admin updates class time, affected subscribers are notified
 2. Notification includes: class name, old time, new time
 3. Only users with active reminders for that class receive notification
@@ -639,6 +668,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I don't waste time going to the gym for nothing.
 
 **Acceptance Criteria:**
+
 1. When admin cancels a class, all subscribers are notified
 2. Notification includes: class name, original date/time, cancellation reason (if provided)
 3. Notification sent immediately upon cancellation
@@ -655,6 +685,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can manage my upcoming workout plans.
 
 **Acceptance Criteria:**
+
 1. GET `/api/reminders` returns user's active reminder subscriptions
 2. Mini App includes "My Reminders" section accessible from menu
 3. List shows class name, date/time, coach for each subscription
@@ -676,6 +707,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** only authorized staff can manage club content.
 
 **Acceptance Criteria:**
+
 1. Admin panel has dedicated login page at `/admin`
 2. Login requires email and password
 3. Passwords are hashed using bcrypt (min 10 rounds)
@@ -694,6 +726,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can see the current schedule at a glance.
 
 **Acceptance Criteria:**
+
 1. Dashboard shows upcoming classes for current week
 2. Calendar view displays classes in weekly grid format
 3. List view shows classes in chronological order
@@ -712,6 +745,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can keep the schedule up to date.
 
 **Acceptance Criteria:**
+
 1. "Add Class" button opens creation form
 2. Form fields: training type, coach, date, start time, duration
 3. Training type selected from predefined list
@@ -732,6 +766,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can handle schedule changes and remove mistakes.
 
 **Acceptance Criteria:**
+
 1. Each class has "Cancel" and "Delete" actions
 2. Cancel marks class as cancelled (keeps record, notifies subscribers)
 3. Cancel prompts for optional cancellation reason
@@ -749,6 +784,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** member-facing coach information stays current.
 
 **Acceptance Criteria:**
+
 1. Admin panel has "Coaches" section in navigation
 2. List view shows all coaches with photo, name, status
 3. "Add Coach" opens form with: name, photo upload, bio, specializations, certifications
@@ -767,6 +803,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** I can customize the class classification system.
 
 **Acceptance Criteria:**
+
 1. Admin panel has "Settings > Training Types" section
 2. List all training types with name and icon
 3. Add new training type with name, description, default difficulty, impact types
@@ -784,6 +821,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 **so that** members always have accurate contact details.
 
 **Acceptance Criteria:**
+
 1. Admin panel has "Club Info" section
 2. Editable fields: club name, address, phone, working hours
 3. Working hours editor for each day of week (open/close times, or "closed")
@@ -799,26 +837,26 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 
 ### Executive Summary
 
-| Metric | Assessment |
-|--------|------------|
-| **Overall PRD Completeness** | 94% |
-| **MVP Scope Appropriateness** | Just Right |
-| **Readiness for Architecture** | READY |
-| **Most Critical Concern** | Minor - Consider adding user flow diagrams |
+| Metric                         | Assessment                                 |
+| ------------------------------ | ------------------------------------------ |
+| **Overall PRD Completeness**   | 94%                                        |
+| **MVP Scope Appropriateness**  | Just Right                                 |
+| **Readiness for Architecture** | READY                                      |
+| **Most Critical Concern**      | Minor - Consider adding user flow diagrams |
 
 ### Category Analysis
 
-| Category | Status | Critical Issues |
-|----------|--------|-----------------|
-| 1. Problem Definition & Context | **PASS** | None |
-| 2. MVP Scope Definition | **PASS** | None |
-| 3. User Experience Requirements | **PASS** | Minor - diagrams would enhance |
-| 4. Functional Requirements | **PASS** | None - 23 FRs cover MVP |
-| 5. Non-Functional Requirements | **PASS** | None - 15 NFRs complete |
-| 6. Epic & Story Structure | **PASS** | None - 6 epics, 34 stories |
-| 7. Technical Guidance | **PASS** | None - stack defined |
-| 8. Cross-Functional Requirements | **PASS** | None |
-| 9. Clarity & Communication | **PARTIAL** | Visual diagrams recommended |
+| Category                         | Status      | Critical Issues                |
+| -------------------------------- | ----------- | ------------------------------ |
+| 1. Problem Definition & Context  | **PASS**    | None                           |
+| 2. MVP Scope Definition          | **PASS**    | None                           |
+| 3. User Experience Requirements  | **PASS**    | Minor - diagrams would enhance |
+| 4. Functional Requirements       | **PASS**    | None - 23 FRs cover MVP        |
+| 5. Non-Functional Requirements   | **PASS**    | None - 15 NFRs complete        |
+| 6. Epic & Story Structure        | **PASS**    | None - 6 epics, 34 stories     |
+| 7. Technical Guidance            | **PASS**    | None - stack defined           |
+| 8. Cross-Functional Requirements | **PASS**    | None                           |
+| 9. Clarity & Communication       | **PARTIAL** | Visual diagrams recommended    |
 
 ### Final Decision
 

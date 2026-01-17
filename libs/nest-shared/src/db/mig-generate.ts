@@ -10,6 +10,7 @@ import { entities } from './data-source';
 const pexec = promisify(exec);
 
 const dataSourcePath = join(__dirname, 'data-source.ts');
+const migrationsDir = join(__dirname, '../../../db/src/migrations');
 
 const makeCommand = (name: string) => `npm run typeorm migration:generate -- -d "${dataSourcePath}" "${name}"`;
 
@@ -27,7 +28,7 @@ const makeCommand = (name: string) => `npm run typeorm migration:generate -- -d 
                 ` или цифры, например: "CreateTableUsers"`,
         );
     }
-    const fullName = join(__dirname, 'migrations', name);
+    const fullName = join(migrationsDir, name);
     const { stdout } = await pexec(makeCommand(fullName));
     console.log(stdout);
     console.log(`\nСоздание миграции прошло успешно\n`);

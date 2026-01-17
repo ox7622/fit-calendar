@@ -8,27 +8,27 @@ This is an **Nx monorepo** with the following structure:
 
 ### Applications (`apps/`)
 
-- **`api`** - Backend API (NestJS 11)
-- **`admin`** - Admin Panel (React + Webpack)
-- **`mini-app`** - Telegram Mini App (React + Vite)
-- **`bot`** - Telegram Bot (Node.js + grammY)
+-   **`api`** - Backend API (NestJS 11)
+-   **`admin`** - Admin Panel (React + Webpack)
+-   **`mini-app`** - Telegram Mini App (React + Vite)
+-   **`bot`** - Telegram Bot (Node.js + grammY)
 
 ### Libraries (`libs/`)
 
-- **`shared`** - Shared types, constants, and utilities
-- **`db`** - TypeORM entities and migrations
-- **`ui`** - Shared React components
-- **`nest-shared`** - NestJS shared modules (DTO, decorators)
-- **`sdk`** - API client SDK
-- **`eslint-plugin`** - Custom ESLint rules
+-   **`shared`** - Shared types, constants, and utilities
+-   **`db`** - TypeORM entities and migrations
+-   **`ui`** - Shared React components
+-   **`nest-shared`** - NestJS shared modules (DTO, decorators)
+-   **`sdk`** - API client SDK
+-   **`eslint-plugin`** - Custom ESLint rules
 
 ## Quick Start
 
 ### Prerequisites
 
-- **Node.js**: 22.x
-- **pnpm**: latest version
-- **Docker**: for database
+-   **Node.js**: 22.x
+-   **pnpm**: latest version
+-   **Docker**: for database
 
 ### Installation
 
@@ -83,21 +83,24 @@ npx nx build bot
 ## Tech Stack
 
 ### Backend
-- **NestJS 11** - Node.js framework
-- **TypeORM 0.3.x** - Database ORM
-- **PostgreSQL 16** - Database
-- **grammY** - Telegram Bot framework
+
+-   **NestJS 11** - Node.js framework
+-   **TypeORM 0.3.x** - Database ORM
+-   **PostgreSQL 16** - Database
+-   **grammY** - Telegram Bot framework
 
 ### Frontend
-- **React 19** - UI library
-- **Vite 6.x** - Build tool (mini-app)
-- **Webpack** - Build tool (admin)
-- **TypeScript** - Type safety
+
+-   **React 19** - UI library
+-   **Vite 6.x** - Build tool (mini-app)
+-   **Webpack** - Build tool (admin)
+-   **TypeScript** - Type safety
 
 ### Infrastructure
-- **Nx 21** - Monorepo management
-- **Docker** - Containerization
-- **pnpm** - Package manager
+
+-   **Nx 21** - Monorepo management
+-   **Docker** - Containerization
+-   **pnpm** - Package manager
 
 ## Project Commands
 
@@ -115,6 +118,7 @@ npx nx graph
 ## Documentation
 
 See `docs/` folder for detailed documentation:
-- `docs/architecture.md` - System architecture
-- `docs/front-end-spec.md` - UI/UX specification
-- `docs/stories/` - User stories
+
+-   `docs/architecture.md` - System architecture
+-   `docs/front-end-spec.md` - UI/UX specification
+-   `docs/stories/` - User stories

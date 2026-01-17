@@ -1,17 +1,49 @@
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 build
+tmp
+out
 
-
+# Nx cache
 .nx
-.cursor/rules/nx-rules.mdc
-
-.github/instructions/nx.instructions.md
-
 .nx/cache
 .nx/workspace-data
 
-tmp
+# Environment files (sensitive)
+.env
 .env.local
+.env.*.local
+
+# IDE / Editor
+.cursor/
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS system files
+.DS_Store
+**/.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+
+# Vite/Vitest timestamps
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+
+# GitHub generated
+.github/instructions/nx.instructions.md

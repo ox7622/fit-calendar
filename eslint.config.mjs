@@ -55,7 +55,12 @@ export default [
             ...base.languageOptions,
             parserOptions: {
                 ...base.languageOptions.parserOptions,
-                project: ['libs/shared/tsconfig*.json', 'libs/sdk/tsconfig*.json', 'libs/db/tsconfig*.json', 'libs/ui/tsconfig*.json'],
+                project: [
+                    'libs/shared/tsconfig*.json',
+                    'libs/sdk/tsconfig*.json',
+                    'libs/db/tsconfig*.json',
+                    'libs/ui/tsconfig*.json',
+                ],
             },
         },
     },

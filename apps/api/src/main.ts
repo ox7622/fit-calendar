@@ -35,10 +35,10 @@ async function bootstrap() {
     setupSwagger(app, configService);
 
     // Настройка префикса API сервиса
-    const apiPrefix = configService.getOrThrow<string>('NX_BE_API_CANALIA_SERVICE_PREFIX');
+    const apiPrefix = configService.getOrThrow<string>('NX_BE_API_FITCALENDAR_SERVICE_PREFIX');
     app.setGlobalPrefix(apiPrefix);
 
-    const port = configService.getOrThrow<string>('NX_BE_API_CANALIA_SERVICE_PORT');
+    const port = configService.getOrThrow<string>('NX_BE_API_FITCALENDAR_SERVICE_PORT');
 
     await app.listen(port);
 

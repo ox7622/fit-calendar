@@ -5,15 +5,15 @@ import { baseDbConfig } from './base-db.config';
 
 /**
  * Перечень Entity классов или путей
- * Для работы генератора миграций необходимо указывать пути к entity, например:
- *   entities: ['./libs/nest-shared/src/ ** / *.entity.ts']; // убрать пробелы
+ * Entities are now located in libs/db/src/entities
  */
-export const entities = ['./libs/nest-shared/src/db/entities/**/*.entity.ts'];
+export const entities = ['./libs/db/src/entities/**/*.entity.ts'];
 
 /**
  * Перечень классов миграций или путей к миграциям
+ * Migrations are now located in libs/db/src/migrations
  */
-const migrations = [join(__dirname, `migrations/*.ts`)];
+const migrations = [join(__dirname, '../../../db/src/migrations/*.ts')];
 
 /**
  * DataSource для подключения к БД для работы с миграциями

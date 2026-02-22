@@ -10,47 +10,47 @@ updated: "2026-01-18T21:45:00Z"
 waiver: { active: false }
 
 top_issues:
-    - id: "DOC-001"
-      severity: low
-      finding: "Story task checkboxes not updated despite work being complete"
-      suggested_action: "Update checkboxes for accurate tracking in future stories"
+  - id: "DOC-001"
+    severity: low
+    finding: "Story task checkboxes not updated despite work being complete"
+    suggested_action: "Update checkboxes for accurate tracking in future stories"
 
 quality_score: 90
 expires: "2026-02-01T00:00:00Z"
 
 evidence:
-    tests_reviewed: 0
-    risks_identified: 0
-    notes: "Scaffolding story - no tests expected. Verified via project structure inspection."
-    trace:
-        ac_covered: [1, 2, 3, 4, 5, 6, 7]
-        ac_gaps: []
+  tests_reviewed: 0
+  risks_identified: 0
+  notes: "Scaffolding story - no tests expected. Verified via project structure inspection."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7]
+    ac_gaps: []
 
 nfr_validation:
-    security:
-        status: PASS
-        notes: ".env in .gitignore, .env.example provided for secrets template"
-    performance:
-        status: PASS
-        notes: "N/A for scaffolding story"
-    reliability:
-        status: PASS
-        notes: "N/A for scaffolding story"
-    maintainability:
-        status: PASS
-        notes: "Clear project structure, Nx monorepo patterns followed"
+  security:
+    status: PASS
+    notes: ".env in .gitignore, .env.example provided for secrets template"
+  performance:
+    status: PASS
+    notes: "N/A for scaffolding story"
+  reliability:
+    status: PASS
+    notes: "N/A for scaffolding story"
+  maintainability:
+    status: PASS
+    notes: "Clear project structure, Nx monorepo patterns followed"
 
 risk_summary:
-    totals: { critical: 0, high: 0, medium: 0, low: 1 }
-    recommendations:
-        must_fix: []
-        monitor:
-            - "Ensure story checkboxes are updated as tasks complete"
+  totals: { critical: 0, high: 0, medium: 0, low: 1 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Ensure story checkboxes are updated as tasks complete"
 
 recommendations:
-    immediate: []
-    future:
-        - action: "Remove legacy libs (nest-shared, sdk, common) when no longer needed"
-          refs: ["libs/nest-shared/", "libs/sdk/"]
-        - action: "Consider adding pre-commit hooks for lint/format"
-          refs: ["package.json"]
+  immediate: []
+  future:
+    - action: "Remove legacy libs (nest-shared, sdk, common) when no longer needed"
+      refs: ["libs/nest-shared/", "libs/sdk/"]
+    - action: "Consider adding pre-commit hooks for lint/format"
+      refs: ["package.json"]

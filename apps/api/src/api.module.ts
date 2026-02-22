@@ -8,6 +8,8 @@ import { validate } from './config/env.validation';
 import { loggerConfig } from './config/logger.config';
 import { AppController } from './controllers/app.controller';
 import { HealthController } from './controllers/health.controller';
+import { BotModule } from './modules/bot';
+import { UserModule } from './modules/user';
 import { AppService } from './services/app.service';
 
 @Module({
@@ -28,6 +30,14 @@ import { AppService } from './services/app.service';
          * Logger (Pino)
          */
         LoggerModule.forRoot(loggerConfig),
+        /**
+         * Bot Module (Telegram webhook handler)
+         */
+        BotModule,
+        /**
+         * User Module
+         */
+        UserModule,
     ],
     controllers: [AppController, HealthController],
     providers: [AppService],

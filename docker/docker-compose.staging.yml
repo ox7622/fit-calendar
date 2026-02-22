@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    container_name: fitcalendar-postgres
+    environment:
+      POSTGRES_DB: ${NX_DB_NAME:-fitcalendar}
+      POSTGRES_USER: ${NX_DB_USER:-fitcalendar}
+      POSTGRES_PASSWORD: ${NX_DB_PASS}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NX_DB_USER:-fitcalendar} -d ${NX_DB_NAME:-fitcalendar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-fitcalendar}/fit-calendar-api:latest
+    restart: unless-stopped
+    container_name: fitcalendar-api
+    ports:
+      - "3020:3000"
+    env_file:
+      - path: .env.local
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  bot:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-fitcalendar}/fit-calendar-bot:latest
+    restart: unless-stopped
+    container_name: fitcalendar-bot
+    env_file:
+      - path: .env.local
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

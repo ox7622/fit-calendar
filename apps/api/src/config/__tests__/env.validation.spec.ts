@@ -12,6 +12,8 @@ describe('Environment Validation', () => {
         NX_BE_API_FITCALENDAR_SERVICE_PORT: '3020',
         NX_BE_API_FITCALENDAR_SERVICE_PREFIX: 'api',
         JWT_SECRET: 'super-secret-key-min-32-characters',
+        TELEGRAM_BOT_TOKEN: '123456789:ABCdefGHIjklMNOpqrsTUVwxyz',
+        TELEGRAM_WEBHOOK_SECRET: 'webhook-secret-key',
     };
 
     describe('validate', () => {
@@ -97,6 +99,33 @@ describe('Environment Validation', () => {
 
             expect(typeof result.NX_DB_PORT).toBe('number');
             expect(typeof result.NX_BE_API_FITCALENDAR_SERVICE_PORT).toBe('number');
+        });
+
+        it('should throw error when TELEGRAM_BOT_TOKEN is missing', () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { TELEGRAM_BOT_TOKEN: _token, ...invalidConfig } = validConfig;
+
+            expect(() => validate(invalidConfig)).toThrow('Environment validation failed');
+            expect(() => validate(invalidConfig)).toThrow('TELEGRAM_BOT_TOKEN');
+        });
+
+        it('should throw error when TELEGRAM_WEBHOOK_SECRET is missing', () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { TELEGRAM_WEBHOOK_SECRET: _secret, ...invalidConfig } = validConfig;
+
+            expect(() => validate(invalidConfig)).toThrow('Environment validation failed');
+            expect(() => validate(invalidConfig)).toThrow('TELEGRAM_WEBHOOK_SECRET');
+        });
+
+        it('should accept optional MINI_APP_URL', () => {
+            const configWithMiniApp = {
+                ...validConfig,
+                MINI_APP_URL: 'https://app.fitcalendar.ru',
+            };
+
+            const result = validate(configWithMiniApp);
+
+            expect(result.MINI_APP_URL).toBe('https://app.fitcalendar.ru');
         });
     });
 });

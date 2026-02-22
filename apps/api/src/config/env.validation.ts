@@ -54,6 +54,19 @@ export class EnvironmentVariables {
     @IsString()
     @IsOptional()
     CORS_ORIGIN_ADMIN?: string;
+
+    // Telegram Bot configuration
+    @IsString()
+    @IsNotEmpty()
+    TELEGRAM_BOT_TOKEN!: string;
+
+    @IsString()
+    @IsNotEmpty()
+    TELEGRAM_WEBHOOK_SECRET!: string;
+
+    @IsString()
+    @IsOptional()
+    MINI_APP_URL?: string;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

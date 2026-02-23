@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { SchedulePage, CoachesPage, RemindersPage, ClubPage } from '@/pages';
+import { ClassDetailPage, SchedulePage, CoachesPage, RemindersPage, ClubPage } from '@/pages';
 import { AppShell } from './components';
 
 /**
@@ -7,15 +7,43 @@ import { AppShell } from './components';
  */
 export function AppRouter(): JSX.Element {
     return (
-        <AppShell>
-            <Routes>
-                <Route path="/" element={<SchedulePage />} />
-                <Route path="/coaches" element={<CoachesPage />} />
-                <Route path="/reminders" element={<RemindersPage />} />
-                <Route path="/club" element={<ClubPage />} />
-                {/* Redirect unknown routes to schedule */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </AppShell>
+        <Routes>
+            <Route
+                path="/"
+                element={
+                    <AppShell>
+                        <SchedulePage />
+                    </AppShell>
+                }
+            />
+            <Route
+                path="/coaches"
+                element={
+                    <AppShell>
+                        <CoachesPage />
+                    </AppShell>
+                }
+            />
+            <Route
+                path="/reminders"
+                element={
+                    <AppShell>
+                        <RemindersPage />
+                    </AppShell>
+                }
+            />
+            <Route
+                path="/club"
+                element={
+                    <AppShell>
+                        <ClubPage />
+                    </AppShell>
+                }
+            />
+            {/* Class detail page - no bottom nav */}
+            <Route path="/schedule/:id" element={<ClassDetailPage />} />
+            {/* Redirect unknown routes to schedule */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
     );
 }

@@ -2,8 +2,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { BotError, Context } from 'grammy';
 import { Bot } from 'grammy';
+import type { Update } from 'grammy/types';
+
+import { ScheduleService } from '../schedule/schedule.service';
 
 import { registerStartCommand } from './handlers/start.handler';
+import { registerTodayCommand } from './handlers/today.handler';
 
 export interface IWebhookUpdate {
     update_id: number;
@@ -37,7 +41,7 @@ export class BotService implements OnModuleInit {
     private bot: Bot<Context> | null = null;
     private readonly logger = new Logger(BotService.name);
 
-    constructor(private readonly configService: ConfigService) {}
+    constructor(private readonly configService: ConfigService, private readonly scheduleService: ScheduleService) {}
 
     async onModuleInit(): Promise<void> {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
@@ -70,6 +74,7 @@ export class BotService implements OnModuleInit {
 
         // Register commands
         registerStartCommand(this.bot, miniAppUrl);
+        registerTodayCommand(this.bot, this.scheduleService, miniAppUrl);
 
         // Initialize the bot (but don't start polling)
         await this.bot.init();
@@ -105,7 +110,7 @@ export class BotService implements OnModuleInit {
         }
 
         try {
-            await this.bot.handleUpdate(update);
+            await this.bot.handleUpdate(update as Update);
         } catch (error) {
             this.logger.error('Failed to handle update', error);
             throw error;

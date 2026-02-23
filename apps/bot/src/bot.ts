@@ -3,6 +3,7 @@ import { Bot } from 'grammy';
 import pino from 'pino';
 
 import { registerStartCommand } from './commands/start.command';
+import { registerTodayCommand } from './commands/today.command';
 import { errorMiddleware } from './middleware/error.middleware';
 
 export interface IBotConfig {
@@ -24,6 +25,7 @@ export function createBot(config: IBotConfig): Bot<Context> {
 
     // Register commands
     registerStartCommand(bot, config.miniAppUrl);
+    registerTodayCommand(bot, config.miniAppUrl);
 
     return bot;
 }

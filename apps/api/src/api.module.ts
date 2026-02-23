@@ -9,6 +9,7 @@ import { loggerConfig } from './config/logger.config';
 import { AppController } from './controllers/app.controller';
 import { HealthController } from './controllers/health.controller';
 import { BotModule } from './modules/bot';
+import { ScheduleModule } from './modules/schedule';
 import { UserModule } from './modules/user';
 import { AppService } from './services/app.service';
 
@@ -38,6 +39,10 @@ import { AppService } from './services/app.service';
          * User Module
          */
         UserModule,
+        /**
+         * Schedule Module
+         */
+        ScheduleModule,
     ],
     controllers: [AppController, HealthController],
     providers: [AppService],

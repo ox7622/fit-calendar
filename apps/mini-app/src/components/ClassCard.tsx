@@ -3,12 +3,15 @@ import { ru } from 'date-fns/locale';
 
 import type { ScheduleClass } from '@/shared/types/schedule.types';
 
+import { ImpactTypeBadge } from './ImpactTypeBadge';
+
 interface ClassCardProps {
     class: ScheduleClass;
     onClick?: () => void;
 }
 
 type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+type ImpactType = 'cardio' | 'strength' | 'flexibility' | 'balance';
 
 const difficultyBadgeClass: Record<DifficultyLevel, string> = {
     beginner: 'bg-success/20 text-success',
@@ -21,6 +24,12 @@ const difficultyLabel: Record<DifficultyLevel, string> = {
     intermediate: 'Средний',
     advanced: 'Продвинутый',
 };
+
+const knownImpactTypes: ImpactType[] = ['cardio', 'strength', 'flexibility', 'balance'];
+
+function isKnownImpactType(value: string): value is ImpactType {
+    return (knownImpactTypes as string[]).includes(value);
+}
 
 function getInitials(name: string): string {
     return name
@@ -93,6 +102,21 @@ export function ClassCard({ class: cls, onClick }: ClassCardProps): JSX.Element 
                         {cls.durationMinutes}&nbsp;мин
                     </span>
                 </div>
+
+                {/* Impact type badges */}
+                {cls.impactTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                        {cls.impactTypes.map((type) =>
+                            isKnownImpactType(type) ? (
+                                <ImpactTypeBadge key={type} type={type} size="sm" />
+                            ) : (
+                                <span key={type} className="text-xs text-muted-foreground bg-muted rounded-md px-1.5 py-0.5">
+                                    {type}
+                                </span>
+                            ),
+                        )}
+                    </div>
+                )}
 
                 {/* Bottom row: coach name + difficulty badge */}
                 <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-border/50">

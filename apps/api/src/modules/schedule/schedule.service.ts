@@ -1,11 +1,14 @@
-import { ScheduleEntry } from '@fitcalendar/db';
-import { Injectable, Logger } from '@nestjs/common';
+import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, format, startOfDay } from 'date-fns';
-import { Between } from 'typeorm';
+import { ArrayContains, Between, FindOptionsWhere } from 'typeorm';
 import { Repository } from 'typeorm';
 
+import { LabelValueDto } from './dto/label-value.dto';
+import { ScheduleFilterDto } from './dto/schedule-filter.dto';
 import { ClassResponseDto } from './dto/schedule-response.dto';
+import { TrainingTypeResponseDto } from './dto/training-type-response.dto';
 import { DayScheduleDto, WeekScheduleDto } from './dto/week-schedule.dto';
 
 @Injectable()
@@ -15,6 +18,8 @@ export class ScheduleService {
     constructor(
         @InjectRepository(ScheduleEntry)
         private readonly scheduleRepository: Repository<ScheduleEntry>,
+        @InjectRepository(TrainingType)
+        private readonly trainingTypeRepository: Repository<TrainingType>,
     ) {}
 
     /**
@@ -27,6 +32,7 @@ export class ScheduleService {
         return {
             id: entry.id,
             name: entry.trainingType.name,
+            description: entry.trainingType.description,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             durationMinutes: entry.durationMinutes,
@@ -36,40 +42,58 @@ export class ScheduleService {
             coachPhotoUrl: entry.coach.photoUrl,
             difficulty: entry.trainingType.difficulty,
             impactTypes: entry.trainingType.impactTypes,
+            equipment: entry.trainingType.equipment,
         };
+    }
+
+    /**
+     * Get a single schedule entry by id
+     */
+    async getById(id: string): Promise<ClassResponseDto> {
+        this.logger.log(`Fetching schedule entry: ${id}`);
+        const entry = await this.scheduleRepository.findOne({
+            where: { id },
+            relations: ['trainingType', 'coach'],
+        });
+
+        if (!entry) {
+            throw new NotFoundException(`Schedule entry with id ${id} not found`);
+        }
+
+        return this.mapToDto(entry);
     }
 
     /**
      * Get schedule for today
      */
-    async getToday(includeCancelled = false): Promise<ClassResponseDto[]> {
+    async getToday(filter: ScheduleFilterDto = {}): Promise<ClassResponseDto[]> {
         this.logger.log('Fetching today schedule');
         const today = startOfDay(new Date());
         const tomorrow = startOfDay(addDays(today, 1));
 
-        return this.getByDateRange(today, tomorrow, includeCancelled);
+        return this.getByDateRange(today, tomorrow, filter);
     }
 
     /**
      * Get schedule for a specific date (YYYY-MM-DD string)
      */
-    async getByDate(date: string, includeCancelled = false): Promise<ClassResponseDto[]> {
+    async getByDate(date: string, filter: ScheduleFilterDto = {}): Promise<ClassResponseDto[]> {
         this.logger.log(`Fetching schedule for date: ${date}`);
         const parsedDate = startOfDay(new Date(date));
         const nextDay = startOfDay(addDays(parsedDate, 1));
 
-        return this.getByDateRange(parsedDate, nextDay, includeCancelled);
+        return this.getByDateRange(parsedDate, nextDay, filter);
     }
 
     /**
      * Get weekly schedule: 7 days from today (inclusive)
      */
-    async getWeek(includeCancelled = false): Promise<WeekScheduleDto> {
+    async getWeek(filter: ScheduleFilterDto = {}): Promise<WeekScheduleDto> {
         this.logger.log('Fetching week schedule');
         const today = startOfDay(new Date());
         const endOfWeek = startOfDay(addDays(today, 7));
 
-        const entries = await this.queryEntries(today, endOfWeek, includeCancelled);
+        const entries = await this.queryEntries(today, endOfWeek, filter);
 
         // Generate 7 days
         const days: DayScheduleDto[] = [];
@@ -91,11 +115,94 @@ export class ScheduleService {
     }
 
     /**
-     * Internal: Query entries by date range and optional status filter
+     * Get all active training types (metadata)
      */
-    private async queryEntries(start: Date, end: Date, includeCancelled: boolean): Promise<ScheduleEntry[]> {
-        const whereBase = { startTime: Between(start, end) };
-        const where = includeCancelled ? whereBase : { ...whereBase, status: 'scheduled' as const };
+    async getTrainingTypes(): Promise<TrainingTypeResponseDto[]> {
+        this.logger.log('Fetching active training types');
+        const types = await this.trainingTypeRepository.find({
+            where: { isActive: true },
+            order: { name: 'ASC' },
+        });
+
+        return types.map((t) => ({
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            difficulty: t.difficulty,
+            impactTypes: t.impactTypes,
+            equipment: t.equipment,
+        }));
+    }
+
+    /**
+     * Get difficulty levels (hardcoded metadata)
+     */
+    getDifficultyLevels(): LabelValueDto[] {
+        return [
+            { value: 'beginner', label: 'Начальный' },
+            { value: 'intermediate', label: 'Средний' },
+            { value: 'advanced', label: 'Продвинутый' },
+        ];
+    }
+
+    /**
+     * Get impact types (hardcoded metadata)
+     */
+    getImpactTypes(): LabelValueDto[] {
+        return [
+            { value: 'cardio', label: 'Кардио' },
+            { value: 'strength', label: 'Силовая' },
+            { value: 'flexibility', label: 'Гибкость' },
+            { value: 'balance', label: 'Баланс' },
+        ];
+    }
+
+    /**
+     * Internal: Build TypeORM where conditions from filter
+     */
+    private buildWhere(
+        start: Date,
+        end: Date,
+        filter: ScheduleFilterDto,
+    ): FindOptionsWhere<ScheduleEntry> | FindOptionsWhere<ScheduleEntry>[] {
+        const base: FindOptionsWhere<ScheduleEntry> = {
+            startTime: Between(start, end),
+        };
+
+        if (!filter.includeCancelled) {
+            base.status = 'scheduled';
+        }
+
+        if (filter.coachId) {
+            base.coachId = filter.coachId;
+        }
+
+        if (filter.trainingTypeId) {
+            base.trainingTypeId = filter.trainingTypeId;
+        }
+
+        const trainingTypeWhere: FindOptionsWhere<TrainingType> = {};
+
+        if (filter.difficultyLevel) {
+            trainingTypeWhere.difficulty = filter.difficultyLevel;
+        }
+
+        if (filter.impactType && filter.impactType.length > 0) {
+            trainingTypeWhere.impactTypes = ArrayContains(filter.impactType);
+        }
+
+        if (Object.keys(trainingTypeWhere).length > 0) {
+            base.trainingType = trainingTypeWhere;
+        }
+
+        return base;
+    }
+
+    /**
+     * Internal: Query entries by date range and optional filter
+     */
+    private async queryEntries(start: Date, end: Date, filter: ScheduleFilterDto): Promise<ScheduleEntry[]> {
+        const where = this.buildWhere(start, end, filter);
 
         return this.scheduleRepository.find({
             where,
@@ -107,8 +214,8 @@ export class ScheduleService {
     /**
      * Internal: Get entries for a date range and map to DTOs
      */
-    private async getByDateRange(start: Date, end: Date, includeCancelled: boolean): Promise<ClassResponseDto[]> {
-        const entries = await this.queryEntries(start, end, includeCancelled);
+    private async getByDateRange(start: Date, end: Date, filter: ScheduleFilterDto): Promise<ClassResponseDto[]> {
+        const entries = await this.queryEntries(start, end, filter);
         return entries.map((entry) => this.mapToDto(entry));
     }
 }

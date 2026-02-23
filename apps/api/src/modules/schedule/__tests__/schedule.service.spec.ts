@@ -1,5 +1,5 @@
-import type { Coach, TrainingType } from '@fitcalendar/db';
-import { ScheduleEntry } from '@fitcalendar/db';
+import type { Coach } from '@fitcalendar/db';
+import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -59,19 +59,29 @@ function createMockEntry(
 
 describe('ScheduleService', () => {
     let service: ScheduleService;
-    let mockRepository: jest.Mocked<Repository<ScheduleEntry>>;
+    let mockScheduleRepository: jest.Mocked<Repository<ScheduleEntry>>;
+    let mockTrainingTypeRepository: jest.Mocked<Repository<TrainingType>>;
 
     beforeEach(async () => {
-        mockRepository = {
+        mockScheduleRepository = {
             find: jest.fn(),
+            findOne: jest.fn(),
         } as unknown as jest.Mocked<Repository<ScheduleEntry>>;
+
+        mockTrainingTypeRepository = {
+            find: jest.fn(),
+        } as unknown as jest.Mocked<Repository<TrainingType>>;
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 ScheduleService,
                 {
                     provide: getRepositoryToken(ScheduleEntry),
-                    useValue: mockRepository,
+                    useValue: mockScheduleRepository,
+                },
+                {
+                    provide: getRepositoryToken(TrainingType),
+                    useValue: mockTrainingTypeRepository,
                 },
             ],
         }).compile();
@@ -84,7 +94,7 @@ describe('ScheduleService', () => {
             const today = new Date();
             today.setHours(10, 0, 0, 0);
             const entry = createMockEntry({}, today);
-            mockRepository.find.mockResolvedValue([entry]);
+            mockScheduleRepository.find.mockResolvedValue([entry]);
 
             const result = await service.getToday();
 
@@ -99,14 +109,13 @@ describe('ScheduleService', () => {
             const today = new Date();
             today.setHours(10, 0, 0, 0);
             const cancelledEntry = createMockEntry({ status: 'cancelled' }, today);
-            mockRepository.find.mockResolvedValue([cancelledEntry]);
+            mockScheduleRepository.find.mockResolvedValue([cancelledEntry]);
 
-            const result = await service.getToday(true);
+            const result = await service.getToday({ includeCancelled: true });
 
             expect(result).toHaveLength(1);
             expect(result[0]?.status).toBe('cancelled');
-            // When includeCancelled=true, status filter should not be applied
-            const callArgs = mockRepository.find.mock.calls[0]?.[0];
+            const callArgs = mockScheduleRepository.find.mock.calls[0]?.[0];
             expect(callArgs).toBeDefined();
             if (callArgs && 'where' in callArgs) {
                 expect((callArgs.where as Record<string, unknown>)['status']).toBeUndefined();
@@ -114,11 +123,11 @@ describe('ScheduleService', () => {
         });
 
         it('should filter to scheduled only by default', async () => {
-            mockRepository.find.mockResolvedValue([]);
+            mockScheduleRepository.find.mockResolvedValue([]);
 
-            await service.getToday(false);
+            await service.getToday({ includeCancelled: false });
 
-            const callArgs = mockRepository.find.mock.calls[0]?.[0];
+            const callArgs = mockScheduleRepository.find.mock.calls[0]?.[0];
             expect(callArgs).toBeDefined();
             if (callArgs && 'where' in callArgs) {
                 expect((callArgs.where as Record<string, unknown>)['status']).toBe('scheduled');
@@ -126,7 +135,7 @@ describe('ScheduleService', () => {
         });
 
         it('should return empty array when no classes', async () => {
-            mockRepository.find.mockResolvedValue([]);
+            mockScheduleRepository.find.mockResolvedValue([]);
 
             const result = await service.getToday();
 
@@ -139,7 +148,7 @@ describe('ScheduleService', () => {
             const date = '2026-03-15';
             const entryDate = new Date('2026-03-15T09:00:00Z');
             const entry = createMockEntry({}, entryDate);
-            mockRepository.find.mockResolvedValue([entry]);
+            mockScheduleRepository.find.mockResolvedValue([entry]);
 
             const result = await service.getByDate(date);
 
@@ -150,7 +159,7 @@ describe('ScheduleService', () => {
         it('should compute endTime correctly', async () => {
             const entryDate = new Date('2026-03-15T09:00:00Z');
             const entry = createMockEntry({ durationMinutes: 60 }, entryDate);
-            mockRepository.find.mockResolvedValue([entry]);
+            mockScheduleRepository.find.mockResolvedValue([entry]);
 
             const result = await service.getByDate('2026-03-15');
 
@@ -159,7 +168,7 @@ describe('ScheduleService', () => {
         });
 
         it('should return empty array when no classes', async () => {
-            mockRepository.find.mockResolvedValue([]);
+            mockScheduleRepository.find.mockResolvedValue([]);
 
             const result = await service.getByDate('2026-03-20');
 
@@ -169,7 +178,7 @@ describe('ScheduleService', () => {
 
     describe('getWeek', () => {
         it('should return 7 days', async () => {
-            mockRepository.find.mockResolvedValue([]);
+            mockScheduleRepository.find.mockResolvedValue([]);
 
             const result = await service.getWeek();
 
@@ -177,7 +186,7 @@ describe('ScheduleService', () => {
         });
 
         it('should include today as first day', async () => {
-            mockRepository.find.mockResolvedValue([]);
+            mockScheduleRepository.find.mockResolvedValue([]);
 
             const result = await service.getWeek();
 
@@ -195,7 +204,7 @@ describe('ScheduleService', () => {
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
             const entry2 = createMockEntry({ id: 'entry-2' }, tomorrow);
-            mockRepository.find.mockResolvedValue([entry1, entry2]);
+            mockScheduleRepository.find.mockResolvedValue([entry1, entry2]);
 
             const result = await service.getWeek();
 
@@ -206,7 +215,7 @@ describe('ScheduleService', () => {
         });
 
         it('should return empty classes array for days with no classes', async () => {
-            mockRepository.find.mockResolvedValue([]);
+            mockScheduleRepository.find.mockResolvedValue([]);
 
             const result = await service.getWeek();
 
@@ -219,7 +228,7 @@ describe('ScheduleService', () => {
             const today = new Date();
             today.setHours(10, 0, 0, 0);
             const entry = createMockEntry({}, today);
-            mockRepository.find.mockResolvedValue([entry]);
+            mockScheduleRepository.find.mockResolvedValue([entry]);
 
             const result = await service.getWeek();
 
@@ -231,7 +240,7 @@ describe('ScheduleService', () => {
         it('should correctly map entity fields to DTO', async () => {
             const startTime = new Date('2026-02-22T09:00:00Z');
             const entry = createMockEntry({ durationMinutes: 90 }, startTime);
-            mockRepository.find.mockResolvedValue([entry]);
+            mockScheduleRepository.find.mockResolvedValue([entry]);
 
             const result = await service.getToday();
             const dto = result[0];

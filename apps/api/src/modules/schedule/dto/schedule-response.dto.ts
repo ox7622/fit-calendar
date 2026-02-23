@@ -7,6 +7,9 @@ export class ClassResponseDto {
     @ApiProperty({ description: 'Training type name' })
     name: string;
 
+    @ApiProperty({ description: 'Training type description', nullable: true })
+    description: string | null;
+
     @ApiProperty({ description: 'Start time in ISO 8601 format' })
     startTime: string;
 
@@ -33,4 +36,7 @@ export class ClassResponseDto {
 
     @ApiProperty({ description: 'Impact types (e.g. cardio, strength)', type: [String] })
     impactTypes: string[];
+
+    @ApiProperty({ description: 'Required equipment list', type: [String] })
+    equipment: string[];
 }

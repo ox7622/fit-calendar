@@ -1,4 +1,4 @@
-import { AdminUser } from '@fitcalendar/db';
+import type { AdminUser } from '@fitcalendar/db';
 import { UnauthorizedException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';

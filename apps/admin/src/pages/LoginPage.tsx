@@ -1,8 +1,9 @@
-import { FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 
 import { adminAuthApi } from '@/shared/api/auth.api';
 import { useAdminStore } from '@/shared/stores/adminStore';
+import { useNavigate } from 'react-router-dom';
 
 const INVALID_CREDENTIALS_MESSAGE = 'Неверный email или пароль';
 

@@ -3,8 +3,8 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { AdminAuthService } from './admin-auth.service';
-import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { LoginDto } from './dto/login.dto';
 
 // Russian-language single error message used for any auth failure (wrong email,
 // wrong password, inactive admin) — AC6: no user enumeration leakage.

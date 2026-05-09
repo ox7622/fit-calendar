@@ -1,6 +1,5 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-
 import { useAdminStore } from '@/shared/stores/adminStore';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 export function RequireAuth() {
     const token = useAdminStore((s) => s.token);

@@ -18,19 +18,19 @@ pnpm nx serve api    # http://localhost:3020
 
 ## Default seeded admin
 
-| | |
-| --- | --- |
+|          |                        |
+| -------- | ---------------------- |
 | Email    | `admin@fitcalendar.ru` |
-| Password | `admin123` |
+| Password | `admin123`             |
 
 Created by `libs/db/src/seeds/seed.ts`. The bcrypt hash baked into the seed is for this exact password — change both if you want a different default.
 
 ## Architecture
 
-- **Routing:** `apps/admin/src/app/Router.tsx` — `/login` (public), `/dashboard` (protected via `RequireAuth` + `AdminShell`), `/` redirects to `/dashboard`, catch-all to `/login`.
-- **Auth state:** `apps/admin/src/shared/stores/adminStore.ts` — Zustand store, hydrated from / written to `localStorage` (`admin_token` + `admin_user`).
-- **API client:** `apps/admin/src/shared/api/client.ts` — fetch wrapper that injects `Authorization: Bearer <token>`. On 401 it clears auth and full-reloads to `${BASE_URL}login`.
-- **Backend:** see `apps/api/src/modules/admin/auth/` for `AdminAuthService` (validateCredentials with constant-time bcrypt parity, signToken, recordLogin), `AdminAuthController` (`POST /admin/auth/login`, rate-limited to 5/15min), and `apps/api/src/common/guards/admin-auth.guard.ts` for `AdminAuthGuard` (used by stories 6.2–6.7).
+-   **Routing:** `apps/admin/src/app/Router.tsx` — `/login` (public), `/dashboard` (protected via `RequireAuth` + `AdminShell`), `/` redirects to `/dashboard`, catch-all to `/login`.
+-   **Auth state:** `apps/admin/src/shared/stores/adminStore.ts` — Zustand store, hydrated from / written to `localStorage` (`admin_token` + `admin_user`).
+-   **API client:** `apps/admin/src/shared/api/client.ts` — fetch wrapper that injects `Authorization: Bearer <token>`. On 401 it clears auth and full-reloads to `${BASE_URL}login`.
+-   **Backend:** see `apps/api/src/modules/admin/auth/` for `AdminAuthService` (validateCredentials with constant-time bcrypt parity, signToken, recordLogin), `AdminAuthController` (`POST /admin/auth/login`, rate-limited to 5/15min), and `apps/api/src/common/guards/admin-auth.guard.ts` for `AdminAuthGuard` (used by stories 6.2–6.7).
 
 ## Production deployment notes
 

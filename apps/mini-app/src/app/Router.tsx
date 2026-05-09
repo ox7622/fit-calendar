@@ -1,5 +1,14 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ClassDetailPage, SchedulePage, CoachesPage, RemindersPage, ClubPage, PlansPage } from '@/pages';
+import {
+    ClassDetailPage,
+    CoachDetailPage,
+    CoachSchedulePage,
+    CoachesPage,
+    ClubPage,
+    PlansPage,
+    RemindersPage,
+    SchedulePage,
+} from '@/pages';
 import { AppShell } from './components';
 
 /**
@@ -50,6 +59,9 @@ export function AppRouter(): JSX.Element {
             />
             {/* Class detail page - no bottom nav */}
             <Route path="/schedule/:id" element={<ClassDetailPage />} />
+            {/* Coach detail + schedule pages - no bottom nav (own back button) */}
+            <Route path="/coaches/:id" element={<CoachDetailPage />} />
+            <Route path="/coaches/:id/schedule" element={<CoachSchedulePage />} />
             {/* Redirect unknown routes to schedule */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

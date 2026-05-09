@@ -14,4 +14,5 @@ export interface CoachOption {
     id: string;
     name: string;
     photoUrl: string | null;
+    specializations?: string[];
 }

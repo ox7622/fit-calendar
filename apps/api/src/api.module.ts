@@ -9,6 +9,7 @@ import { loggerConfig } from './config/logger.config';
 import { AppController } from './controllers/app.controller';
 import { HealthController } from './controllers/health.controller';
 import { BotModule } from './modules/bot';
+import { ClubModule } from './modules/club';
 import { CoachesModule } from './modules/coaches';
 import { ScheduleModule } from './modules/schedule';
 import { UserModule } from './modules/user';
@@ -48,6 +49,10 @@ import { AppService } from './services/app.service';
          * Coaches Module
          */
         CoachesModule,
+        /**
+         * Club Module
+         */
+        ClubModule,
     ],
     controllers: [AppController, HealthController],
     providers: [AppService],

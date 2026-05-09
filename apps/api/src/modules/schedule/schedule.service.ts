@@ -1,4 +1,4 @@
-import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, format, startOfDay } from 'date-fns';

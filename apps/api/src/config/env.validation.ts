@@ -1,5 +1,18 @@
 import { plainToInstance } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, MinLength, validateSync } from 'class-validator';
+
+// Substring tokens that mark a JWT_SECRET as a placeholder. Refused in production
+// so a copy-pasted .env.example value can't accidentally ship.
+const JWT_SECRET_PLACEHOLDER_TOKENS = [
+    'replace-me',
+    'replace_me',
+    'changeme',
+    'change-me',
+    'change_me',
+    'your_jwt_secret',
+    'your-jwt-secret',
+    'placeholder',
+];
 
 export class EnvironmentVariables {
     // Database configuration
@@ -35,6 +48,9 @@ export class EnvironmentVariables {
     // Authentication
     @IsString()
     @IsNotEmpty()
+    @MinLength(32, {
+        message: 'JWT_SECRET must be at least 32 characters long for cryptographic safety',
+    })
     JWT_SECRET!: string;
 
     // Optional variables with defaults
@@ -86,6 +102,16 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
             })
             .join('\n');
         throw new Error(`Environment validation failed:\n${errorMessages}`);
+    }
+
+    if (validatedConfig.NODE_ENV === 'production') {
+        const secretLower = validatedConfig.JWT_SECRET.toLowerCase();
+        const matchedToken = JWT_SECRET_PLACEHOLDER_TOKENS.find((token) => secretLower.includes(token));
+        if (matchedToken) {
+            throw new Error(
+                `Environment validation failed:\nJWT_SECRET: contains placeholder token "${matchedToken}" — refusing to boot in production. Generate a real secret (e.g. \`openssl rand -base64 48\`).`,
+            );
+        }
     }
 
     return validatedConfig;

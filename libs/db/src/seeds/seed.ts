@@ -1,9 +1,10 @@
 import { AppDataSource } from '../data-source';
 import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser } from '../entities';
 
-// Pre-computed bcrypt hash for 'admin123' with 10 rounds
+// Pre-computed bcrypt hash for 'admin123' with 10 rounds.
 // Generated with: bcrypt.hashSync('admin123', 10)
-const ADMIN_PASSWORD_HASH = '$2b$10$rQZ8K8H8H8H8H8H8H8H8H.8H8H8H8H8H8H8H8H8H8H8H8H8H8H8H8';
+// Verified: bcrypt.compareSync('admin123', ADMIN_PASSWORD_HASH) === true.
+const ADMIN_PASSWORD_HASH = '$2b$10$wLyEbcqjO2XRX43gDQ/xyOKG/RutZ8AODjJ7KfbBDS6PZq6nrOdKO';
 
 async function seed(): Promise<void> {
     await AppDataSource.initialize();

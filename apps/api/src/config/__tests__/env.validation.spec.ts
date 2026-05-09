@@ -127,5 +127,51 @@ describe('Environment Validation', () => {
 
             expect(result.MINI_APP_URL).toBe('https://app.fitcalendar.ru');
         });
+
+        it('should reject JWT_SECRET shorter than 32 characters', () => {
+            const shortSecret = { ...validConfig, JWT_SECRET: 'too-short' };
+
+            expect(() => validate(shortSecret)).toThrow('Environment validation failed');
+            expect(() => validate(shortSecret)).toThrow('JWT_SECRET');
+        });
+
+        it('should accept JWT_SECRET exactly 32 characters', () => {
+            const exactly32 = { ...validConfig, JWT_SECRET: 'a'.repeat(32) };
+
+            expect(() => validate(exactly32)).not.toThrow();
+        });
+
+        it('should reject placeholder JWT_SECRET in production', () => {
+            const placeholderInProd = {
+                ...validConfig,
+                JWT_SECRET: 'replace-me-with-a-32-char-random-string',
+                NODE_ENV: 'production',
+            };
+
+            expect(() => validate(placeholderInProd)).toThrow('Environment validation failed');
+            expect(() => validate(placeholderInProd)).toThrow('JWT_SECRET');
+            expect(() => validate(placeholderInProd)).toThrow('placeholder');
+        });
+
+        it('should reject JWT_SECRET containing "changeme" in production', () => {
+            const changeme = {
+                ...validConfig,
+                JWT_SECRET: 'changeme-changeme-changeme-changeme',
+                NODE_ENV: 'production',
+            };
+
+            expect(() => validate(changeme)).toThrow('Environment validation failed');
+            expect(() => validate(changeme)).toThrow('JWT_SECRET');
+        });
+
+        it('should accept placeholder JWT_SECRET in development', () => {
+            const placeholderInDev = {
+                ...validConfig,
+                JWT_SECRET: 'replace-me-with-a-32-char-random-string',
+                NODE_ENV: 'development',
+            };
+
+            expect(() => validate(placeholderInDev)).not.toThrow();
+        });
     });
 });

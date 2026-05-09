@@ -1,6 +1,10 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-
 import { useAdminStore } from '@/shared/stores/adminStore';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+
+const NAV_ITEMS: Array<{ to: string; label: string }> = [
+    { to: '/dashboard', label: 'Дашборд' },
+    { to: '/plans', label: 'Абонементы' },
+];
 
 export function AdminShell() {
     const navigate = useNavigate();
@@ -19,7 +23,26 @@ export function AdminShell() {
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
             <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-                <h1 className="heading-3">Админ-панель</h1>
+                <div className="flex items-center gap-6">
+                    <h1 className="heading-3">Админ-панель</h1>
+                    <nav className="flex items-center gap-2">
+                        {NAV_ITEMS.map((item) => (
+                            <NavLink
+                                key={item.to}
+                                to={item.to}
+                                className={({ isActive }) =>
+                                    `rounded-md px-3 py-1.5 text-sm transition-colors ${
+                                        isActive
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-body-secondary hover:bg-muted'
+                                    }`
+                                }
+                            >
+                                {item.label}
+                            </NavLink>
+                        ))}
+                    </nav>
+                </div>
                 <div className="flex items-center gap-3">
                     {admin && <span className="text-body-secondary">{admin.name}</span>}
                     <button

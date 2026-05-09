@@ -1,5 +1,5 @@
 import { AppDataSource } from '../data-source';
-import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser } from '../entities';
+import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser, MembershipPlan } from '../entities';
 
 // Pre-computed bcrypt hash for 'admin123' with 10 rounds.
 // Generated with: bcrypt.hashSync('admin123', 10)
@@ -230,6 +230,74 @@ async function seed(): Promise<void> {
                 await scheduleRepo.save(entry);
             }
             console.log(`${scheduleData.length} ScheduleEntries seeded`);
+        }
+
+        // 6. Seed MembershipPlans
+        const planRepo = queryRunner.manager.getRepository(MembershipPlan);
+        const existingPlans = await planRepo.find();
+        if (existingPlans.length === 0) {
+            const planData: Array<Partial<MembershipPlan>> = [
+                {
+                    name: '12-месячный',
+                    durationValue: 12,
+                    durationUnit: 'month',
+                    priceRub: 30000,
+                    features: ['2 гостевых визита', '1 месяц заморозки'],
+                    guestVisitsAllowed: 2,
+                    freezeDaysAllowed: 30,
+                },
+                {
+                    name: '6-месячный',
+                    durationValue: 6,
+                    durationUnit: 'month',
+                    priceRub: 18000,
+                    features: ['1 гостевой визит', '2 недели заморозки'],
+                    guestVisitsAllowed: 1,
+                    freezeDaysAllowed: 14,
+                },
+                {
+                    name: '3-месячный',
+                    durationValue: 3,
+                    durationUnit: 'month',
+                    priceRub: 10000,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+                {
+                    name: '1-месячный',
+                    durationValue: 1,
+                    durationUnit: 'month',
+                    priceRub: 4500,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+                {
+                    name: '1-недельный',
+                    durationValue: 1,
+                    durationUnit: 'week',
+                    priceRub: 1500,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+                {
+                    name: '1-дневный',
+                    durationValue: 1,
+                    durationUnit: 'day',
+                    priceRub: 500,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+            ];
+
+            for (const data of planData) {
+                const plan = planRepo.create({ ...data, isActive: true });
+                await planRepo.save(plan);
+            }
+            console.log(`${planData.length} MembershipPlans seeded`);
         }
 
         await queryRunner.commitTransaction();

@@ -5,3 +5,4 @@ export { ClubPage } from './ClubPage';
 export { ClassDetailPage } from './ClassDetailPage';
 export { CoachDetailPage } from './CoachDetailPage';
 export { CoachSchedulePage } from './CoachSchedulePage';
+export { PlansPage } from './PlansPage';

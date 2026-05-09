@@ -1,5 +1,6 @@
-import { MapPin, Phone } from 'lucide-react';
+import { CreditCard, MapPin, Phone } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { clubApi } from '@/shared/api/club.api';
 import type { ClubInfo, WorkingHoursEntry } from '@/shared/api/club.api';
@@ -159,6 +160,15 @@ export function ClubPage(): JSX.Element {
                             </div>
                         </div>
                     )}
+
+                    {/* Plans link */}
+                    <Link
+                        to="/plans"
+                        className="w-full flex items-center justify-center gap-2 border border-primary text-primary rounded-xl py-3 font-semibold text-sm transition-colors active:bg-primary/10"
+                    >
+                        <CreditCard size={18} />
+                        Доступные абонементы
+                    </Link>
 
                     {/* Show on map button */}
                     <button

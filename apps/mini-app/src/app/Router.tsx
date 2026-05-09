@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ClassDetailPage, SchedulePage, CoachesPage, RemindersPage, ClubPage } from '@/pages';
+import { ClassDetailPage, SchedulePage, CoachesPage, RemindersPage, ClubPage, PlansPage } from '@/pages';
 import { AppShell } from './components';
 
 /**
@@ -37,6 +37,14 @@ export function AppRouter(): JSX.Element {
                 element={
                     <AppShell>
                         <ClubPage />
+                    </AppShell>
+                }
+            />
+            <Route
+                path="/plans"
+                element={
+                    <AppShell>
+                        <PlansPage />
                     </AppShell>
                 }
             />

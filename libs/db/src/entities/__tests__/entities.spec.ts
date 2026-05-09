@@ -1,4 +1,4 @@
-import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser } from '../index';
+import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan } from '../index';
 
 describe('User Entity', () => {
     it('should create a user instance', () => {
@@ -202,5 +202,45 @@ describe('AdminUser Entity', () => {
 
         admin.lastLoginAt = new Date('2026-01-15T10:00:00Z');
         expect(admin.lastLoginAt).toBeInstanceOf(Date);
+    });
+});
+
+describe('MembershipPlan Entity', () => {
+    it('should create a membership plan instance', () => {
+        const plan = new MembershipPlan();
+        expect(plan).toBeInstanceOf(MembershipPlan);
+    });
+
+    it('should allow setting all properties', () => {
+        const plan = new MembershipPlan();
+        plan.name = '12-месячный';
+        plan.durationValue = 12;
+        plan.durationUnit = 'month';
+        plan.priceRub = 30000;
+        plan.features = ['2 гостевых визита', '1 месяц заморозки'];
+        plan.guestVisitsAllowed = 2;
+        plan.freezeDaysAllowed = 30;
+        plan.isActive = true;
+
+        expect(plan.name).toBe('12-месячный');
+        expect(plan.durationValue).toBe(12);
+        expect(plan.durationUnit).toBe('month');
+        expect(plan.priceRub).toBe(30000);
+        expect(plan.features).toEqual(['2 гостевых визита', '1 месяц заморозки']);
+        expect(plan.guestVisitsAllowed).toBe(2);
+        expect(plan.freezeDaysAllowed).toBe(30);
+        expect(plan.isActive).toBe(true);
+    });
+
+    it('should accept all valid duration units', () => {
+        const plan = new MembershipPlan();
+        plan.durationUnit = 'day';
+        expect(plan.durationUnit).toBe('day');
+
+        plan.durationUnit = 'week';
+        expect(plan.durationUnit).toBe('week');
+
+        plan.durationUnit = 'month';
+        expect(plan.durationUnit).toBe('month');
     });
 });

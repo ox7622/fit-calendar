@@ -1,4 +1,13 @@
-import { DashboardPage, LoginPage, PlanEditPage, PlanNewPage, PlansListPage } from '@/pages';
+import {
+    CustomerEditPage,
+    CustomerNewPage,
+    CustomersListPage,
+    DashboardPage,
+    LoginPage,
+    PlanEditPage,
+    PlanNewPage,
+    PlansListPage,
+} from '@/pages';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AdminShell } from './components/AdminShell';
@@ -16,6 +25,9 @@ export function AppRouter() {
                     <Route path="/plans" element={<PlansListPage />} />
                     <Route path="/plans/new" element={<PlanNewPage />} />
                     <Route path="/plans/:id" element={<PlanEditPage />} />
+                    <Route path="/customers" element={<CustomersListPage />} />
+                    <Route path="/customers/new" element={<CustomerNewPage />} />
+                    <Route path="/customers/:id" element={<CustomerEditPage />} />
                 </Route>
             </Route>
 

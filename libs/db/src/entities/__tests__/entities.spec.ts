@@ -1,36 +1,50 @@
-import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan } from '../index';
+import { Customer, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan } from '../index';
 
-describe('User Entity', () => {
-    it('should create a user instance', () => {
-        const user = new User();
-        expect(user).toBeInstanceOf(User);
+describe('Customer Entity', () => {
+    it('should create a customer instance', () => {
+        const customer = new Customer();
+        expect(customer).toBeInstanceOf(Customer);
     });
 
-    it('should allow setting reminderMinutes with default value behavior', () => {
-        const user = new User();
-        // Default value (30) is applied at DB level via @Column decorator
-        // When set explicitly, the value should persist
-        user.reminderMinutes = 30;
-        expect(user.reminderMinutes).toBe(30);
+    it('should allow setting reminderMinutes', () => {
+        const customer = new Customer();
+        customer.reminderMinutes = 30;
+        expect(customer.reminderMinutes).toBe(30);
 
-        user.reminderMinutes = 60;
-        expect(user.reminderMinutes).toBe(60);
+        customer.reminderMinutes = 60;
+        expect(customer.reminderMinutes).toBe(60);
     });
 
-    it('should allow setting all properties', () => {
-        const user = new User();
-        user.id = '123e4567-e89b-12d3-a456-426614174000';
-        user.telegramId = 123456789;
-        user.firstName = 'John';
-        user.lastName = 'Doe';
-        user.username = 'johndoe';
-        user.reminderMinutes = 60;
+    it('should allow setting all properties including admin-managed fields', () => {
+        const customer = new Customer();
+        customer.id = '123e4567-e89b-12d3-a456-426614174000';
+        customer.firstName = 'John';
+        customer.lastName = 'Doe';
+        customer.phone = '+74951234567';
+        customer.email = 'john@example.com';
+        customer.telegramId = 123456789;
+        customer.telegramUsername = 'johndoe';
+        customer.isActive = true;
+        customer.notes = 'VIP member';
+        customer.reminderMinutes = 60;
 
-        expect(user.telegramId).toBe(123456789);
-        expect(user.firstName).toBe('John');
-        expect(user.lastName).toBe('Doe');
-        expect(user.username).toBe('johndoe');
-        expect(user.reminderMinutes).toBe(60);
+        expect(customer.firstName).toBe('John');
+        expect(customer.lastName).toBe('Doe');
+        expect(customer.phone).toBe('+74951234567');
+        expect(customer.email).toBe('john@example.com');
+        expect(customer.telegramId).toBe(123456789);
+        expect(customer.telegramUsername).toBe('johndoe');
+        expect(customer.isActive).toBe(true);
+        expect(customer.notes).toBe('VIP member');
+        expect(customer.reminderMinutes).toBe(60);
+    });
+
+    it('should allow telegramId to be null (unlinked customer)', () => {
+        const customer = new Customer();
+        customer.telegramId = null;
+        customer.telegramUsername = null;
+        expect(customer.telegramId).toBeNull();
+        expect(customer.telegramUsername).toBeNull();
     });
 });
 

@@ -1,5 +1,5 @@
 import { AppDataSource } from '../data-source';
-import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser, MembershipPlan } from '../entities';
+import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser, MembershipPlan, Customer } from '../entities';
 
 // Pre-computed bcrypt hash for 'admin123' with 10 rounds.
 // Generated with: bcrypt.hashSync('admin123', 10)
@@ -298,6 +298,37 @@ async function seed(): Promise<void> {
                 await planRepo.save(plan);
             }
             console.log(`${planData.length} MembershipPlans seeded`);
+        }
+
+        // 7. Seed Customers (demo records for development/smoke testing)
+        const customerRepo = queryRunner.manager.getRepository(Customer);
+        const existingCustomers = await customerRepo.find();
+        if (existingCustomers.length === 0) {
+            const customerData: Array<Partial<Customer>> = [
+                {
+                    firstName: 'Анна',
+                    lastName: 'Кузнецова',
+                    phone: '+79001234567',
+                    email: 'anna@example.com',
+                    telegramId: 111111111,
+                    telegramUsername: 'anna_demo',
+                    isActive: true,
+                    notes: 'Linked demo customer — phone matches Telegram id 111111111',
+                },
+                {
+                    firstName: 'Борис',
+                    lastName: 'Лебедев',
+                    phone: '+79007654321',
+                    isActive: true,
+                    notes: 'Unlinked demo customer — opens Mini App and links via phone',
+                },
+            ];
+
+            for (const data of customerData) {
+                const customer = customerRepo.create(data);
+                await customerRepo.save(customer);
+            }
+            console.log(`${customerData.length} Customers seeded`);
         }
 
         await queryRunner.commitTransaction();

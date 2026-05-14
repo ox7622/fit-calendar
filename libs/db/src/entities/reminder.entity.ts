@@ -9,20 +9,20 @@ import {
     JoinColumn,
 } from 'typeorm';
 
+import { Customer } from './customer.entity';
 import { ScheduleEntry } from './schedule-entry.entity';
-import { User } from './user.entity';
 
 export type TReminderStatus = 'pending' | 'sent' | 'failed';
 
 @Entity('reminders')
-@Unique(['userId', 'scheduleEntryId'])
-@Index('idx_reminders_user', ['userId'])
+@Unique(['customerId', 'scheduleEntryId'])
+@Index('idx_reminders_customer', ['customerId'])
 export class Reminder {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @Column({ type: 'uuid' })
-    userId: string;
+    customerId: string;
 
     @Column({ type: 'uuid' })
     scheduleEntryId: string;
@@ -44,9 +44,9 @@ export class Reminder {
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
-    @ManyToOne(() => User, (user) => user.reminders, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'userId' })
-    user: User;
+    @ManyToOne(() => Customer, (customer) => customer.reminders, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'customerId' })
+    customer: Customer;
 
     @ManyToOne(() => ScheduleEntry, (entry) => entry.reminders, {
         onDelete: 'CASCADE',

@@ -1,4 +1,4 @@
-export * from './user.entity';
+export * from './customer.entity';
 export * from './coach.entity';
 export * from './training-type.entity';
 export * from './schedule-entry.entity';

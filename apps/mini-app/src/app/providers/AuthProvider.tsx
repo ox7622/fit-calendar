@@ -1,15 +1,14 @@
 import { ReactNode, useEffect } from 'react';
-import { apiClient, ApiError } from '@/shared/api';
-import { useUserStore, User } from '@/shared/stores';
+
+import { LinkPhonePrompt } from '@/components';
+import { ApiError, meApi } from '@/shared/api';
+import { useCustomerStore } from '@/shared/stores';
 import { isInTelegram } from '@/shared/telegram';
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
-/**
- * Loading spinner component
- */
 function LoadingScreen(): JSX.Element {
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-background">
@@ -19,9 +18,6 @@ function LoadingScreen(): JSX.Element {
     );
 }
 
-/**
- * Error screen component
- */
 function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => void }): JSX.Element {
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-background px-4">
@@ -38,9 +34,6 @@ function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => voi
     );
 }
 
-/**
- * Not in Telegram screen
- */
 function NotInTelegramScreen(): JSX.Element {
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-background px-4">
@@ -54,16 +47,21 @@ function NotInTelegramScreen(): JSX.Element {
 }
 
 /**
- * AuthProvider handles user authentication on app load
- * - Validates Telegram authentication
- * - Creates/updates user in backend
- * - Shows loading/error states
+ * Story 7.2 — three-state auth flow.
+ *
+ *   anonymous (not in Telegram)  → NotInTelegramScreen
+ *   Telegram-only (unlinked)     → LinkPhonePrompt (renders children when linked)
+ *   linked customer              → children
+ *
+ * Anonymous browsing across the public catalog (schedule, coaches, club info,
+ * plans) was deferred: the existing brief still requires Telegram for entry,
+ * and there's no anonymous flow for "open the app in a regular browser" yet.
+ * The linked/unlinked split here is the seed for that future flow.
  */
 export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
-    const { user, isLoading, error, setUser, setLoading, setError } = useUserStore();
+    const { linked, isLoading, error, setLinked, setUnlinked, setLoading, setError } = useCustomerStore();
 
     const authenticate = async (): Promise<void> => {
-        // Check if running inside Telegram
         if (!isInTelegram()) {
             setLoading(false);
             setError('Not running inside Telegram');
@@ -74,8 +72,12 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         setError(null);
 
         try {
-            const userData = await apiClient.get<User>('/users/me');
-            setUser(userData);
+            const me = await meApi.get();
+            if (me.linked) {
+                setLinked(me.customer);
+            } else {
+                setUnlinked(me.telegramIdentity);
+            }
         } catch (err) {
             if (err instanceof ApiError) {
                 if (err.isAuthError()) {
@@ -96,26 +98,25 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Not in Telegram
     if (!isInTelegram() && !isLoading && error) {
         return <NotInTelegramScreen />;
     }
 
-    // Loading state
     if (isLoading) {
         return <LoadingScreen />;
     }
 
-    // Error state
     if (error) {
         return <ErrorScreen message={error} onRetry={authenticate} />;
     }
 
-    // Authenticated - render children
-    if (user) {
+    if (linked === false) {
+        return <LinkPhonePrompt subtitle="Введите номер, указанный при регистрации в клубе." />;
+    }
+
+    if (linked === true) {
         return children as JSX.Element;
     }
 
-    // Fallback loading
     return <LoadingScreen />;
 }

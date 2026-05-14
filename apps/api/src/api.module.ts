@@ -14,9 +14,9 @@ import { AdminAuthModule } from './modules/admin/auth';
 import { BotModule } from './modules/bot';
 import { ClubModule } from './modules/club';
 import { CoachesModule } from './modules/coaches';
+import { CustomerModule } from './modules/customer';
 import { MembershipPlansModule } from './modules/membership-plans';
 import { ScheduleModule } from './modules/schedule';
-import { UserModule } from './modules/user';
 import { AppService } from './services/app.service';
 
 @Module({
@@ -47,9 +47,10 @@ import { AppService } from './services/app.service';
          */
         BotModule,
         /**
-         * User Module
+         * Customer Module — @Global, exposes CustomerService so
+         * TelegramAuthGuard can resolve the linked customer.
          */
-        UserModule,
+        CustomerModule,
         /**
          * Schedule Module
          */

@@ -3,3 +3,6 @@ export { DashboardPage } from './DashboardPage';
 export { PlansListPage } from './PlansListPage';
 export { PlanNewPage } from './PlanNewPage';
 export { PlanEditPage } from './PlanEditPage';
+export { CustomersListPage } from './CustomersListPage';
+export { CustomerNewPage } from './CustomerNewPage';
+export { CustomerEditPage } from './CustomerEditPage';

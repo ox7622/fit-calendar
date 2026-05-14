@@ -1,33 +1,31 @@
+import type { Customer } from '@fitcalendar/db';
 import type { ExecutionContext } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 
+import type { CustomerService } from '../../../modules/customer/customer.service';
 import type { ITelegramUserData } from '../telegram-auth.guard';
 import { TelegramAuthGuard } from '../telegram-auth.guard';
 
 describe('TelegramAuthGuard', () => {
     let guard: TelegramAuthGuard;
     let mockConfigService: jest.Mocked<ConfigService>;
+    let mockCustomerService: jest.Mocked<Pick<CustomerService, 'findByTelegramId'>>;
 
     const BOT_TOKEN = 'test_bot_token_1234567890:ABCdefGHIjklMNOpqrsTUVwxyz';
 
-    /**
-     * Helper to generate valid initData with HMAC signature
-     */
     function generateInitData(user: ITelegramUserData, authDate: number = Math.floor(Date.now() / 1000)): string {
         const params = new URLSearchParams();
         params.set('user', JSON.stringify(user));
         params.set('auth_date', authDate.toString());
         params.set('query_id', 'AAHdF6IQAAAAAN0XohDhrOrc');
 
-        // Sort parameters and create data-check-string
         const dataCheckString = [...params.entries()]
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([k, v]) => `${k}=${v}`)
             .join('\n');
 
-        // Generate hash
         const secretKey = createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
         const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
@@ -47,17 +45,21 @@ describe('TelegramAuthGuard', () => {
         mockConfigService = {
             get: jest.fn().mockReturnValue(BOT_TOKEN),
         } as unknown as jest.Mocked<ConfigService>;
+        mockCustomerService = {
+            findByTelegramId: jest.fn().mockResolvedValue(null),
+        };
 
-        guard = new TelegramAuthGuard(mockConfigService);
+        guard = new TelegramAuthGuard(mockConfigService, mockCustomerService as unknown as CustomerService);
     });
 
     function createMockExecutionContext(initData: string | undefined): ExecutionContext {
-        const mockRequest = {
-            headers: {
-                'x-telegram-init-data': initData,
-            },
-            telegramUser: undefined as ITelegramUserData | undefined,
-            telegramInitData: undefined,
+        const mockRequest: {
+            headers: Record<string, string | undefined>;
+            telegramIdentity?: ITelegramUserData;
+            telegramInitData?: unknown;
+            customer?: Customer | null;
+        } = {
+            headers: { 'x-telegram-init-data': initData },
         };
 
         return {
@@ -68,7 +70,7 @@ describe('TelegramAuthGuard', () => {
     }
 
     describe('canActivate', () => {
-        it('should pass validation with valid initData', async () => {
+        it('attaches the Telegram identity to the request and looks up the customer', async () => {
             const initData = generateInitData(mockUser);
             const context = createMockExecutionContext(initData);
 
@@ -76,63 +78,67 @@ describe('TelegramAuthGuard', () => {
 
             expect(result).toBe(true);
             const request = context.switchToHttp().getRequest();
-            expect(request.telegramUser).toEqual(mockUser);
+            expect(request.telegramIdentity).toEqual(mockUser);
+            expect(mockCustomerService.findByTelegramId).toHaveBeenCalledWith(mockUser.id);
+            expect(request.customer).toBeNull();
         });
 
-        it('should reject with missing initData header', async () => {
-            const context = createMockExecutionContext(undefined);
+        it('sets request.customer to the matching record when one exists (linked)', async () => {
+            const linkedCustomer = { id: 'cust-1', telegramId: mockUser.id } as Customer;
+            mockCustomerService.findByTelegramId.mockResolvedValueOnce(linkedCustomer);
 
-            await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-            await expect(guard.canActivate(context)).rejects.toThrow('Missing Telegram authentication data');
+            const initData = generateInitData(mockUser);
+            const context = createMockExecutionContext(initData);
+            await guard.canActivate(context);
+
+            expect(context.switchToHttp().getRequest().customer).toBe(linkedCustomer);
         });
 
-        it('should reject with invalid hash', async () => {
+        it('rejects when initData header is missing', async () => {
+            await expect(guard.canActivate(createMockExecutionContext(undefined))).rejects.toThrow(
+                UnauthorizedException,
+            );
+        });
+
+        it('rejects on an invalid HMAC hash', async () => {
             const params = new URLSearchParams();
             params.set('user', JSON.stringify(mockUser));
             params.set('auth_date', Math.floor(Date.now() / 1000).toString());
             params.set('hash', 'invalid_hash_value');
-            const initData = params.toString();
 
-            const context = createMockExecutionContext(initData);
-
-            await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-            await expect(guard.canActivate(context)).rejects.toThrow('Invalid Telegram authentication');
+            await expect(guard.canActivate(createMockExecutionContext(params.toString()))).rejects.toThrow(
+                'Invalid Telegram authentication',
+            );
         });
 
-        it('should reject with expired auth_date', async () => {
-            // Auth date from 2 days ago
+        it('rejects expired initData (auth_date older than 24h)', async () => {
             const expiredDate = Math.floor(Date.now() / 1000) - 172800;
             const initData = generateInitData(mockUser, expiredDate);
-            const context = createMockExecutionContext(initData);
 
-            await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-            await expect(guard.canActivate(context)).rejects.toThrow('Telegram authentication expired');
+            await expect(guard.canActivate(createMockExecutionContext(initData))).rejects.toThrow(
+                'Telegram authentication expired',
+            );
         });
 
-        it('should reject with missing user data', async () => {
+        it('rejects when initData omits the user field', async () => {
             const params = new URLSearchParams();
             params.set('auth_date', Math.floor(Date.now() / 1000).toString());
-
-            // Generate valid hash without user
             const dataCheckString = [...params.entries()]
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([k, v]) => `${k}=${v}`)
                 .join('\n');
-
             const secretKey = createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
             const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
             params.set('hash', hash);
 
-            const context = createMockExecutionContext(params.toString());
-
-            await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-            await expect(guard.canActivate(context)).rejects.toThrow('No user data in Telegram authentication');
+            await expect(guard.canActivate(createMockExecutionContext(params.toString()))).rejects.toThrow(
+                'No user data in Telegram authentication',
+            );
         });
 
-        it('should attach parsed initData to request', async () => {
+        it('attaches parsed initData (including auth_date) to the request', async () => {
             const initData = generateInitData(mockUser);
             const context = createMockExecutionContext(initData);
-
             await guard.canActivate(context);
 
             const request = context.switchToHttp().getRequest();
@@ -143,12 +149,14 @@ describe('TelegramAuthGuard', () => {
     });
 
     describe('constructor', () => {
-        it('should throw if TELEGRAM_BOT_TOKEN is not configured', () => {
+        it('throws if TELEGRAM_BOT_TOKEN is missing', () => {
             const emptyConfigService = {
                 get: jest.fn().mockReturnValue(undefined),
             } as unknown as jest.Mocked<ConfigService>;
 
-            expect(() => new TelegramAuthGuard(emptyConfigService)).toThrow('TELEGRAM_BOT_TOKEN is not configured');
+            expect(
+                () => new TelegramAuthGuard(emptyConfigService, mockCustomerService as unknown as CustomerService),
+            ).toThrow('TELEGRAM_BOT_TOKEN is not configured');
         });
     });
 });

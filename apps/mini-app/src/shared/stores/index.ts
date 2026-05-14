@@ -1,2 +1,2 @@
-export { useUserStore } from './userStore';
-export type { User } from './userStore';
+export { useCustomerStore } from './customerStore';
+export type { Customer, TelegramIdentity } from './customerStore';

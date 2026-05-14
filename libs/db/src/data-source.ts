@@ -1,9 +1,18 @@
 import type { DataSourceOptions } from 'typeorm';
 import { DataSource } from 'typeorm';
 
-import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan } from './entities';
+import {
+    Customer,
+    Coach,
+    TrainingType,
+    ScheduleEntry,
+    Reminder,
+    ClubInfo,
+    AdminUser,
+    MembershipPlan,
+} from './entities';
 
-export const entities = [User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan];
+export const entities = [Customer, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan];
 
 export const dataSourceOptions: DataSourceOptions = {
     type: 'postgres',

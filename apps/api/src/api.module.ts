@@ -16,6 +16,7 @@ import { ClubModule } from './modules/club';
 import { CoachesModule } from './modules/coaches';
 import { CustomerModule } from './modules/customer';
 import { MembershipPlansModule } from './modules/membership-plans';
+import { ReminderModule } from './modules/reminder';
 import { ScheduleModule } from './modules/schedule';
 import { AppService } from './services/app.service';
 
@@ -67,6 +68,10 @@ import { AppService } from './services/app.service';
          * Membership Plans Module
          */
         MembershipPlansModule,
+        /**
+         * Reminder Module
+         */
+        ReminderModule,
         /**
          * Admin Auth Module
          */

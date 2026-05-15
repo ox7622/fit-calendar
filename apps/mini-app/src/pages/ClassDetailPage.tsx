@@ -1,11 +1,12 @@
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { ArrowLeft, Clock, Dumbbell as DumbbellIcon } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Clock, Dumbbell as DumbbellIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { ImpactTypeBadge } from '@/components';
-import { scheduleApi } from '@/shared/api';
+import { ImpactTypeBadge, showToast } from '@/components';
+import { ApiError, remindersApi, scheduleApi, type Reminder } from '@/shared/api';
+import { useCustomerStore } from '@/shared/stores';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
 
 type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
@@ -29,6 +30,14 @@ function isKnownImpactType(value: string): value is ImpactType {
     return (knownImpactTypes as string[]).includes(value);
 }
 
+function extractErrorMessage(body: unknown): string | null {
+    if (body && typeof body === 'object' && 'message' in body) {
+        const message = (body as { message: unknown }).message;
+        if (typeof message === 'string') return message;
+    }
+    return null;
+}
+
 function getInitials(name: string): string {
     return name
         .split(' ')
@@ -39,7 +48,8 @@ function getInitials(name: string): string {
 }
 
 function DetailSkeleton(): JSX.Element {
-    const shimmer = 'bg-gradient-to-r from-muted via-muted-foreground/10 to-muted bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_linear] rounded-md';
+    const shimmer =
+        'bg-gradient-to-r from-muted via-muted-foreground/10 to-muted bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_linear] rounded-md';
     return (
         <div className="flex flex-col h-full">
             <div className="px-4 pt-4 pb-3 flex items-center gap-3">
@@ -68,10 +78,54 @@ function DetailSkeleton(): JSX.Element {
 export function ClassDetailPage(): JSX.Element {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const customer = useCustomerStore((s) => s.customer);
 
     const [cls, setCls] = useState<ScheduleClass | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // No GET /reminders endpoint exists yet (Story 5.6), so the toggle state
+    // is initialized to "not subscribed" and only reflects user actions during
+    // this session. If the customer already had a reminder, re-subscribing
+    // returns the existing row (idempotent), so the visible mismatch is harmless.
+    const [reminder, setReminder] = useState<Reminder | null>(null);
+    const [reminderPending, setReminderPending] = useState(false);
+
+    const isPastOrCancelled =
+        cls !== null && (cls.status === 'cancelled' || new Date(cls.startTime).getTime() <= Date.now());
+
+    const onSubscribe = async (): Promise<void> => {
+        if (!cls || reminderPending) return;
+        setReminderPending(true);
+        try {
+            const created = await remindersApi.subscribe(cls.id);
+            setReminder(created);
+            const minutes = customer?.reminderMinutes ?? 30;
+            showToast(`Напомним за ${minutes} минут`);
+        } catch (err) {
+            const message =
+                err instanceof ApiError && err.status === 400
+                    ? extractErrorMessage(err.data) ?? 'Не удалось включить напоминание'
+                    : 'Не удалось включить напоминание';
+            showToast(message, 'error');
+        } finally {
+            setReminderPending(false);
+        }
+    };
+
+    const onUnsubscribe = async (): Promise<void> => {
+        if (!reminder || reminderPending) return;
+        setReminderPending(true);
+        try {
+            await remindersApi.unsubscribe(reminder.id);
+            setReminder(null);
+            showToast('Напоминание отменено');
+        } catch {
+            showToast('Не удалось отменить напоминание', 'error');
+        } finally {
+            setReminderPending(false);
+        }
+    };
 
     useEffect(() => {
         if (!id) {
@@ -126,11 +180,7 @@ export function ClassDetailPage(): JSX.Element {
             {error || !cls ? (
                 <div className="flex-1 flex flex-col items-center justify-center px-4 pb-4 text-center">
                     <p className="text-error text-sm mb-3">{error ?? 'Занятие не найдено'}</p>
-                    <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className="text-sm text-primary underline"
-                    >
+                    <button type="button" onClick={() => navigate(-1)} className="text-sm text-primary underline">
                         Вернуться назад
                     </button>
                 </div>
@@ -162,7 +212,7 @@ export function ClassDetailPage(): JSX.Element {
                     <div className="bg-card rounded-xl p-4 space-y-2">
                         <div className="flex items-center gap-2 text-sm text-foreground">
                             <span className="text-muted-foreground">
-                                {format(new Date(cls.startTime), "d MMMM yyyy, EEEE", { locale: ru })}
+                                {format(new Date(cls.startTime), 'd MMMM yyyy, EEEE', { locale: ru })}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -188,12 +238,42 @@ export function ClassDetailPage(): JSX.Element {
                         </div>
                     )}
 
+                    {/* Remind Me toggle (hidden for past / cancelled classes per AC9) */}
+                    {!isPastOrCancelled && (
+                        <button
+                            type="button"
+                            onClick={reminder ? onUnsubscribe : onSubscribe}
+                            disabled={reminderPending}
+                            className={
+                                reminder
+                                    ? 'w-full flex items-center justify-center gap-2 border border-primary text-primary rounded-xl py-3 font-semibold text-sm transition-colors active:bg-primary/10 disabled:opacity-60'
+                                    : 'w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm transition-opacity active:opacity-80 disabled:opacity-60'
+                            }
+                        >
+                            {reminderPending ? (
+                                <span
+                                    aria-hidden
+                                    className={`inline-block w-4 h-4 border-2 ${
+                                        reminder ? 'border-primary' : 'border-primary-foreground'
+                                    } border-t-transparent rounded-full animate-spin`}
+                                />
+                            ) : reminder ? (
+                                <BellOff size={18} />
+                            ) : (
+                                <Bell size={18} />
+                            )}
+                            {reminder ? 'Отменить напоминание' : 'Напомнить'}
+                        </button>
+                    )}
+
                     {/* Difficulty */}
                     <div className="flex items-center gap-2">
                         <DumbbellIcon size={15} className="text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Сложность:</span>
                         <span
-                            className={`text-xs font-medium rounded-md px-2 py-0.5 ${difficultyBadgeClass[cls.difficulty]}`}
+                            className={`text-xs font-medium rounded-md px-2 py-0.5 ${
+                                difficultyBadgeClass[cls.difficulty]
+                            }`}
                         >
                             {difficultyLabel[cls.difficulty]}
                         </span>
@@ -236,14 +316,12 @@ export function ClassDetailPage(): JSX.Element {
                     )}
 
                     {/* Description */}
-                    {'description' in cls &&
-                        typeof cls.description === 'string' &&
-                        cls.description && (
-                            <div>
-                                <p className="text-sm font-semibold text-muted-foreground mb-2">Описание</p>
-                                <p className="text-sm text-foreground leading-relaxed">{cls.description}</p>
-                            </div>
-                        )}
+                    {'description' in cls && typeof cls.description === 'string' && cls.description && (
+                        <div>
+                            <p className="text-sm font-semibold text-muted-foreground mb-2">Описание</p>
+                            <p className="text-sm text-foreground leading-relaxed">{cls.description}</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

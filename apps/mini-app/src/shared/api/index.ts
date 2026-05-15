@@ -6,3 +6,5 @@ export { membershipPlansApi } from './membership-plans.api';
 export type { PlanCard, DurationUnit } from './membership-plans.api';
 export { meApi } from './me.api';
 export type { MeResponse, LinkPhoneErrorCode } from './me.api';
+export { remindersApi } from './reminders.api';
+export type { Reminder } from './reminders.api';

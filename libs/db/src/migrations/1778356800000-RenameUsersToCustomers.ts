@@ -31,7 +31,11 @@ export class RenameUsersToCustomers1778356800000 implements MigrationInterface {
         await queryRunner.query(`DELETE FROM "reminders"`);
         await queryRunner.query(`DELETE FROM "customers"`);
 
-        // 5. Add the new admin-managed columns.
+        // 5. Drop the old `username` column. The Customer entity uses
+        //    `telegramUsername` (added below) — the legacy column has no consumer.
+        await queryRunner.query(`ALTER TABLE "customers" DROP COLUMN "username"`);
+
+        // 6. Add the new admin-managed columns.
         await queryRunner.query(`ALTER TABLE "customers" ADD COLUMN "phone" character varying(20) NOT NULL`);
         await queryRunner.query(`ALTER TABLE "customers" ADD COLUMN "email" character varying(255)`);
         await queryRunner.query(`ALTER TABLE "customers" ADD COLUMN "notes" text`);
@@ -39,16 +43,16 @@ export class RenameUsersToCustomers1778356800000 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "customers" ADD COLUMN "isActive" boolean NOT NULL DEFAULT true`);
         await queryRunner.query(`ALTER TABLE "customers" ADD CONSTRAINT "UQ_customers_phone" UNIQUE ("phone")`);
 
-        // 6. Make telegramId nullable. The existing UNIQUE constraint on it stays.
+        // 7. Make telegramId nullable. The existing UNIQUE constraint on it stays.
         await queryRunner.query(`ALTER TABLE "customers" ALTER COLUMN "telegramId" DROP NOT NULL`);
 
-        // 7. Rename the reminders FK column + its index.
+        // 8. Rename the reminders FK column + its index.
         await queryRunner.query(`ALTER TABLE "reminders" RENAME COLUMN "userId" TO "customerId"`);
         await queryRunner.query(`ALTER INDEX "idx_reminders_user" RENAME TO "idx_reminders_customer"`);
         // The (userId, scheduleEntryId) unique constraint UQ_76a8a95999621bb430a5982dcac
         // persists with its old name — Postgres tracks columns by attnum, not by name.
 
-        // 8. Recreate the FK pointing to customers.id.
+        // 9. Recreate the FK pointing to customers.id.
         await queryRunner.query(
             `ALTER TABLE "reminders" ADD CONSTRAINT "FK_reminders_customer" ` +
                 `FOREIGN KEY ("customerId") REFERENCES "customers"("id") ` +
@@ -72,6 +76,7 @@ export class RenameUsersToCustomers1778356800000 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "customers" DROP COLUMN "notes"`);
         await queryRunner.query(`ALTER TABLE "customers" DROP COLUMN "email"`);
         await queryRunner.query(`ALTER TABLE "customers" DROP COLUMN "phone"`);
+        await queryRunner.query(`ALTER TABLE "customers" ADD COLUMN "username" character varying(255)`);
 
         await queryRunner.query(`ALTER INDEX "idx_customers_telegram_id" RENAME TO "idx_users_telegram_id"`);
         await queryRunner.query(`ALTER TABLE "customers" RENAME TO "users"`);

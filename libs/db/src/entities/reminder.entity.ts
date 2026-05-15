@@ -41,6 +41,14 @@ export class Reminder {
     @Column({ type: 'timestamptz', nullable: true })
     sentAt: Date | null;
 
+    /**
+     * Number of delivery attempts so far. Story 5.3 retries up to 3 times
+     * total (1 initial + 2 retries on subsequent cron ticks); after that
+     * the dispatcher transitions `status` to `'failed'` and stops retrying.
+     */
+    @Column({ type: 'int', default: 0 })
+    retryCount: number;
+
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 

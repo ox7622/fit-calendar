@@ -2,11 +2,17 @@ import { Reminder, ScheduleEntry } from '@fitcalendar/db';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { subMinutes } from 'date-fns';
-import { QueryFailedError, Repository } from 'typeorm';
+import { LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 
 import { ReminderResponseDto, toReminderResponse } from './dto/reminder-response.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * Total send attempts per reminder before giving up (Story 5.3 AC7).
+ * 1 initial + up to 2 retries on subsequent cron ticks.
+ */
+export const MAX_RETRY_ATTEMPTS = 3;
 
 interface ICustomerSubscribeContext {
     customerId: string;
@@ -96,6 +102,42 @@ export class ReminderService {
      */
     findOneByCustomerAndEntry(customerId: string, scheduleEntryId: string): Promise<Reminder | null> {
         return this.reminderRepo.findOne({ where: { customerId, scheduleEntryId } });
+    }
+
+    /**
+     * Story 5.3 — pulls everything the dispatcher needs to build a message
+     * in one query. Excludes reminders that have hit `MAX_RETRY_ATTEMPTS`
+     * so failed sends drop out of the working set automatically.
+     */
+    findDueReminders(now: Date = new Date(), batchSize = 100): Promise<Reminder[]> {
+        return this.reminderRepo.find({
+            where: {
+                status: 'pending',
+                notifyAt: LessThanOrEqual(now),
+                retryCount: LessThanOrEqual(MAX_RETRY_ATTEMPTS - 1),
+            },
+            relations: ['customer', 'scheduleEntry', 'scheduleEntry.coach', 'scheduleEntry.trainingType'],
+            order: { notifyAt: 'ASC' },
+            take: batchSize,
+        });
+    }
+
+    async markSent(reminderId: string): Promise<void> {
+        await this.reminderRepo.update({ id: reminderId }, { status: 'sent', sentAt: new Date() });
+    }
+
+    /**
+     * Record a failed attempt. After `MAX_RETRY_ATTEMPTS` total attempts the
+     * status flips to 'failed' and the reminder drops out of `findDueReminders`.
+     */
+    async recordFailure(reminderId: string, currentRetryCount: number): Promise<{ status: 'pending' | 'failed' }> {
+        const newRetryCount = currentRetryCount + 1;
+        const isExhausted = newRetryCount >= MAX_RETRY_ATTEMPTS;
+        await this.reminderRepo.update(
+            { id: reminderId },
+            { retryCount: newRetryCount, status: isExhausted ? 'failed' : 'pending' },
+        );
+        return { status: isExhausted ? 'failed' : 'pending' };
     }
 
     private isUniqueViolation(err: unknown): boolean {

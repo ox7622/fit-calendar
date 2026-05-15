@@ -161,6 +161,15 @@ describe('Reminder Entity', () => {
 
         expect(reminder.notifyAt).toEqual(notifyAt);
     });
+
+    it('should track retryCount for delivery attempts (Story 5.3)', () => {
+        const reminder = new Reminder();
+        reminder.retryCount = 0;
+        expect(reminder.retryCount).toBe(0);
+
+        reminder.retryCount = 2;
+        expect(reminder.retryCount).toBe(2);
+    });
 });
 
 describe('ClubInfo Entity', () => {

@@ -2,6 +2,7 @@ import { baseDbConfig } from '@fitcalendar/nest-shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
@@ -43,6 +44,11 @@ import { AppService } from './services/app.service';
          * Per-route @Throttle() decorators override this default.
          */
         ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+        /**
+         * Cron / task scheduler (powers Story 5.3's ReminderDispatcherService).
+         * Aliased on import to avoid colliding with the feature ScheduleModule.
+         */
+        NestScheduleModule.forRoot(),
         /**
          * Bot Module (Telegram webhook handler)
          */

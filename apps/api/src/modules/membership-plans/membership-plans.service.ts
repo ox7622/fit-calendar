@@ -1,4 +1,5 @@
 import { MembershipPlan } from '@fitcalendar/db';
+import { formatDuration } from '@fitcalendar/shared';
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,7 +7,6 @@ import { Repository } from 'typeorm';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { AdminPlanResponseDto, PlanOptionDto, PlanResponseDto } from './dto/plan-response.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
-import { formatDuration } from './format-duration';
 
 @Injectable()
 export class MembershipPlansService {

@@ -1,7 +1,7 @@
+import { formatDuration, formatPriceRub } from '@fitcalendar/shared';
 import { useEffect, useState } from 'react';
 
 import { membershipPlansApi, type PlanCard } from '@/shared/api';
-import { formatDuration, formatPriceRub } from '@/shared/utils/formatRussian';
 
 function PlanCardSkeleton(): JSX.Element {
     const shimmer =

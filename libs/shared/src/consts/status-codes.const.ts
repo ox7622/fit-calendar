@@ -1,18 +1,25 @@
-import { HttpStatus } from '@nestjs/common';
-
+/**
+ * HTTP status codes used by both backend and (potentially) frontend code.
+ *
+ * These were originally pulled from `@nestjs/common`'s `HttpStatus` enum.
+ * That import made `@fitcalendar/shared` unsafe to consume from the browser
+ * — Vite couldn't tree-shake the NestJS surface out of the mini-app bundle
+ * (~650 KB regression observed during Story 7.1). Numeric literals are
+ * defined by HTTP itself, not Nest, so inlining them lets this package
+ * stay environment-neutral.
+ */
 export const STATUS_CODES = {
-    // Стандартные HTTP коды
-    OK: HttpStatus.OK, // 200
-    CREATED: HttpStatus.CREATED, // 201
-    BAD_REQUEST: HttpStatus.BAD_REQUEST, // 400
-    UNAUTHORIZED: HttpStatus.UNAUTHORIZED, // 401
-    FORBIDDEN: HttpStatus.FORBIDDEN, // 403
-    NOT_FOUND: HttpStatus.NOT_FOUND, // 404
+    // Standard HTTP codes
+    OK: 200,
+    CREATED: 201,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
 
-    // Кастомные коды для бизнес-логики (начиная с 409)
+    // Custom business-logic codes (start at 409)
     UNIQUE_CONSTRAINT_ERROR: 409,
     SESSION_LIMIT_EXCEEDED: 460,
     INVALID_REFRESH_TOKEN: 461,
     SESSION_EXPIRED: 462,
-    // ... другие кастомные коды
 } as const;

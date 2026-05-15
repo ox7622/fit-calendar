@@ -3,3 +3,7 @@
 /coverage
 /.nx/cache
 /.nx/workspace-data
+# pnpm manages its own lockfile formatting; running prettier over it
+# produces noisy quote-style churn on every install (single → double
+# quotes around the lockfileVersion line, etc.) for zero functional change.
+pnpm-lock.yaml

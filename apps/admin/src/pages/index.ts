@@ -6,3 +6,5 @@ export { PlanEditPage } from './PlanEditPage';
 export { CustomersListPage } from './CustomersListPage';
 export { CustomerNewPage } from './CustomerNewPage';
 export { CustomerEditPage } from './CustomerEditPage';
+export { ScheduleNewPage } from './ScheduleNewPage';
+export { ScheduleEditPage } from './ScheduleEditPage';

@@ -3,3 +3,6 @@ export * from './admin-schedule.service';
 export * from './admin-schedule.controller';
 export * from './dto/admin-schedule-query.dto';
 export * from './dto/admin-schedule-list.dto';
+export * from './dto/create-schedule-entry.dto';
+export * from './dto/update-schedule-entry.dto';
+export * from './schedule.events';

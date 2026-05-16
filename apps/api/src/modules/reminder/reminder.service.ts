@@ -143,6 +143,40 @@ export class ReminderService {
     }
 
     /**
+     * Story 6.3 — when an admin shifts a class's startTime, every pending
+     * reminder for that class needs its `notifyAt` recomputed against the
+     * subscribing customer's current `reminderMinutes` preference.
+     *
+     * Already-sent and failed reminders are NOT touched — their `sentAt`
+     * timestamp would lie if we modified them after the fact.
+     *
+     * Returns the count of rows updated for caller logging.
+     */
+    async recomputeNotifyAtForClass(scheduleEntryId: string, newStartTime: Date): Promise<number> {
+        const reminders = await this.reminderRepo.find({
+            where: { scheduleEntryId, status: 'pending' },
+            relations: ['customer'],
+        });
+
+        if (reminders.length === 0) return 0;
+
+        // Row-by-row update keeps per-customer reminderMinutes explicit.
+        // For MVP volumes (low tens of reminders per class) this is clearer
+        // than a single SQL expression and unambiguous in code review.
+        await Promise.all(
+            reminders.map((reminder) =>
+                this.reminderRepo.update(
+                    { id: reminder.id },
+                    { notifyAt: subMinutes(newStartTime, reminder.customer.reminderMinutes) },
+                ),
+            ),
+        );
+
+        this.logger.log(`Recomputed notifyAt for ${reminders.length} pending reminder(s) on class ${scheduleEntryId}`);
+        return reminders.length;
+    }
+
+    /**
      * Record a failed attempt. After `MAX_RETRY_ATTEMPTS` total attempts the
      * status flips to 'failed' and the reminder drops out of `findDueReminders`.
      */

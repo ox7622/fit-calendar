@@ -11,7 +11,8 @@ import {
 } from '@/shared/api';
 import { addDays, addWeeks, format, startOfWeek, subWeeks } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { CalendarDays, ChevronLeft, ChevronRight, List as ListIcon } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, List as ListIcon, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const DEFAULT_RANGE_DAYS = 7;
 type TView = 'list' | 'calendar';
@@ -69,6 +70,13 @@ export function DashboardPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="heading-2">Расписание</h2>
                 <div className="flex items-center gap-2">
+                    <Link
+                        to="/schedule/new"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-accent-active"
+                    >
+                        <Plus size={16} />
+                        Добавить занятие
+                    </Link>
                     <button
                         type="button"
                         onClick={() => setView('list')}

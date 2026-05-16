@@ -1,9 +1,13 @@
-import { ScheduleEntry } from '@fitcalendar/db';
+import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { ReminderService } from '../../../reminder/reminder.service';
 import { AdminScheduleService } from '../admin-schedule.service';
+import { SCHEDULE_CHANGED_EVENT } from '../schedule.events';
 
 type TQueryBuilderMock = {
     innerJoinAndSelect: jest.Mock;
@@ -54,15 +58,38 @@ const buildEntry = (overrides: Partial<ScheduleEntry> = {}): ScheduleEntry =>
 
 describe('AdminScheduleService', () => {
     let service: AdminScheduleService;
-    let scheduleRepo: jest.Mocked<{ createQueryBuilder: jest.Mock }>;
+    let scheduleRepo: jest.Mocked<{
+        createQueryBuilder: jest.Mock;
+        findOne: jest.Mock;
+        create: jest.Mock;
+        save: jest.Mock;
+    }>;
+    let coachRepo: jest.Mocked<{ findOne: jest.Mock }>;
+    let trainingTypeRepo: jest.Mocked<{ findOne: jest.Mock }>;
+    let eventEmitter: jest.Mocked<EventEmitter2>;
+    let reminderService: jest.Mocked<Pick<ReminderService, 'recomputeNotifyAtForClass'>>;
 
     beforeEach(async () => {
         scheduleRepo = {
             createQueryBuilder: jest.fn(),
-        } as unknown as jest.Mocked<{ createQueryBuilder: jest.Mock }>;
+            findOne: jest.fn(),
+            create: jest.fn((dto) => dto as ScheduleEntry),
+            save: jest.fn(async (entity) => entity as ScheduleEntry),
+        };
+        coachRepo = { findOne: jest.fn() };
+        trainingTypeRepo = { findOne: jest.fn() };
+        eventEmitter = { emit: jest.fn() } as unknown as jest.Mocked<EventEmitter2>;
+        reminderService = { recomputeNotifyAtForClass: jest.fn().mockResolvedValue(0) };
 
         const module: TestingModule = await Test.createTestingModule({
-            providers: [AdminScheduleService, { provide: getRepositoryToken(ScheduleEntry), useValue: scheduleRepo }],
+            providers: [
+                AdminScheduleService,
+                { provide: getRepositoryToken(ScheduleEntry), useValue: scheduleRepo },
+                { provide: getRepositoryToken(Coach), useValue: coachRepo },
+                { provide: getRepositoryToken(TrainingType), useValue: trainingTypeRepo },
+                { provide: EventEmitter2, useValue: eventEmitter },
+                { provide: ReminderService, useValue: reminderService },
+            ],
         }).compile();
 
         service = module.get(AdminScheduleService);
@@ -139,5 +166,133 @@ describe('AdminScheduleService', () => {
         const toTime = (rangeCall[1].to as Date).getTime();
         // 14 days = 14 * 86400000 ms
         expect(toTime - fromTime).toBe(14 * 86_400_000);
+    });
+
+    describe('create (Story 6.3)', () => {
+        const createDto = {
+            trainingTypeId: 't-1',
+            coachId: 'c-1',
+            startTime: new Date('2026-05-15T10:00:00Z'),
+            durationMinutes: 60,
+        };
+
+        it('persists a new entry when coach + trainingType are both active', async () => {
+            coachRepo.findOne.mockResolvedValueOnce({ id: 'c-1', isActive: true } as Coach);
+            trainingTypeRepo.findOne.mockResolvedValueOnce({ id: 't-1', isActive: true } as TrainingType);
+            scheduleRepo.save.mockResolvedValueOnce({
+                ...createDto,
+                id: 'sched-new',
+                status: 'scheduled',
+            } as ScheduleEntry);
+            scheduleRepo.findOne.mockResolvedValueOnce(buildEntry({ id: 'sched-new' }));
+
+            const result = await service.create(createDto);
+
+            expect(scheduleRepo.save).toHaveBeenCalled();
+            expect(result.id).toBe('sched-new');
+        });
+
+        it('rejects 400 when coach is inactive', async () => {
+            coachRepo.findOne.mockResolvedValueOnce({ id: 'c-1', isActive: false } as Coach);
+
+            await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+            expect(scheduleRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('rejects 400 when trainingType does not exist', async () => {
+            coachRepo.findOne.mockResolvedValueOnce({ id: 'c-1', isActive: true } as Coach);
+            trainingTypeRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+            expect(scheduleRepo.save).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('update (Story 6.3)', () => {
+        const existing = buildEntry({
+            id: 'sched-edit',
+            startTime: new Date('2026-05-15T10:00:00Z'),
+            durationMinutes: 60,
+            coachId: 'c-1',
+            trainingTypeId: 't-1',
+        });
+
+        beforeEach(() => {
+            // Clone on each findOne so the service's in-place mutation of `startTime`
+            // doesn't leak across the load → save → reload cycle in the test.
+            scheduleRepo.findOne.mockImplementation(async () => ({ ...existing } as ScheduleEntry));
+            scheduleRepo.save.mockImplementation(async (e) => e as ScheduleEntry);
+        });
+
+        it('throws 404 when the entry does not exist', async () => {
+            scheduleRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.update('missing', { durationMinutes: 90 })).rejects.toThrow(NotFoundException);
+        });
+
+        it('does NOT emit the event or recompute reminders when nothing time-related changed', async () => {
+            await service.update('sched-edit', { durationMinutes: 60, startTime: existing.startTime });
+
+            expect(eventEmitter.emit).not.toHaveBeenCalled();
+            expect(reminderService.recomputeNotifyAtForClass).not.toHaveBeenCalled();
+        });
+
+        it('emits SCHEDULE_CHANGED_EVENT + recomputes reminders when startTime changes', async () => {
+            const newStartTime = new Date('2026-05-15T11:00:00Z');
+
+            await service.update('sched-edit', { startTime: newStartTime });
+
+            expect(reminderService.recomputeNotifyAtForClass).toHaveBeenCalledWith('sched-edit', newStartTime);
+            expect(eventEmitter.emit).toHaveBeenCalledWith(
+                SCHEDULE_CHANGED_EVENT,
+                expect.objectContaining({
+                    scheduleEntryId: 'sched-edit',
+                    oldStartTime: existing.startTime,
+                    newStartTime,
+                    oldDurationMinutes: 60,
+                    newDurationMinutes: 60,
+                }),
+            );
+        });
+
+        it('emits the event when only durationMinutes changes (no reminder recompute)', async () => {
+            await service.update('sched-edit', { durationMinutes: 90 });
+
+            expect(reminderService.recomputeNotifyAtForClass).not.toHaveBeenCalled();
+            expect(eventEmitter.emit).toHaveBeenCalledWith(
+                SCHEDULE_CHANGED_EVENT,
+                expect.objectContaining({
+                    oldDurationMinutes: 60,
+                    newDurationMinutes: 90,
+                }),
+            );
+        });
+
+        it('does not crash if reminder recomputation throws — logs and continues', async () => {
+            reminderService.recomputeNotifyAtForClass.mockRejectedValueOnce(new Error('db hiccup'));
+
+            await expect(
+                service.update('sched-edit', { startTime: new Date('2026-05-16T10:00:00Z') }),
+            ).resolves.toBeDefined();
+
+            // Event still fires even if reminder recompute failed — the underlying class change committed.
+            expect(eventEmitter.emit).toHaveBeenCalled();
+        });
+    });
+
+    describe('findById (Story 6.3)', () => {
+        it('returns the schedule item when it exists', async () => {
+            scheduleRepo.findOne.mockResolvedValueOnce(buildEntry({ id: 'sched-1' }));
+
+            const result = await service.findById('sched-1');
+
+            expect(result.id).toBe('sched-1');
+        });
+
+        it('throws 404 when not found', async () => {
+            scheduleRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.findById('missing')).rejects.toThrow(NotFoundException);
+        });
     });
 });

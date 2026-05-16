@@ -7,6 +7,8 @@ import {
     PlanEditPage,
     PlanNewPage,
     PlansListPage,
+    ScheduleEditPage,
+    ScheduleNewPage,
 } from '@/pages';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
@@ -28,6 +30,8 @@ export function AppRouter() {
                     <Route path="/customers" element={<CustomersListPage />} />
                     <Route path="/customers/new" element={<CustomerNewPage />} />
                     <Route path="/customers/:id" element={<CustomerEditPage />} />
+                    <Route path="/schedule/new" element={<ScheduleNewPage />} />
+                    <Route path="/schedule/:id" element={<ScheduleEditPage />} />
                 </Route>
             </Route>
 

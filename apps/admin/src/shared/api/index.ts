@@ -5,11 +5,13 @@ export { adminPlansApi } from './membership-plans.api';
 export type { IAdminPlan, IPlanFormPayload, IPlanOption, TDurationUnit } from './membership-plans.api';
 export { adminCustomersApi } from './customers.api';
 export type { IAdminCustomer, ICustomerFormPayload, ICustomerListResponse, ICustomerListQuery } from './customers.api';
-export { adminScheduleApi } from './schedule.api';
+export { adminScheduleApi, ALLOWED_DURATIONS } from './schedule.api';
 export type {
     IAdminScheduleItem,
     IAdminScheduleListResponse,
     IAdminScheduleQuery,
+    IScheduleFormPayload,
     TAdminScheduleStatus,
     TAdminScheduleStatusFilter,
+    TAllowedDuration,
 } from './schedule.api';

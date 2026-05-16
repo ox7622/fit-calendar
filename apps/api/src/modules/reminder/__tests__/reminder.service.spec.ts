@@ -262,4 +262,54 @@ describe('ReminderService', () => {
             });
         });
     });
+
+    describe('recomputeNotifyAtForClass (Story 6.3)', () => {
+        const newStartTime = new Date('2026-05-15T12:00:00Z'); // top of the hour
+
+        beforeEach(() => {
+            // Default mock: repository find returns no reminders, update is a no-op
+            (reminderRepo.update as unknown as jest.Mock) = jest.fn().mockResolvedValue(undefined);
+        });
+
+        it('updates each pending reminder using its customer-specific reminderMinutes', async () => {
+            (reminderRepo.find as unknown as jest.Mock) = jest.fn().mockResolvedValueOnce([
+                { id: 'r1', customer: { reminderMinutes: 15 } },
+                { id: 'r2', customer: { reminderMinutes: 60 } },
+            ]);
+
+            const updated = await service.recomputeNotifyAtForClass('sched-1', newStartTime);
+
+            expect(updated).toBe(2);
+            expect(reminderRepo.update).toHaveBeenCalledWith(
+                { id: 'r1' },
+                { notifyAt: new Date('2026-05-15T11:45:00Z') }, // 15 min before 12:00
+            );
+            expect(reminderRepo.update).toHaveBeenCalledWith(
+                { id: 'r2' },
+                { notifyAt: new Date('2026-05-15T11:00:00Z') }, // 60 min before 12:00
+            );
+        });
+
+        it('only queries reminders with status=pending (skips sent/failed)', async () => {
+            const findMock = jest.fn().mockResolvedValueOnce([]);
+            (reminderRepo.find as unknown as jest.Mock) = findMock;
+
+            await service.recomputeNotifyAtForClass('sched-1', newStartTime);
+
+            expect(findMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({ scheduleEntryId: 'sched-1', status: 'pending' }),
+                }),
+            );
+        });
+
+        it('returns 0 and skips updates when no pending reminders exist', async () => {
+            (reminderRepo.find as unknown as jest.Mock) = jest.fn().mockResolvedValueOnce([]);
+
+            const updated = await service.recomputeNotifyAtForClass('sched-1', newStartTime);
+
+            expect(updated).toBe(0);
+            expect(reminderRepo.update).not.toHaveBeenCalled();
+        });
+    });
 });

@@ -2,6 +2,7 @@ import { baseDbConfig } from '@fitcalendar/nest-shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -50,6 +51,13 @@ import { AppService } from './services/app.service';
          * Aliased on import to avoid colliding with the feature ScheduleModule.
          */
         NestScheduleModule.forRoot(),
+        /**
+         * Event emitter — decouples admin schedule mutations (Stories 6.3/6.4)
+         * from reminder notification listeners (Stories 5.4/5.5). See
+         * `apps/api/src/modules/admin/schedule/schedule.events.ts` for the
+         * event constants + payload types that form the contract.
+         */
+        EventEmitterModule.forRoot(),
         /**
          * Bot Module (Telegram webhook handler)
          */

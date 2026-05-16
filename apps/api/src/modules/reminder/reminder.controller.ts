@@ -1,5 +1,16 @@
 import type { Customer as CustomerEntity } from '@fitcalendar/db';
-import { Body, Controller, Delete, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    ParseUUIDPipe,
+    Post,
+    UseGuards,
+} from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { Customer as CustomerDecorator } from '../../common/decorators/customer.decorator';
@@ -7,6 +18,7 @@ import { RequiresLinkedCustomer } from '../../common/guards/requires-linked-cust
 import { TelegramAuthGuard } from '../../common/guards/telegram-auth.guard';
 
 import { CreateReminderDto } from './dto/create-reminder.dto';
+import { ReminderListItemDto } from './dto/reminder-list-item.dto';
 import { ReminderResponseDto } from './dto/reminder-response.dto';
 import { ReminderService } from './reminder.service';
 
@@ -20,6 +32,19 @@ import { ReminderService } from './reminder.service';
 })
 export class ReminderController {
     constructor(private readonly reminderService: ReminderService) {}
+
+    @Get()
+    @ApiOperation({
+        summary: 'List the calling customer’s active reminder subscriptions',
+        description:
+            'Excludes reminders whose class is already in the past. Sorted by class startTime ASC (soonest first).',
+    })
+    @ApiResponse({ status: 200, type: [ReminderListItemDto] })
+    @ApiResponse({ status: 401 })
+    @ApiResponse({ status: 403, description: 'Customer not linked (code: CUSTOMER_NOT_LINKED)' })
+    async list(@CustomerDecorator() customer: CustomerEntity): Promise<ReminderListItemDto[]> {
+        return this.reminderService.findActiveByCustomer(customer.id);
+    }
 
     @Post()
     @HttpCode(HttpStatus.OK)

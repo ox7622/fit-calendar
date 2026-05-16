@@ -2,7 +2,7 @@ import { ReactNode, useEffect } from 'react';
 
 import { LinkPhonePrompt } from '@/components';
 import { ApiError, meApi } from '@/shared/api';
-import { useCustomerStore } from '@/shared/stores';
+import { useCustomerStore, useRemindersStore } from '@/shared/stores';
 import { isInTelegram } from '@/shared/telegram';
 
 interface AuthProviderProps {
@@ -60,6 +60,8 @@ function NotInTelegramScreen(): JSX.Element {
  */
 export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     const { linked, isLoading, error, setLinked, setUnlinked, setLoading, setError } = useCustomerStore();
+    const loadReminders = useRemindersStore((s) => s.loadReminders);
+    const remindersHasLoaded = useRemindersStore((s) => s.hasLoaded);
 
     const authenticate = async (): Promise<void> => {
         if (!isInTelegram()) {
@@ -75,6 +77,15 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
             const me = await meApi.get();
             if (me.linked) {
                 setLinked(me.customer);
+                // Bootstrap the reminder store once per session right after we know
+                // the caller is a linked customer. RemindersPage + ClassDetailPage
+                // both read from this store; preloading avoids a second fetch when
+                // the user navigates to either page.
+                if (!remindersHasLoaded) {
+                    loadReminders().catch(() => {
+                        // Errors are surfaced via the store; don't crash the auth flow.
+                    });
+                }
             } else {
                 setUnlinked(me.telegramIdentity);
             }

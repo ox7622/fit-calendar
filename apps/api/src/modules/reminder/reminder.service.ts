@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { subMinutes } from 'date-fns';
 import { LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 
+import { ReminderListItemDto, toReminderListItem } from './dto/reminder-list-item.dto';
 import { ReminderResponseDto, toReminderResponse } from './dto/reminder-response.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
@@ -96,12 +97,27 @@ export class ReminderService {
         this.logger.log(`Customer ${customerId} unsubscribed from reminder ${reminderId}`);
     }
 
-    /**
-     * Used by Story 5.6's GET /reminders. 5.1 does not expose this via an
-     * endpoint — the ClassDetailPage button tracks its own state until 5.6.
-     */
     findOneByCustomerAndEntry(customerId: string, scheduleEntryId: string): Promise<Reminder | null> {
         return this.reminderRepo.findOne({ where: { customerId, scheduleEntryId } });
+    }
+
+    /**
+     * Story 5.6 — list endpoint feed. Excludes reminders whose class is in the
+     * past so the list is self-pruning (no separate "completed" view for MVP).
+     * Uses createQueryBuilder because the startTime filter is on a related table.
+     */
+    async findActiveByCustomer(customerId: string, now: Date = new Date()): Promise<ReminderListItemDto[]> {
+        const reminders = await this.reminderRepo
+            .createQueryBuilder('r')
+            .innerJoinAndSelect('r.scheduleEntry', 'entry')
+            .innerJoinAndSelect('entry.coach', 'coach')
+            .innerJoinAndSelect('entry.trainingType', 'type')
+            .where('r.customerId = :customerId', { customerId })
+            .andWhere('entry.startTime > :now', { now })
+            .orderBy('entry.startTime', 'ASC')
+            .getMany();
+
+        return reminders.map(toReminderListItem);
     }
 
     /**

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ImpactTypeBadge, showToast } from '@/components';
-import { ApiError, remindersApi, scheduleApi, type Reminder } from '@/shared/api';
-import { useCustomerStore } from '@/shared/stores';
+import { ApiError, remindersApi, scheduleApi, type ReminderListItem } from '@/shared/api';
+import { useCustomerStore, useRemindersStore } from '@/shared/stores';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
 
 type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
@@ -84,11 +84,13 @@ export function ClassDetailPage(): JSX.Element {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // No GET /reminders endpoint exists yet (Story 5.6), so the toggle state
-    // is initialized to "not subscribed" and only reflects user actions during
-    // this session. If the customer already had a reminder, re-subscribing
-    // returns the existing row (idempotent), so the visible mismatch is harmless.
-    const [reminder, setReminder] = useState<Reminder | null>(null);
+    // Source of truth for whether *this* class has an active reminder is the
+    // shared store (loaded once on auth — see AuthProvider). Story 5.1 used to
+    // keep a local Reminder|null here; 5.6 lifted it so RemindersPage and this
+    // page stay in sync after subscribe/unsubscribe.
+    const reminder = useRemindersStore((s) => (cls ? s.findByScheduleEntry(cls.id) : undefined));
+    const addReminder = useRemindersStore((s) => s.addReminder);
+    const removeReminder = useRemindersStore((s) => s.removeReminder);
     const [reminderPending, setReminderPending] = useState(false);
 
     const isPastOrCancelled =
@@ -99,7 +101,24 @@ export function ClassDetailPage(): JSX.Element {
         setReminderPending(true);
         try {
             const created = await remindersApi.subscribe(cls.id);
-            setReminder(created);
+            // The POST returns the bare Reminder; the store stores ReminderListItem
+            // with nested class info. Hydrate from `cls` (already in scope) so we
+            // don't burn a second GET /reminders just to enrich one row.
+            const listItem: ReminderListItem = {
+                id: created.id,
+                scheduleEntryId: created.scheduleEntryId,
+                status: created.status,
+                notifyAt: created.notifyAt,
+                class: {
+                    id: cls.id,
+                    name: cls.name,
+                    startTime: cls.startTime,
+                    durationMinutes: cls.durationMinutes,
+                    coachName: cls.coachName,
+                    coachPhotoUrl: cls.coachPhotoUrl,
+                },
+            };
+            addReminder(listItem);
             const minutes = customer?.reminderMinutes ?? 30;
             showToast(`Напомним за ${minutes} минут`);
         } catch (err) {
@@ -118,7 +137,7 @@ export function ClassDetailPage(): JSX.Element {
         setReminderPending(true);
         try {
             await remindersApi.unsubscribe(reminder.id);
-            setReminder(null);
+            removeReminder(reminder.id);
             showToast('Напоминание отменено');
         } catch {
             showToast('Не удалось отменить напоминание', 'error');

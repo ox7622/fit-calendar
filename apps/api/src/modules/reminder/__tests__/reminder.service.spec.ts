@@ -167,4 +167,99 @@ describe('ReminderService', () => {
             expect(reminderRepo.remove).not.toHaveBeenCalled();
         });
     });
+
+    describe('findActiveByCustomer', () => {
+        // The query uses createQueryBuilder. We mock the builder chain end-to-end
+        // and assert that the right where-clauses and ordering land on it.
+        function setupQueryBuilder(rows: Reminder[]): {
+            getMany: jest.Mock;
+            where: jest.Mock;
+            andWhere: jest.Mock;
+            orderBy: jest.Mock;
+        } {
+            const builder = {
+                innerJoinAndSelect: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                orderBy: jest.fn().mockReturnThis(),
+                getMany: jest.fn().mockResolvedValue(rows),
+            } as unknown as {
+                getMany: jest.Mock;
+                where: jest.Mock;
+                andWhere: jest.Mock;
+                orderBy: jest.Mock;
+            };
+            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValue(builder);
+            return builder;
+        }
+
+        const buildReminderWithRelations = (overrides: Partial<Reminder> = {}): Reminder =>
+            ({
+                ...buildReminder(),
+                customerId: CUSTOMER_ID,
+                scheduleEntry: {
+                    id: 'sched-1',
+                    startTime: inFuture(60),
+                    durationMinutes: 60,
+                    status: 'scheduled',
+                    coach: { id: 'c', name: 'Мария', photoUrl: null },
+                    trainingType: { id: 't', name: 'Йога' },
+                } as ScheduleEntry,
+                ...overrides,
+            } as Reminder);
+
+        it('filters by customerId and excludes past classes (where clauses)', async () => {
+            const builder = setupQueryBuilder([buildReminderWithRelations()]);
+
+            const now = new Date('2026-05-15T10:00:00Z');
+            await service.findActiveByCustomer(CUSTOMER_ID, now);
+
+            expect(builder.where).toHaveBeenCalledWith('r.customerId = :customerId', { customerId: CUSTOMER_ID });
+            expect(builder.andWhere).toHaveBeenCalledWith('entry.startTime > :now', { now });
+        });
+
+        it('orders by entry.startTime ASC (soonest first)', async () => {
+            const builder = setupQueryBuilder([]);
+
+            await service.findActiveByCustomer(CUSTOMER_ID);
+
+            expect(builder.orderBy).toHaveBeenCalledWith('entry.startTime', 'ASC');
+        });
+
+        it('returns an empty array when the customer has no active reminders', async () => {
+            setupQueryBuilder([]);
+
+            const result = await service.findActiveByCustomer(CUSTOMER_ID);
+
+            expect(result).toEqual([]);
+        });
+
+        it('maps each result to a ReminderListItemDto with nested class info', async () => {
+            const reminder = buildReminderWithRelations({
+                id: 'rem-x',
+                scheduleEntry: {
+                    id: 'sched-x',
+                    startTime: new Date('2026-05-15T10:00:00Z'),
+                    durationMinutes: 45,
+                    status: 'scheduled',
+                    coach: { id: 'c-x', name: 'Алексей', photoUrl: 'https://photo' },
+                    trainingType: { id: 'tt-x', name: 'Силовая' },
+                } as ScheduleEntry,
+            });
+            setupQueryBuilder([reminder]);
+
+            const [item] = await service.findActiveByCustomer(CUSTOMER_ID);
+
+            expect(item.id).toBe('rem-x');
+            expect(item.scheduleEntryId).toBe('sched-1'); // from buildReminder default
+            expect(item.class).toEqual({
+                id: 'sched-x',
+                name: 'Силовая',
+                startTime: new Date('2026-05-15T10:00:00Z'),
+                durationMinutes: 45,
+                coachName: 'Алексей',
+                coachPhotoUrl: 'https://photo',
+            });
+        });
+    });
 });

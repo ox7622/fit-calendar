@@ -7,3 +7,5 @@ export * from './dto/update-customer.dto';
 export * from './dto/customer-response.dto';
 export * from './dto/link-phone.dto';
 export * from './dto/me-response.dto';
+export * from './dto/settings.dto';
+export * from './customer.constants';

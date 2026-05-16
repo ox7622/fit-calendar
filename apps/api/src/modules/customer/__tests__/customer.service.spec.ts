@@ -142,6 +142,24 @@ describe('CustomerService', () => {
         });
     });
 
+    describe('updateReminderMinutes (Story 5.2)', () => {
+        it('persists the new value and returns the updated customer', async () => {
+            const customer = buildCustomer({ reminderMinutes: 30 });
+            customerRepo.findOne.mockResolvedValueOnce(customer);
+            customerRepo.save.mockImplementation(async (c) => c as Customer);
+
+            const result = await service.updateReminderMinutes('cust-1', 60);
+
+            expect(result?.reminderMinutes).toBe(60);
+            expect(customerRepo.save).toHaveBeenCalled();
+        });
+
+        it('returns null when customer does not exist', async () => {
+            customerRepo.findOne.mockResolvedValueOnce(null);
+            expect(await service.updateReminderMinutes('missing', 60)).toBeNull();
+        });
+    });
+
     describe('deleteCustomer', () => {
         it('removes the customer when no reminders reference it', async () => {
             const customer = buildCustomer();

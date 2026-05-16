@@ -9,12 +9,14 @@ import {
     HttpStatus,
     NotFoundException,
     Post,
+    Put,
     UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { Customer as CustomerDecorator } from '../../common/decorators/customer.decorator';
 import { TelegramIdentity } from '../../common/decorators/telegram-identity.decorator';
+import { RequiresLinkedCustomer } from '../../common/guards/requires-linked-customer.guard';
 import { TelegramAuthGuard } from '../../common/guards/telegram-auth.guard';
 import type { ITelegramUserData } from '../../common/guards/telegram-auth.guard';
 
@@ -22,6 +24,7 @@ import { CustomerService } from './customer.service';
 import { CustomerResponseDto, toCustomerResponse } from './dto/customer-response.dto';
 import { LinkPhoneDto } from './dto/link-phone.dto';
 import { MeLinkedDto, MeUnlinkedDto, MeResponseDto } from './dto/me-response.dto';
+import { SettingsResponseDto, UpdateSettingsDto } from './dto/settings.dto';
 
 @ApiTags('Me')
 @Controller('me')
@@ -115,5 +118,42 @@ export class MeController {
                 // Exhaustiveness check — TLinkPhoneStatus is a closed union.
                 throw new Error(`Unhandled link-phone status: ${(result as { status: string }).status}`);
         }
+    }
+
+    @Get('settings')
+    @UseGuards(RequiresLinkedCustomer)
+    @ApiOperation({ summary: "Read the calling member's reminder offset preference" })
+    @ApiResponse({ status: 200, type: SettingsResponseDto })
+    @ApiResponse({ status: 401 })
+    @ApiResponse({ status: 403, description: 'Customer not linked (code: CUSTOMER_NOT_LINKED)' })
+    getSettings(@CustomerDecorator() customer: CustomerEntity): SettingsResponseDto {
+        // The customer record is already loaded by TelegramAuthGuard, so no extra
+        // DB hit needed — read straight from the decorator.
+        return { reminderMinutes: customer.reminderMinutes };
+    }
+
+    @Put('settings')
+    @UseGuards(RequiresLinkedCustomer)
+    @ApiOperation({
+        summary: 'Update the reminder offset preference',
+        description:
+            'Allowed values: 15, 30, 60, 120 minutes. Existing reminders are NOT re-scheduled — ' +
+            'only future subscriptions use the new value (notifyAt is precomputed at subscribe time).',
+    })
+    @ApiResponse({ status: 200, type: SettingsResponseDto })
+    @ApiResponse({ status: 400, description: 'reminderMinutes is not in the allowed enum' })
+    @ApiResponse({ status: 401 })
+    @ApiResponse({ status: 403 })
+    async updateSettings(
+        @CustomerDecorator() customer: CustomerEntity,
+        @Body() dto: UpdateSettingsDto,
+    ): Promise<SettingsResponseDto> {
+        const updated = await this.customerService.updateReminderMinutes(customer.id, dto.reminderMinutes);
+        // The customer was loaded by the guard from the request, so update should always find it.
+        // If it returned null something's racing — surface as 500 (Nest's default for unhandled returns).
+        if (!updated) {
+            throw new Error(`Customer ${customer.id} disappeared mid-request`);
+        }
+        return { reminderMinutes: updated.reminderMinutes };
     }
 }

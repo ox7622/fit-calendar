@@ -38,6 +38,12 @@ interface CustomerState {
     setUnlinked: (identity: TelegramIdentity) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
+    /**
+     * Patch `customer.reminderMinutes` in-place (Story 5.2). Used by the
+     * SettingsSheet after a successful save so subsequent reminder subscriptions
+     * (Story 5.1) compute `notifyAt` from the new preference.
+     */
+    setReminderMinutes: (minutes: number) => void;
     reset: () => void;
 }
 
@@ -47,7 +53,10 @@ const initialState = {
     telegramIdentity: null,
     isLoading: true,
     error: null,
-} satisfies Omit<CustomerState, 'setLinked' | 'setUnlinked' | 'setLoading' | 'setError' | 'reset'>;
+} satisfies Omit<
+    CustomerState,
+    'setLinked' | 'setUnlinked' | 'setLoading' | 'setError' | 'setReminderMinutes' | 'reset'
+>;
 
 export const useCustomerStore = create<CustomerState>((set) => ({
     ...initialState,
@@ -77,6 +86,11 @@ export const useCustomerStore = create<CustomerState>((set) => ({
             error,
             isLoading: false,
         }),
+
+    setReminderMinutes: (minutes) =>
+        set((state) => ({
+            customer: state.customer ? { ...state.customer, reminderMinutes: minutes } : null,
+        })),
 
     reset: () => set(initialState),
 }));

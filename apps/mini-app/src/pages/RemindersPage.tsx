@@ -1,12 +1,12 @@
 import { format, isSameDay, isTomorrow } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Bell, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { Bell, Settings, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { showToast } from '@/components';
-import { remindersApi, type ReminderListItem } from '@/shared/api';
-import { useRemindersStore } from '@/shared/stores';
+import { SettingsSheet, showToast } from '@/components';
+import { meApi, remindersApi, type ReminderListItem, type TReminderMinutes } from '@/shared/api';
+import { useCustomerStore, useRemindersStore } from '@/shared/stores';
 
 interface DayGroup {
     headerLabel: string;
@@ -77,6 +77,10 @@ export function RemindersPage(): JSX.Element {
     const loadReminders = useRemindersStore((s) => s.loadReminders);
     const removeReminder = useRemindersStore((s) => s.removeReminder);
     const restoreReminder = useRemindersStore((s) => s.restoreReminder);
+    const customer = useCustomerStore((s) => s.customer);
+    const setReminderMinutes = useCustomerStore((s) => s.setReminderMinutes);
+
+    const [settingsOpen, setSettingsOpen] = useState(false);
 
     useEffect(() => {
         if (!hasLoaded && !isLoading) {
@@ -96,13 +100,41 @@ export function RemindersPage(): JSX.Element {
         }
     };
 
+    const onChangeReminderMinutes = async (value: TReminderMinutes): Promise<void> => {
+        try {
+            const response = await meApi.updateSettings(value);
+            setReminderMinutes(response.reminderMinutes);
+            showToast('Сохранено');
+        } catch {
+            showToast('Не удалось сохранить', 'error');
+        }
+    };
+
     const groups = groupByDate(reminders);
 
     return (
         <div className="flex flex-col h-full">
-            <div className="px-4 pt-4 pb-3">
+            <div className="px-4 pt-4 pb-3 flex items-center justify-between">
                 <h1 className="heading-2">Напоминания</h1>
+                {customer && (
+                    <button
+                        type="button"
+                        onClick={() => setSettingsOpen(true)}
+                        aria-label="Настройки"
+                        className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                        <Settings size={20} />
+                    </button>
+                )}
             </div>
+
+            {settingsOpen && customer && (
+                <SettingsSheet
+                    currentValue={customer.reminderMinutes}
+                    onChange={onChangeReminderMinutes}
+                    onClose={() => setSettingsOpen(false)}
+                />
+            )}
 
             <div className="flex-1 overflow-y-auto px-4 pb-4">
                 {isLoading && !hasLoaded ? (

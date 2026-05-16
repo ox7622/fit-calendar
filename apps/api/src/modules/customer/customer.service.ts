@@ -175,6 +175,20 @@ export class CustomerService {
         return saved;
     }
 
+    /**
+     * Story 5.2 — update the member's reminder offset preference. The DTO
+     * already gates `reminderMinutes` against the allowed enum, so this method
+     * doesn't re-validate.
+     */
+    async updateReminderMinutes(customerId: string, reminderMinutes: number): Promise<Customer | null> {
+        const customer = await this.findById(customerId);
+        if (!customer) return null;
+        customer.reminderMinutes = reminderMinutes;
+        const saved = await this.customerRepo.save(customer);
+        this.logger.log(`Updated reminderMinutes=${reminderMinutes} for customer ${customerId}`);
+        return saved;
+    }
+
     async unlinkTelegram(id: string): Promise<Customer | null> {
         const customer = await this.findById(id);
         if (!customer) return null;

@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Delete,
     Get,
     HttpCode,
     HttpStatus,
@@ -18,6 +19,7 @@ import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 import { AdminScheduleService } from './admin-schedule.service';
 import { AdminScheduleItemDto, AdminScheduleListResponseDto } from './dto/admin-schedule-list.dto';
 import { AdminScheduleQueryDto } from './dto/admin-schedule-query.dto';
+import { CancelClassDto } from './dto/cancel-class.dto';
 import { CreateScheduleEntryDto } from './dto/create-schedule-entry.dto';
 import { UpdateScheduleEntryDto } from './dto/update-schedule-entry.dto';
 
@@ -80,5 +82,44 @@ export class AdminScheduleController {
         @Body() dto: UpdateScheduleEntryDto,
     ): Promise<AdminScheduleItemDto> {
         return this.scheduleService.update(id, dto);
+    }
+
+    @Post(':id/cancel')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Cancel a class (soft, idempotent)',
+        description:
+            'Flips status to cancelled, persists the optional reason, deletes pending reminders, ' +
+            'and emits SCHEDULE_CANCELLED_EVENT for Story 5.5 listeners. Re-cancelling a cancelled ' +
+            'class returns 200 with the existing record (no event re-emit).',
+    })
+    @ApiParam({ name: 'id', description: 'Schedule entry UUID' })
+    @ApiResponse({ status: 200, type: AdminScheduleItemDto })
+    @ApiResponse({ status: 400, description: 'Reason exceeds 500 chars' })
+    @ApiResponse({ status: 401 })
+    @ApiResponse({ status: 404 })
+    async cancel(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @Body() dto: CancelClassDto,
+    ): Promise<AdminScheduleItemDto> {
+        return this.scheduleService.cancel(id, dto.reason ?? null);
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        summary: 'Hard-delete a schedule entry (past classes with no reminders only)',
+        description:
+            'Allowed only when the class is in the past AND has zero reminders (sent, pending, ' +
+            'or failed — they are audit trail). Future classes or classes with any reminder history ' +
+            'return 409; admin should cancel instead.',
+    })
+    @ApiParam({ name: 'id', description: 'Schedule entry UUID' })
+    @ApiResponse({ status: 204, description: 'Deleted' })
+    @ApiResponse({ status: 401 })
+    @ApiResponse({ status: 404 })
+    @ApiResponse({ status: 409, description: 'Class has reminders or is still in the future' })
+    async deleteEntry(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
+        await this.scheduleService.deleteEntry(id);
     }
 }

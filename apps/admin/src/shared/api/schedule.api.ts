@@ -72,4 +72,9 @@ export const adminScheduleApi = {
 
     update: (id: string, payload: Partial<IScheduleFormPayload>): Promise<IAdminScheduleItem> =>
         adminApiClient.put<IAdminScheduleItem>(`/admin/schedule/${id}`, payload),
+
+    cancel: (id: string, reason: string | null): Promise<IAdminScheduleItem> =>
+        adminApiClient.post<IAdminScheduleItem>(`/admin/schedule/${id}/cancel`, { reason: reason ?? undefined }),
+
+    delete: (id: string): Promise<void> => adminApiClient.delete<void>(`/admin/schedule/${id}`),
 };

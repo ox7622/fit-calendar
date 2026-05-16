@@ -21,14 +21,17 @@ export const SCHEDULE_CANCELLED_EVENT = 'schedule.cancelled';
 
 export interface IScheduleCancelledPayload {
     scheduleEntryId: string;
-    /** Customer UUIDs that had pending reminders at the moment of cancellation. */
+    /** Free-text reason the admin supplied; null when omitted. */
+    cancellationReason: string | null;
+    /** Customer UUIDs that had pending reminders at the moment of cancellation.
+     *  Captured BEFORE the pending reminders are deleted so the listener has
+     *  the full set even after the DB update.
+     *  Post-7.2 rename: was `affectedUserIds` in the original story draft. */
     affectedCustomerIds: string[];
-    /** Snapshot of the class details captured *before* cancel — listener needs them for the message body. */
+    /** Snapshot of class details for the listener's message body. */
     snapshot: {
         className: string;
-        coachName: string;
         startTime: Date;
-        durationMinutes: number;
-        cancellationReason: string | null;
+        coachName: string;
     };
 }

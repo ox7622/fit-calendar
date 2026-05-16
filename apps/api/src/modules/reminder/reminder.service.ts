@@ -2,7 +2,7 @@ import { Reminder, ScheduleEntry } from '@fitcalendar/db';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { subMinutes } from 'date-fns';
-import { LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 
 import { ReminderListItemDto, toReminderListItem } from './dto/reminder-list-item.dto';
 import { ReminderResponseDto, toReminderResponse } from './dto/reminder-response.dto';
@@ -188,6 +188,41 @@ export class ReminderService {
             { retryCount: newRetryCount, status: isExhausted ? 'failed' : 'pending' },
         );
         return { status: isExhausted ? 'failed' : 'pending' };
+    }
+
+    /**
+     * Story 6.4 — returns distinct customer UUIDs that have a pending reminder
+     * for the given class. Captured BEFORE `deletePendingByClass` so the
+     * cancellation event payload still names everyone who would have been
+     * reminded (Story 5.5's listener uses this list to send notifications).
+     */
+    async findPendingCustomersByClass(scheduleEntryId: string): Promise<string[]> {
+        const rows = await this.reminderRepo
+            .createQueryBuilder('r')
+            .select('DISTINCT r.customerId', 'customerId')
+            .where('r.scheduleEntryId = :scheduleEntryId', { scheduleEntryId })
+            .andWhere("r.status = 'pending'")
+            .getRawMany<{ customerId: string }>();
+        return rows.map((row) => row.customerId);
+    }
+
+    /**
+     * Story 6.4 — bulk-delete pending reminders for a cancelled class. Accepts
+     * an optional `EntityManager` so the delete participates in the caller's
+     * transaction (the admin cancel flow updates schedule_entry + deletes
+     * reminders atomically). `sent` / `failed` rows are intentionally kept
+     * for audit.
+     */
+    async deletePendingByClass(scheduleEntryId: string, manager?: EntityManager): Promise<number> {
+        const repo = manager ? manager.getRepository(Reminder) : this.reminderRepo;
+        const result = await repo
+            .createQueryBuilder()
+            .delete()
+            .from(Reminder)
+            .where('scheduleEntryId = :scheduleEntryId', { scheduleEntryId })
+            .andWhere("status = 'pending'")
+            .execute();
+        return result.affected ?? 0;
     }
 
     private isUniqueViolation(err: unknown): boolean {

@@ -1,9 +1,9 @@
 import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, startOfWeek } from 'date-fns';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { ReminderService } from '../../reminder/reminder.service';
 
@@ -11,7 +11,12 @@ import { AdminScheduleItemDto, AdminScheduleListResponseDto, toAdminScheduleItem
 import { AdminScheduleQueryDto } from './dto/admin-schedule-query.dto';
 import { CreateScheduleEntryDto } from './dto/create-schedule-entry.dto';
 import { UpdateScheduleEntryDto } from './dto/update-schedule-entry.dto';
-import { IScheduleChangedPayload, SCHEDULE_CHANGED_EVENT } from './schedule.events';
+import {
+    IScheduleCancelledPayload,
+    IScheduleChangedPayload,
+    SCHEDULE_CANCELLED_EVENT,
+    SCHEDULE_CHANGED_EVENT,
+} from './schedule.events';
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
@@ -28,6 +33,8 @@ export class AdminScheduleService {
         private readonly coachRepo: Repository<Coach>,
         @InjectRepository(TrainingType)
         private readonly trainingTypeRepo: Repository<TrainingType>,
+        @InjectDataSource()
+        private readonly dataSource: DataSource,
         private readonly eventEmitter: EventEmitter2,
         private readonly reminderService: ReminderService,
     ) {}
@@ -165,6 +172,84 @@ export class AdminScheduleService {
         });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return toAdminScheduleItem(reloaded!);
+    }
+
+    /**
+     * Story 6.4 — cancel a class. Idempotent: re-cancelling returns the
+     * existing record without re-emitting the event or re-deleting reminders.
+     *
+     * Side-effects on the `scheduled → cancelled` transition:
+     *   1. Capture affected customer UUIDs from pending reminders.
+     *   2. In a single transaction: flip status + reason on the schedule entry,
+     *      bulk-delete pending reminders.
+     *   3. AFTER commit, emit SCHEDULE_CANCELLED_EVENT so Story 5.5's listener
+     *      can notify subscribers. Emit-after-commit avoids "we sent the
+     *      cancellation notification, but the DB rolled back" inconsistency.
+     */
+    async cancel(id: string, reason: string | null): Promise<AdminScheduleItemDto> {
+        const entry = await this.scheduleRepo.findOne({
+            where: { id },
+            relations: ['coach', 'trainingType'],
+        });
+        if (!entry) {
+            throw new NotFoundException(`Schedule entry ${id} not found`);
+        }
+        if (entry.status === 'cancelled') {
+            // Idempotent path — return the existing record, no event, no DB writes.
+            return toAdminScheduleItem(entry);
+        }
+
+        const affectedCustomerIds = await this.reminderService.findPendingCustomersByClass(id);
+        const snapshot = {
+            className: entry.trainingType.name,
+            startTime: entry.startTime,
+            coachName: entry.coach.name,
+        };
+
+        await this.dataSource.transaction(async (manager) => {
+            await manager.update(ScheduleEntry, { id }, { status: 'cancelled', cancellationReason: reason });
+            await this.reminderService.deletePendingByClass(id, manager);
+        });
+
+        const payload: IScheduleCancelledPayload = {
+            scheduleEntryId: id,
+            cancellationReason: reason,
+            affectedCustomerIds,
+            snapshot,
+        };
+        this.eventEmitter.emit(SCHEDULE_CANCELLED_EVENT, payload);
+
+        const reloaded = await this.scheduleRepo.findOne({
+            where: { id },
+            relations: ['coach', 'trainingType'],
+        });
+        this.logger.log(`Cancelled schedule entry ${id} (affected ${affectedCustomerIds.length} customer(s))`);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return toAdminScheduleItem(reloaded!);
+    }
+
+    /**
+     * Story 6.4 — hard delete. Only safe for classes that:
+     *   - are in the past (future classes should be cancelled, not removed); AND
+     *   - have no reminders at all (sent + failed rows are audit trail).
+     * Otherwise 409 with a Russian explanation pointing the admin at cancel instead.
+     */
+    async deleteEntry(id: string): Promise<void> {
+        const entry = await this.scheduleRepo.findOne({
+            where: { id },
+            relations: ['reminders'],
+        });
+        if (!entry) {
+            throw new NotFoundException(`Schedule entry ${id} not found`);
+        }
+        if (entry.startTime.getTime() > Date.now()) {
+            throw new ConflictException('Класс нельзя удалить: занятие ещё не прошло. Используйте отмену.');
+        }
+        if (entry.reminders.length > 0) {
+            throw new ConflictException('Класс нельзя удалить: есть напоминания. Используйте отмену.');
+        }
+        await this.scheduleRepo.remove(entry);
+        this.logger.log(`Deleted schedule entry ${id}`);
     }
 
     private async assertActiveCoach(coachId: string): Promise<void> {

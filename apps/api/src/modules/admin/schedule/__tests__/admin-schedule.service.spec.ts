@@ -1,13 +1,14 @@
 import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
+import type { DataSource } from 'typeorm';
 
 import { ReminderService } from '../../../reminder/reminder.service';
 import { AdminScheduleService } from '../admin-schedule.service';
-import { SCHEDULE_CHANGED_EVENT } from '../schedule.events';
+import { SCHEDULE_CANCELLED_EVENT, SCHEDULE_CHANGED_EVENT } from '../schedule.events';
 
 type TQueryBuilderMock = {
     innerJoinAndSelect: jest.Mock;
@@ -63,11 +64,16 @@ describe('AdminScheduleService', () => {
         findOne: jest.Mock;
         create: jest.Mock;
         save: jest.Mock;
+        remove: jest.Mock;
     }>;
     let coachRepo: jest.Mocked<{ findOne: jest.Mock }>;
     let trainingTypeRepo: jest.Mocked<{ findOne: jest.Mock }>;
     let eventEmitter: jest.Mocked<EventEmitter2>;
-    let reminderService: jest.Mocked<Pick<ReminderService, 'recomputeNotifyAtForClass'>>;
+    let reminderService: jest.Mocked<
+        Pick<ReminderService, 'recomputeNotifyAtForClass' | 'findPendingCustomersByClass' | 'deletePendingByClass'>
+    >;
+    let txManagerUpdate: jest.Mock;
+    let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
         scheduleRepo = {
@@ -75,11 +81,21 @@ describe('AdminScheduleService', () => {
             findOne: jest.fn(),
             create: jest.fn((dto) => dto as ScheduleEntry),
             save: jest.fn(async (entity) => entity as ScheduleEntry),
+            remove: jest.fn(async (entity) => entity as ScheduleEntry),
         };
         coachRepo = { findOne: jest.fn() };
         trainingTypeRepo = { findOne: jest.fn() };
         eventEmitter = { emit: jest.fn() } as unknown as jest.Mocked<EventEmitter2>;
-        reminderService = { recomputeNotifyAtForClass: jest.fn().mockResolvedValue(0) };
+        reminderService = {
+            recomputeNotifyAtForClass: jest.fn().mockResolvedValue(0),
+            findPendingCustomersByClass: jest.fn().mockResolvedValue([]),
+            deletePendingByClass: jest.fn().mockResolvedValue(0),
+        };
+
+        txManagerUpdate = jest.fn().mockResolvedValue({ affected: 1 });
+        dataSource = {
+            transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb({ update: txManagerUpdate })),
+        };
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -87,6 +103,7 @@ describe('AdminScheduleService', () => {
                 { provide: getRepositoryToken(ScheduleEntry), useValue: scheduleRepo },
                 { provide: getRepositoryToken(Coach), useValue: coachRepo },
                 { provide: getRepositoryToken(TrainingType), useValue: trainingTypeRepo },
+                { provide: getDataSourceToken(), useValue: dataSource as unknown as DataSource },
                 { provide: EventEmitter2, useValue: eventEmitter },
                 { provide: ReminderService, useValue: reminderService },
             ],
@@ -293,6 +310,148 @@ describe('AdminScheduleService', () => {
             scheduleRepo.findOne.mockResolvedValueOnce(null);
 
             await expect(service.findById('missing')).rejects.toThrow(NotFoundException);
+        });
+    });
+
+    describe('cancel (Story 6.4)', () => {
+        it('flips status, persists reason, deletes pending reminders, and emits the event', async () => {
+            const entry = buildEntry({ id: 'sched-cancel', status: 'scheduled' });
+            scheduleRepo.findOne
+                .mockResolvedValueOnce(entry) // initial load
+                .mockResolvedValueOnce({
+                    ...entry,
+                    status: 'cancelled',
+                    cancellationReason: 'Coach sick',
+                } as ScheduleEntry); // reload
+            reminderService.findPendingCustomersByClass.mockResolvedValueOnce(['cust-a', 'cust-b']);
+
+            const result = await service.cancel('sched-cancel', 'Coach sick');
+
+            // Pending customers captured BEFORE delete (order matters for the event payload).
+            const captureCallOrder = reminderService.findPendingCustomersByClass.mock.invocationCallOrder[0];
+            const deleteCallOrder = reminderService.deletePendingByClass.mock.invocationCallOrder[0];
+            expect(captureCallOrder).toBeLessThan(deleteCallOrder);
+
+            // Schedule update + reminder delete happen inside the transaction.
+            expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+            expect(txManagerUpdate).toHaveBeenCalledWith(
+                ScheduleEntry,
+                { id: 'sched-cancel' },
+                { status: 'cancelled', cancellationReason: 'Coach sick' },
+            );
+
+            // Event fires AFTER the transaction commits (transaction call returned).
+            const txOrder = dataSource.transaction.mock.invocationCallOrder[0];
+            const emitOrder = eventEmitter.emit.mock.invocationCallOrder[0];
+            expect(emitOrder).toBeGreaterThan(txOrder);
+
+            expect(eventEmitter.emit).toHaveBeenCalledWith(SCHEDULE_CANCELLED_EVENT, {
+                scheduleEntryId: 'sched-cancel',
+                cancellationReason: 'Coach sick',
+                affectedCustomerIds: ['cust-a', 'cust-b'],
+                snapshot: {
+                    className: entry.trainingType.name,
+                    startTime: entry.startTime,
+                    coachName: entry.coach.name,
+                },
+            });
+            expect(result.id).toBe('sched-cancel');
+        });
+
+        it('accepts a null reason and surfaces it in the event payload', async () => {
+            const entry = buildEntry({ id: 'sched-null-reason', status: 'scheduled' });
+            scheduleRepo.findOne
+                .mockResolvedValueOnce(entry)
+                .mockResolvedValueOnce({ ...entry, status: 'cancelled', cancellationReason: null } as ScheduleEntry);
+
+            await service.cancel('sched-null-reason', null);
+
+            expect(txManagerUpdate).toHaveBeenCalledWith(
+                ScheduleEntry,
+                { id: 'sched-null-reason' },
+                { status: 'cancelled', cancellationReason: null },
+            );
+            expect(eventEmitter.emit).toHaveBeenCalledWith(
+                SCHEDULE_CANCELLED_EVENT,
+                expect.objectContaining({ cancellationReason: null }),
+            );
+        });
+
+        it('is idempotent: re-cancelling an already-cancelled class returns record without side-effects', async () => {
+            const entry = buildEntry({ id: 'sched-already', status: 'cancelled', cancellationReason: 'Old reason' });
+            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+
+            const result = await service.cancel('sched-already', 'New reason');
+
+            expect(result.id).toBe('sched-already');
+            expect(dataSource.transaction).not.toHaveBeenCalled();
+            expect(reminderService.findPendingCustomersByClass).not.toHaveBeenCalled();
+            expect(reminderService.deletePendingByClass).not.toHaveBeenCalled();
+            expect(eventEmitter.emit).not.toHaveBeenCalled();
+        });
+
+        it('throws 404 when the entry does not exist', async () => {
+            scheduleRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.cancel('missing', 'reason')).rejects.toThrow(NotFoundException);
+            expect(dataSource.transaction).not.toHaveBeenCalled();
+            expect(eventEmitter.emit).not.toHaveBeenCalled();
+        });
+
+        it('does NOT emit the event if the transaction throws', async () => {
+            const entry = buildEntry({ id: 'sched-tx-fail', status: 'scheduled' });
+            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+            dataSource.transaction.mockRejectedValueOnce(new Error('db unavailable'));
+
+            await expect(service.cancel('sched-tx-fail', 'reason')).rejects.toThrow('db unavailable');
+            expect(eventEmitter.emit).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('deleteEntry (Story 6.4)', () => {
+        it('removes the entry when class is in the past and has no reminders', async () => {
+            const entry = buildEntry({
+                id: 'sched-old',
+                startTime: new Date('2020-01-01T10:00:00Z'),
+                reminders: [],
+            } as Partial<ScheduleEntry>);
+            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+
+            await service.deleteEntry('sched-old');
+
+            expect(scheduleRepo.remove).toHaveBeenCalledWith(entry);
+        });
+
+        it('throws 404 when the entry does not exist', async () => {
+            scheduleRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.deleteEntry('missing')).rejects.toThrow(NotFoundException);
+            expect(scheduleRepo.remove).not.toHaveBeenCalled();
+        });
+
+        it('throws 409 when class is still in the future (admin should cancel, not delete)', async () => {
+            const future = new Date(Date.now() + 7 * 86_400_000);
+            const entry = buildEntry({
+                id: 'sched-future',
+                startTime: future,
+                reminders: [],
+            } as Partial<ScheduleEntry>);
+            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+
+            await expect(service.deleteEntry('sched-future')).rejects.toThrow(ConflictException);
+            expect(scheduleRepo.remove).not.toHaveBeenCalled();
+        });
+
+        it('throws 409 when class has any reminders (audit trail must be preserved)', async () => {
+            const entry = buildEntry({
+                id: 'sched-audit',
+                startTime: new Date('2020-01-01T10:00:00Z'),
+                reminders: [{ id: 'rem-1' }],
+            } as Partial<ScheduleEntry>);
+            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+
+            await expect(service.deleteEntry('sched-audit')).rejects.toThrow(ConflictException);
+            expect(scheduleRepo.remove).not.toHaveBeenCalled();
         });
     });
 });

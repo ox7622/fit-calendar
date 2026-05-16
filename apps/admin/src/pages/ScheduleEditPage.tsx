@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { CancelClassModal } from '@/features/schedule/CancelClassModal';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError, type IAdminScheduleItem } from '@/shared/api';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -11,6 +12,8 @@ export function ScheduleEditPage() {
     const [entry, setEntry] = useState<IAdminScheduleItem | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!id) return;
@@ -39,9 +42,68 @@ export function ScheduleEditPage() {
         return <p className="p-6 text-destructive">{error ?? 'Занятие не найдено'}</p>;
     }
 
+    const isCancelled = entry.status === 'cancelled';
+    const isPast = new Date(entry.startTime).getTime() <= Date.now();
+    const startLabel = new Date(entry.startTime).toLocaleString('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    const handleDelete = async () => {
+        if (!id) return;
+        if (!window.confirm('Удалить занятие безвозвратно?')) return;
+        setDeleteError(null);
+        try {
+            await adminScheduleApi.delete(id);
+            navigate('/dashboard', { replace: true });
+        } catch (err) {
+            if (err instanceof ApiError) {
+                const body = err.data as { message?: string } | null;
+                setDeleteError(body?.message ?? 'Не удалось удалить занятие');
+                return;
+            }
+            setDeleteError('Не удалось удалить занятие');
+        }
+    };
+
     return (
         <div className="p-6">
-            <h2 className="heading-2 mb-4">Редактирование занятия</h2>
+            <div className="mb-4 flex items-center justify-between">
+                <h2 className="heading-2">Редактирование занятия</h2>
+                <div className="flex items-center gap-2">
+                    {!isCancelled && (
+                        <button
+                            type="button"
+                            onClick={() => setShowCancelModal(true)}
+                            className="rounded border border-destructive px-3 py-1 text-destructive hover:bg-destructive/10"
+                        >
+                            Отменить занятие
+                        </button>
+                    )}
+                    {isPast && (
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            className="rounded border border-border px-3 py-1 text-body hover:bg-surface-hover"
+                            title="Доступно только для прошедших занятий без напоминаний"
+                        >
+                            Удалить
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {isCancelled && (
+                <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3">
+                    <p className="text-destructive">
+                        Занятие отменено{entry.cancellationReason ? `: ${entry.cancellationReason}` : ''}
+                    </p>
+                </div>
+            )}
+            {deleteError && <p className="text-destructive mb-3">{deleteError}</p>}
+
             <ScheduleForm
                 initial={{
                     trainingTypeId: entry.trainingType.id,
@@ -65,6 +127,27 @@ export function ScheduleEditPage() {
                 }}
                 onCancel={() => navigate('/dashboard')}
             />
+
+            {showCancelModal && (
+                <CancelClassModal
+                    className={entry.trainingType.name}
+                    startTimeLabel={startLabel}
+                    onConfirm={async (reason) => {
+                        if (!id) return;
+                        try {
+                            const updated = await adminScheduleApi.cancel(id, reason);
+                            setEntry(updated);
+                        } catch (err) {
+                            if (err instanceof ApiError) {
+                                const body = err.data as { message?: string } | null;
+                                throw new Error(body?.message ?? 'Не удалось отменить занятие');
+                            }
+                            throw err;
+                        }
+                    }}
+                    onClose={() => setShowCancelModal(false)}
+                />
+            )}
         </div>
     );
 }

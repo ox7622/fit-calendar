@@ -12,6 +12,7 @@ import { loggerConfig } from './config/logger.config';
 import { AppController } from './controllers/app.controller';
 import { HealthController } from './controllers/health.controller';
 import { AdminAuthModule } from './modules/admin/auth';
+import { AdminScheduleModule } from './modules/admin/schedule';
 import { BotModule } from './modules/bot';
 import { ClubModule } from './modules/club';
 import { CoachesModule } from './modules/coaches';
@@ -82,6 +83,10 @@ import { AppService } from './services/app.service';
          * Admin Auth Module
          */
         AdminAuthModule,
+        /**
+         * Admin Schedule Module
+         */
+        AdminScheduleModule,
     ],
     controllers: [AppController, HealthController],
     providers: [

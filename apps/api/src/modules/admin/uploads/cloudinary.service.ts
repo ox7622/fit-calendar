@@ -60,6 +60,24 @@ export class CloudinaryService {
         });
     }
 
+    /**
+     * Story 6.7 — club logo. Different transformation (fit, no face gravity)
+     * because a logo isn't a portrait. Fixed `public_id: 'logo'` so re-uploads
+     * land on the same URL.
+     */
+    async uploadClubLogo(buffer: Buffer): Promise<string> {
+        this.ensureConfigured();
+        return this.uploadBuffer(buffer, {
+            folder: 'fitcalendar/club',
+            public_id: 'logo',
+            overwrite: true,
+            transformation: [
+                { width: 200, height: 200, crop: 'fit' },
+                { quality: 'auto', fetch_format: 'auto' },
+            ],
+        });
+    }
+
     private uploadBuffer(buffer: Buffer, options: Record<string, unknown>): Promise<string> {
         return new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(options, (error, result?: UploadApiResponse) => {

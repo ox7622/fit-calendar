@@ -1,4 +1,5 @@
 import {
+    ClubInfoPage,
     CoachEditPage,
     CoachesListPage,
     CoachNewPage,
@@ -44,6 +45,7 @@ export function AppRouter() {
                     <Route path="/training-types" element={<TrainingTypesListPage />} />
                     <Route path="/training-types/new" element={<TrainingTypeNewPage />} />
                     <Route path="/training-types/:id" element={<TrainingTypeEditPage />} />
+                    <Route path="/club" element={<ClubInfoPage />} />
                 </Route>
             </Route>
 

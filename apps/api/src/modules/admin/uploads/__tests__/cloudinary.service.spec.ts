@@ -102,4 +102,29 @@ describe('CloudinaryService', () => {
 
         await expect(service.uploadCoachPhoto(Buffer.from('img'), 'coach-1')).rejects.toThrow('cloudinary down');
     });
+
+    it('uploadClubLogo uses the club folder with fit crop (no face gravity)', async () => {
+        service = await buildModule({
+            CLOUDINARY_CLOUD_NAME: 'x',
+            CLOUDINARY_API_KEY: 'y',
+            CLOUDINARY_API_SECRET: 'z',
+        });
+        uploadStreamMock.mockImplementationOnce((options, cb: (err: unknown, result?: unknown) => void) => {
+            expect(options.folder).toBe('fitcalendar/club');
+            expect(options.public_id).toBe('logo');
+            expect(options.overwrite).toBe(true);
+            expect(options.transformation[0]).toMatchObject({ width: 200, height: 200, crop: 'fit' });
+            // Logo isn't a portrait — explicitly NO face gravity.
+            expect(options.transformation[0].gravity).toBeUndefined();
+            return {
+                end: (): void => {
+                    cb(null, { secure_url: 'https://cdn.example/club-logo.jpg' });
+                },
+            };
+        });
+
+        const url = await service.uploadClubLogo(Buffer.from('logo'));
+
+        expect(url).toBe('https://cdn.example/club-logo.jpg');
+    });
 });

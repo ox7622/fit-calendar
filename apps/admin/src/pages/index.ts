@@ -11,3 +11,6 @@ export { ScheduleEditPage } from './ScheduleEditPage';
 export { CoachesListPage } from './CoachesListPage';
 export { CoachNewPage } from './CoachNewPage';
 export { CoachEditPage } from './CoachEditPage';
+export { TrainingTypesListPage } from './TrainingTypesListPage';
+export { TrainingTypeNewPage } from './TrainingTypeNewPage';
+export { TrainingTypeEditPage } from './TrainingTypeEditPage';

@@ -1,14 +1,13 @@
-// TODO(6.6): replace the trainingTypeId text input with a dropdown populated
-// from /admin/training-types/options once Story 6.6 ships. Coach dropdown was
-// wired in 6.5.
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 
 import {
     adminCoachesApi,
+    adminTrainingTypesApi,
     ALLOWED_DURATIONS,
     type ICoachOption,
     type IScheduleFormPayload,
+    type ITrainingTypeOption,
     type TAllowedDuration,
 } from '@/shared/api';
 
@@ -54,16 +53,18 @@ export function ScheduleForm({ initial, submitLabel, onSubmit, onCancel }: ISche
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [coachOptions, setCoachOptions] = useState<ICoachOption[]>([]);
+    const [typeOptions, setTypeOptions] = useState<ITrainingTypeOption[]>([]);
 
     useEffect(() => {
         let cancelled = false;
-        adminCoachesApi
-            .getOptions()
-            .then((opts) => {
-                if (!cancelled) setCoachOptions(opts);
+        Promise.all([adminCoachesApi.getOptions(), adminTrainingTypesApi.getOptions()])
+            .then(([coaches, types]) => {
+                if (cancelled) return;
+                setCoachOptions(coaches);
+                setTypeOptions(types);
             })
             .catch(() => {
-                // Non-fatal — the form falls back to a text input prompt below.
+                // Non-fatal — empty options render an empty <select> with a hint.
             });
         return () => {
             cancelled = true;
@@ -109,18 +110,27 @@ export function ScheduleForm({ initial, submitLabel, onSubmit, onCancel }: ISche
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl" noValidate>
-            <Field id="trainingTypeId" label="Тип занятия (UUID)">
-                <input
+            <Field id="trainingTypeId" label="Тип занятия">
+                <select
                     id="trainingTypeId"
-                    type="text"
                     value={state.trainingTypeId}
                     onChange={(e) => update('trainingTypeId', e.target.value)}
                     className={INPUT_CLASS}
-                    placeholder="UUID типа занятия"
-                    disabled={submitting}
+                    disabled={submitting || typeOptions.length === 0}
                     required
-                />
-                <p className="text-xs text-muted-foreground mt-1">Будет заменено выпадающим списком в 6.6</p>
+                >
+                    <option value="">— выберите тип занятия —</option>
+                    {typeOptions.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                            {opt.name}
+                        </option>
+                    ))}
+                </select>
+                {typeOptions.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Сначала добавьте активный тип на /training-types
+                    </p>
+                )}
             </Field>
 
             <Field id="coachId" label="Тренер">

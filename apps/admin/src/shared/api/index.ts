@@ -7,6 +7,14 @@ export { adminCustomersApi } from './customers.api';
 export type { IAdminCustomer, ICustomerFormPayload, ICustomerListResponse, ICustomerListQuery } from './customers.api';
 export { adminCoachesApi } from './coaches.api';
 export type { IAdminCoach, ICoachOption, ICoachFormPayload, IPhotoUploadResponse } from './coaches.api';
+export { adminTrainingTypesApi, DIFFICULTY_LEVELS, IMPACT_TYPES } from './training-types.api';
+export type {
+    IAdminTrainingType,
+    ITrainingTypeOption,
+    ITrainingTypeFormPayload,
+    TDifficulty,
+    TImpactType,
+} from './training-types.api';
 export { adminScheduleApi, ALLOWED_DURATIONS } from './schedule.api';
 export type {
     IAdminScheduleItem,

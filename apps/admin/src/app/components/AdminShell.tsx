@@ -5,6 +5,7 @@ const NAV_ITEMS: Array<{ to: string; label: string }> = [
     { to: '/dashboard', label: 'Дашборд' },
     { to: '/customers', label: 'Клиенты' },
     { to: '/plans', label: 'Абонементы' },
+    { to: '/coaches', label: 'Тренеры' },
 ];
 
 export function AdminShell() {

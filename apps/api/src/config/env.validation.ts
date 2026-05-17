@@ -83,6 +83,22 @@ export class EnvironmentVariables {
     @IsString()
     @IsOptional()
     MINI_APP_URL?: string;
+
+    // Cloudinary (Story 6.5). Optional in dev — upload endpoints return 503
+    // with a clear message when unset so local devs aren't blocked. Required
+    // in production (enforced at first upload, not at boot, so the API can
+    // still run for read-only workloads).
+    @IsString()
+    @IsOptional()
+    CLOUDINARY_CLOUD_NAME?: string;
+
+    @IsString()
+    @IsOptional()
+    CLOUDINARY_API_KEY?: string;
+
+    @IsString()
+    @IsOptional()
+    CLOUDINARY_API_SECRET?: string;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

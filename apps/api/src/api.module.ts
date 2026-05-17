@@ -13,6 +13,7 @@ import { loggerConfig } from './config/logger.config';
 import { AppController } from './controllers/app.controller';
 import { HealthController } from './controllers/health.controller';
 import { AdminAuthModule } from './modules/admin/auth';
+import { AdminCoachesModule } from './modules/admin/coaches';
 import { AdminScheduleModule } from './modules/admin/schedule';
 import { BotModule } from './modules/bot';
 import { ClubModule } from './modules/club';
@@ -95,6 +96,10 @@ import { AppService } from './services/app.service';
          * Admin Schedule Module
          */
         AdminScheduleModule,
+        /**
+         * Admin Coaches Module (Story 6.5)
+         */
+        AdminCoachesModule,
     ],
     controllers: [AppController, HealthController],
     providers: [

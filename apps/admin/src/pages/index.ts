@@ -8,3 +8,6 @@ export { CustomerNewPage } from './CustomerNewPage';
 export { CustomerEditPage } from './CustomerEditPage';
 export { ScheduleNewPage } from './ScheduleNewPage';
 export { ScheduleEditPage } from './ScheduleEditPage';
+export { CoachesListPage } from './CoachesListPage';
+export { CoachNewPage } from './CoachNewPage';
+export { CoachEditPage } from './CoachEditPage';

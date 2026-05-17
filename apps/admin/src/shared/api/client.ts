@@ -116,6 +116,36 @@ export const adminApiClient = {
     delete<T>(path: string, options?: IRequestOptions): Promise<T> {
         return request<T>('DELETE', path, undefined, options);
     },
+
+    /**
+     * Story 6.5 — multipart upload. Reuses the JWT/401 logic but ships the
+     * raw FormData so the browser sets the multipart boundary itself.
+     * Setting Content-Type manually would clobber it.
+     */
+    async upload<T>(path: string, formData: FormData): Promise<T> {
+        const url = buildUrl(path);
+        const token = readToken();
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        let response: Response;
+        try {
+            response = await fetch(url, { method: 'POST', headers, body: formData });
+        } catch (err) {
+            if (err instanceof TypeError && err.message.includes('fetch')) {
+                throw new NetworkError();
+            }
+            throw err;
+        }
+
+        if (response.status === 204) return undefined as T;
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+            if (response.status === 401) handle401();
+            throw new ApiError(response, data);
+        }
+        return data as T;
+    },
 };
 
 export { ApiError, NetworkError } from './errors';

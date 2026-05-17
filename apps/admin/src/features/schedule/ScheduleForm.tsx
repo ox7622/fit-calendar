@@ -1,11 +1,16 @@
-// TODO(6.5/6.6): replace the trainingTypeId / coachId text inputs with dropdowns
-// populated from /admin/training-types/options and /admin/coaches/options.
-// For 6.3 the admin pastes UUIDs from the dashboard list (right-click → copy
-// element id from the dev-tools, or query the DB seed directly).
+// TODO(6.6): replace the trainingTypeId text input with a dropdown populated
+// from /admin/training-types/options once Story 6.6 ships. Coach dropdown was
+// wired in 6.5.
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { ALLOWED_DURATIONS, type IScheduleFormPayload, type TAllowedDuration } from '@/shared/api';
+import {
+    adminCoachesApi,
+    ALLOWED_DURATIONS,
+    type ICoachOption,
+    type IScheduleFormPayload,
+    type TAllowedDuration,
+} from '@/shared/api';
 
 const INPUT_CLASS =
     'w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60';
@@ -48,6 +53,22 @@ export function ScheduleForm({ initial, submitLabel, onSubmit, onCancel }: ISche
     const [state, setState] = useState<IScheduleFormState>(() => toState(initial));
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [coachOptions, setCoachOptions] = useState<ICoachOption[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        adminCoachesApi
+            .getOptions()
+            .then((opts) => {
+                if (!cancelled) setCoachOptions(opts);
+            })
+            .catch(() => {
+                // Non-fatal — the form falls back to a text input prompt below.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const update = <K extends keyof IScheduleFormState>(key: K, value: IScheduleFormState[K]): void => {
         setState((prev) => ({ ...prev, [key]: value }));
@@ -102,18 +123,25 @@ export function ScheduleForm({ initial, submitLabel, onSubmit, onCancel }: ISche
                 <p className="text-xs text-muted-foreground mt-1">Будет заменено выпадающим списком в 6.6</p>
             </Field>
 
-            <Field id="coachId" label="Тренер (UUID)">
-                <input
+            <Field id="coachId" label="Тренер">
+                <select
                     id="coachId"
-                    type="text"
                     value={state.coachId}
                     onChange={(e) => update('coachId', e.target.value)}
                     className={INPUT_CLASS}
-                    placeholder="UUID тренера"
-                    disabled={submitting}
+                    disabled={submitting || coachOptions.length === 0}
                     required
-                />
-                <p className="text-xs text-muted-foreground mt-1">Будет заменено выпадающим списком в 6.5</p>
+                >
+                    <option value="">— выберите тренера —</option>
+                    {coachOptions.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                            {opt.name}
+                        </option>
+                    ))}
+                </select>
+                {coachOptions.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">Сначала добавьте активного тренера на /coaches</p>
+                )}
             </Field>
 
             <div className="grid grid-cols-2 gap-3">

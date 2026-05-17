@@ -41,6 +41,27 @@ export interface ICustomerListQuery {
     pageSize?: number;
 }
 
+export interface IImportError {
+    row: number;
+    column?: string;
+    message: string;
+}
+
+export interface IImportPreview {
+    rowsTotal: number;
+    rowsToCreate: number;
+    rowsToUpdate: number;
+    rowsToSkip: number;
+    errors: IImportError[];
+}
+
+export interface IImportResult {
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: IImportError[];
+}
+
 function toQueryParams(q: ICustomerListQuery): Record<string, string | number | boolean | undefined> {
     return {
         search: q.search || undefined,
@@ -62,4 +83,16 @@ export const adminCustomersApi = {
     unlink: (id: string): Promise<IAdminCustomer> =>
         adminApiClient.post<IAdminCustomer>(`/admin/customers/${id}/unlink`),
     deleteCustomer: (id: string): Promise<void> => adminApiClient.delete<void>(`/admin/customers/${id}`),
+
+    importDryRun: (file: File): Promise<IImportPreview> => {
+        const form = new FormData();
+        form.append('file', file);
+        return adminApiClient.upload<IImportPreview>('/admin/customers/import', form);
+    },
+
+    importCommit: (file: File): Promise<IImportResult> => {
+        const form = new FormData();
+        form.append('file', file);
+        return adminApiClient.upload<IImportResult>('/admin/customers/import?commit=true', form);
+    },
 };

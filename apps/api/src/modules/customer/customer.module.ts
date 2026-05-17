@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminAuthModule } from '../admin/auth';
 
 import { AdminCustomerController } from './admin-customer.controller';
+import { CustomerImportService } from './customer-import.service';
 import { CustomerService } from './customer.service';
 import { MeController } from './me.controller';
 
@@ -17,7 +18,7 @@ import { MeController } from './me.controller';
 @Module({
     imports: [TypeOrmModule.forFeature([Customer, Reminder]), AdminAuthModule],
     controllers: [MeController, AdminCustomerController],
-    providers: [CustomerService],
+    providers: [CustomerService, CustomerImportService],
     exports: [CustomerService],
 })
 export class CustomerModule {}

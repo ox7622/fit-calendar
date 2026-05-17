@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { ImportDialog } from '@/features/customers/ImportDialog';
 import { adminCustomersApi, type IAdminCustomer, type ICustomerListQuery } from '@/shared/api';
 import { Link } from 'react-router-dom';
 
@@ -24,6 +25,8 @@ export function CustomersListPage() {
     const [linkageFilter, setTLinkageFilter] = useState<TLinkageFilter>('all');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showImport, setShowImport] = useState(false);
+    const [refreshNonce, setRefreshNonce] = useState(0);
 
     // Debounce the search input — single network request per ~300ms of typing.
     useEffect(() => {
@@ -60,7 +63,7 @@ export function CustomersListPage() {
         return () => {
             cancelled = true;
         };
-    }, [debouncedSearch, statusFilter, linkageFilter, page]);
+    }, [debouncedSearch, statusFilter, linkageFilter, page, refreshNonce]);
 
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -68,13 +71,26 @@ export function CustomersListPage() {
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="heading-2">Клиенты</h2>
-                <Link
-                    to="/customers/new"
-                    className="rounded-md bg-primary text-primary-foreground px-4 py-2 font-medium hover:bg-accent-active"
-                >
-                    Добавить клиента
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setShowImport(true)}
+                        className="rounded-md border border-border px-4 py-2 hover:bg-muted"
+                    >
+                        Импорт CSV
+                    </button>
+                    <Link
+                        to="/customers/new"
+                        className="rounded-md bg-primary text-primary-foreground px-4 py-2 font-medium hover:bg-accent-active"
+                    >
+                        Добавить клиента
+                    </Link>
+                </div>
             </div>
+
+            {showImport && (
+                <ImportDialog onClose={() => setShowImport(false)} onSuccess={() => setRefreshNonce((n) => n + 1)} />
+            )}
 
             <div className="flex flex-wrap gap-3 items-center">
                 <input

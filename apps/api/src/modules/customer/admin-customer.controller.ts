@@ -13,15 +13,22 @@ import {
     Post,
     Put,
     Query,
+    UploadedFile,
     UseGuards,
+    UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
+import { CustomerImportService } from './customer-import.service';
 import { CustomerService, InvalidPhoneFormatError } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CustomerResponseDto, toCustomerResponse } from './dto/customer-response.dto';
+import { ImportPreviewDto, ImportResultDto } from './dto/import-preview.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 export class CustomerListResponseDto {
@@ -31,12 +38,18 @@ export class CustomerListResponseDto {
     pageSize: number;
 }
 
+const MAX_CSV_BYTES = 5 * 1024 * 1024;
+
 @ApiTags('Admin Customers')
 @ApiBearerAuth()
 @Controller('admin/customers')
 @UseGuards(AdminAuthGuard)
 export class AdminCustomerController {
-    constructor(private readonly customerService: CustomerService) {}
+    constructor(
+        private readonly customerService: CustomerService,
+        private readonly customerImportService: CustomerImportService,
+        @InjectDataSource() private readonly dataSource: DataSource,
+    ) {}
 
     @Get()
     @ApiOperation({ summary: 'Paginated list with search + filters' })
@@ -149,6 +162,51 @@ export class AdminCustomerController {
                 'У клиента есть напоминания или абонементы. Удаление невозможно — деактивируйте профиль.',
             );
         }
+    }
+
+    @Post('import')
+    @ApiOperation({
+        summary: 'Bulk import customers from CSV (dry-run by default, ?commit=true to apply)',
+        description:
+            'Dry-run returns a planning preview without writing. Add ?commit=true to actually upsert. ' +
+            'Upsert key is the normalized phone. Required columns: firstName, phone. Optional: ' +
+            'lastName, email, telegramUsername, notes. Max file size 5MB / 5000 rows.',
+    })
+    @ApiConsumes('multipart/form-data')
+    @ApiQuery({ name: 'commit', required: false, description: 'literal "true" to apply, otherwise dry-run' })
+    @ApiResponse({ status: 200, type: ImportPreviewDto, description: 'dry-run result' })
+    @ApiResponse({ status: 201, type: ImportResultDto, description: 'commit applied' })
+    @ApiResponse({ status: 400, description: 'Missing/invalid file, > 5000 rows, or unparseable CSV' })
+    @ApiResponse({ status: 413, description: 'File exceeds 5MB' })
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_CSV_BYTES } }))
+    async importCsv(
+        @UploadedFile() file: Express.Multer.File,
+        @Query('commit') commit?: string,
+    ): Promise<ImportPreviewDto | ImportResultDto> {
+        if (!file) throw new BadRequestException('Файл не загружен');
+        if (file.size === 0) throw new BadRequestException('Файл пустой');
+
+        const plan = await this.customerImportService.parseAndValidate(file.buffer);
+
+        if (commit !== 'true') {
+            return {
+                rowsTotal: plan.rowsTotal,
+                rowsToCreate: plan.rowsToCreate,
+                rowsToUpdate: plan.rowsToUpdate,
+                rowsToSkip: plan.rowsToSkip,
+                errors: plan.errors,
+            };
+        }
+
+        const result = await this.dataSource.transaction((manager) =>
+            this.customerImportService.commit(plan.plannedRows, manager),
+        );
+        return {
+            created: result.created,
+            updated: result.updated,
+            skipped: plan.rowsToSkip,
+            errors: plan.errors,
+        };
     }
 }
 

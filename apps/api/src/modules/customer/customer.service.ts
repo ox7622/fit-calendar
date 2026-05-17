@@ -22,10 +22,11 @@ export interface ITelegramIdentityForLink {
 
 export type TLinkPhoneStatus = 'linked' | 'phone_not_found' | 'phone_already_linked' | 'invalid_phone';
 
-export interface ILinkPhoneResult {
-    status: TLinkPhoneStatus;
-    customer?: Customer;
-}
+export type TLinkPhoneResult =
+    | { status: 'linked'; customer: Customer }
+    | { status: 'phone_not_found'; customer?: undefined }
+    | { status: 'phone_already_linked'; customer?: undefined }
+    | { status: 'invalid_phone'; customer?: undefined };
 
 export interface IFindAllCustomersQuery {
     search?: string;
@@ -98,7 +99,7 @@ export class CustomerService {
      * surfacing 409. The 409 is reserved for the "claimed by a *different* Telegram
      * account" case.
      */
-    async linkTelegramToPhone(rawPhone: string, telegramIdentity: ITelegramIdentityForLink): Promise<ILinkPhoneResult> {
+    async linkTelegramToPhone(rawPhone: string, telegramIdentity: ITelegramIdentityForLink): Promise<TLinkPhoneResult> {
         const normalizedPhone = normalizeRussianPhone(rawPhone);
         if (!normalizedPhone) {
             return { status: 'invalid_phone' };

@@ -92,7 +92,7 @@ export class MeController {
 
         switch (result.status) {
             case 'linked':
-                return toCustomerResponse(result.customer!);
+                return toCustomerResponse(result.customer);
             case 'invalid_phone':
                 throw new BadRequestException({
                     statusCode: 400,

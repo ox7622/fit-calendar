@@ -4,16 +4,16 @@ import { ApiError, NetworkError } from './errors';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type THttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-interface RequestOptions {
+interface IRequestOptions {
     headers?: Record<string, string>;
     params?: Record<string, string | number | boolean | undefined>;
     /** Skip the Authorization header — used by the public login endpoint. */
     skipAuth?: boolean;
 }
 
-function buildUrl(path: string, params?: RequestOptions['params']): string {
+function buildUrl(path: string, params?: IRequestOptions['params']): string {
     const url = new URL(`${API_BASE}${path}`, window.location.origin);
 
     if (params) {
@@ -58,7 +58,7 @@ function handle401() {
     window.location.href = `${import.meta.env.BASE_URL}login`;
 }
 
-async function request<T>(method: HttpMethod, path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+async function request<T>(method: THttpMethod, path: string, body?: unknown, options?: IRequestOptions): Promise<T> {
     const url = buildUrl(path, options?.params);
 
     const headers = {
@@ -101,19 +101,19 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown, opti
 }
 
 export const adminApiClient = {
-    get<T>(path: string, options?: RequestOptions): Promise<T> {
+    get<T>(path: string, options?: IRequestOptions): Promise<T> {
         return request<T>('GET', path, undefined, options);
     },
-    post<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    post<T>(path: string, body?: unknown, options?: IRequestOptions): Promise<T> {
         return request<T>('POST', path, body, options);
     },
-    put<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    put<T>(path: string, body?: unknown, options?: IRequestOptions): Promise<T> {
         return request<T>('PUT', path, body, options);
     },
-    patch<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    patch<T>(path: string, body?: unknown, options?: IRequestOptions): Promise<T> {
         return request<T>('PATCH', path, body, options);
     },
-    delete<T>(path: string, options?: RequestOptions): Promise<T> {
+    delete<T>(path: string, options?: IRequestOptions): Promise<T> {
         return request<T>('DELETE', path, undefined, options);
     },
 };

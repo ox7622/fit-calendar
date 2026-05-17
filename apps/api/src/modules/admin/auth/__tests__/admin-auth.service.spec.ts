@@ -4,6 +4,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import type * as Bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
 
 import { AdminAuthService } from '../admin-auth.service';
@@ -13,7 +14,7 @@ import { AdminAuthService } from '../admin-auth.service';
 // jest.fn so we can assert on call counts while keeping real hashing/compare
 // behaviour for the rest of the suite.
 jest.mock('bcrypt', () => {
-    const real = jest.requireActual<typeof import('bcrypt')>('bcrypt');
+    const real = jest.requireActual<typeof Bcrypt>('bcrypt');
     return {
         __esModule: true,
         compare: jest.fn(real.compare),

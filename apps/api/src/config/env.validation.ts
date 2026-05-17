@@ -109,7 +109,8 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
         const matchedToken = JWT_SECRET_PLACEHOLDER_TOKENS.find((token) => secretLower.includes(token));
         if (matchedToken) {
             throw new Error(
-                `Environment validation failed:\nJWT_SECRET: contains placeholder token "${matchedToken}" — refusing to boot in production. Generate a real secret (e.g. \`openssl rand -base64 48\`).`,
+                `Environment validation failed:\nJWT_SECRET: contains placeholder token "${matchedToken}" — ` +
+                    'refusing to boot in production. Generate a real secret (e.g. `openssl rand -base64 48`).',
             );
         }
     }

@@ -37,8 +37,9 @@ export function DashboardPage() {
         let cancelled = false;
         const query: IAdminScheduleQuery = {
             from: rangeStart.toISOString(),
-            // Add a day so the end-of-day classes on rangeEnd are included.
-            to: addDays(rangeEnd, 1).toISOString(),
+            // `to` covers the full last day of the window (rangeStart + DEFAULT_RANGE_DAYS).
+            // Derived from rangeStart so we don't need `rangeEnd` in the dep array.
+            to: addDays(rangeStart, DEFAULT_RANGE_DAYS).toISOString(),
             status,
             pageSize: 200,
         };

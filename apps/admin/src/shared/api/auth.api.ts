@@ -1,22 +1,22 @@
-import type { AdminProfile } from '@/shared/stores/adminStore';
+import type { IAdminProfile } from '@/shared/stores/adminStore';
 
 import { adminApiClient } from './client';
 
-export interface LoginRequest {
+export interface ILoginRequest {
     email: string;
     password: string;
 }
 
-export interface LoginResponse {
+export interface ILoginResponse {
     token: string;
-    admin: AdminProfile;
+    admin: IAdminProfile;
 }
 
 export const adminAuthApi = {
-    login(payload: LoginRequest): Promise<LoginResponse> {
+    login(payload: ILoginRequest): Promise<ILoginResponse> {
         // The login endpoint is the only public route — skip the Bearer header so we
         // don't accidentally attach a stale (e.g. logged-out admin's) token.
-        return adminApiClient.post<LoginResponse>('/admin/auth/login', payload, { skipAuth: true });
+        return adminApiClient.post<ILoginResponse>('/admin/auth/login', payload, { skipAuth: true });
     },
 
     /**

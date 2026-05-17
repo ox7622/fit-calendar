@@ -191,6 +191,33 @@ export class ReminderService {
     }
 
     /**
+     * Story 5.4 — feeds the schedule-change notification listener. Pulls every
+     * pending reminder for the class, joined to its Customer so the listener
+     * has the `telegramId` to send to and a `firstName` for personalization.
+     *
+     * Customers with `telegramId = null` are filtered out (admin-unlinked
+     * accounts can't receive Telegram messages — same logic as the dispatcher).
+     */
+    async findPendingByClassWithCustomer(
+        scheduleEntryId: string,
+    ): Promise<{ reminderId: string; telegramId: number; firstName: string }[]> {
+        const rows = await this.reminderRepo
+            .createQueryBuilder('r')
+            .innerJoin('r.customer', 'c')
+            .select(['r.id AS "reminderId"', 'c.telegramId AS "telegramId"', 'c.firstName AS "firstName"'])
+            .where('r.scheduleEntryId = :scheduleEntryId', { scheduleEntryId })
+            .andWhere("r.status = 'pending'")
+            .andWhere('c.telegramId IS NOT NULL')
+            .getRawMany<{ reminderId: string; telegramId: string; firstName: string }>();
+
+        return rows.map((row) => ({
+            reminderId: row.reminderId,
+            telegramId: Number(row.telegramId),
+            firstName: row.firstName,
+        }));
+    }
+
+    /**
      * Story 6.4 — returns distinct customer UUIDs that have a pending reminder
      * for the given class. Captured BEFORE `deletePendingByClass` so the
      * cancellation event payload still names everyone who would have been

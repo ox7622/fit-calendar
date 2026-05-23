@@ -5,6 +5,7 @@ import {
     CoachSchedulePage,
     CoachesPage,
     ClubPage,
+    MePage,
     PlansPage,
     RemindersPage,
     SchedulePage,
@@ -56,6 +57,14 @@ export function AppRouter(): JSX.Element {
                     element={
                         <AppShell>
                             <PlansPage />
+                        </AppShell>
+                    }
+                />
+                <Route
+                    path="/me"
+                    element={
+                        <AppShell>
+                            <MePage />
                         </AppShell>
                     }
                 />

@@ -17,6 +17,15 @@ export { adminCoachesApi } from './coaches.api';
 export type { IAdminCoach, ICoachOption, ICoachFormPayload, IPhotoUploadResponse } from './coaches.api';
 export { adminTrainingTypesApi, DIFFICULTY_LEVELS, IMPACT_TYPES } from './training-types.api';
 export { adminClubApi } from './club.api';
+export { adminMembershipsApi, isActiveExistsError } from './memberships.api';
+export type {
+    IAdminMembership,
+    IAdminMembershipPlanSnapshot,
+    IAssignMembershipPayload,
+    IUpdateMembershipPayload,
+    IActiveExistsError,
+    TMembershipStatus,
+} from './memberships.api';
 export type {
     IAdminClubInfo,
     IClubInfoUpdatePayload,

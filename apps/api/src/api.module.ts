@@ -21,6 +21,7 @@ import { BotModule } from './modules/bot';
 import { ClubModule } from './modules/club';
 import { CoachesModule } from './modules/coaches';
 import { CustomerModule } from './modules/customer';
+import { MembershipModule } from './modules/membership';
 import { MembershipPlansModule } from './modules/membership-plans';
 import { ReminderModule } from './modules/reminder';
 import { ScheduleModule } from './modules/schedule';
@@ -110,6 +111,11 @@ import { AppService } from './services/app.service';
          * Admin Club Module (Story 6.7)
          */
         AdminClubModule,
+        /**
+         * Membership Module (Story 7.4) — customer↔plan assignment,
+         * /me/membership, daily expiration cron.
+         */
+        MembershipModule,
     ],
     controllers: [AppController, HealthController],
     providers: [

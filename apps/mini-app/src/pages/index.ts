@@ -6,3 +6,4 @@ export { ClassDetailPage } from './ClassDetailPage';
 export { CoachDetailPage } from './CoachDetailPage';
 export { CoachSchedulePage } from './CoachSchedulePage';
 export { PlansPage } from './PlansPage';
+export { MePage } from './MePage';

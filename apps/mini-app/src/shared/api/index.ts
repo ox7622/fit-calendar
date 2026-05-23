@@ -8,3 +8,10 @@ export { meApi, REMINDER_MINUTES_OPTIONS } from './me.api';
 export type { MeResponse, LinkPhoneErrorCode, SettingsResponse, TReminderMinutes } from './me.api';
 export { remindersApi } from './reminders.api';
 export type { Reminder, ReminderListItem } from './reminders.api';
+export { meMembershipApi } from './me-membership.api';
+export type {
+    IMeMembershipResponse,
+    IMembership,
+    IMembershipPlanSnapshot,
+    TMembershipStatus,
+} from './me-membership.api';

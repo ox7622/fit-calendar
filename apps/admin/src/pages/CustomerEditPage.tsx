@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 
+import { AssignMembershipModal } from '@/features/customers/AssignMembershipModal';
 import { CustomerForm } from '@/features/customers/CustomerForm';
-import { adminCustomersApi, ApiError, type IAdminCustomer } from '@/shared/api';
+import { MembershipHistory } from '@/features/customers/MembershipHistory';
+import {
+    adminCustomersApi,
+    adminMembershipsApi,
+    ApiError,
+    type IAdminCustomer,
+    type IAdminMembership,
+} from '@/shared/api';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export function CustomerEditPage() {
@@ -12,15 +20,17 @@ export function CustomerEditPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [memberships, setMemberships] = useState<IAdminMembership[]>([]);
+    const [showAssign, setShowAssign] = useState(false);
 
     useEffect(() => {
         if (!id) return;
         let cancelled = false;
-        adminCustomersApi
-            .getById(id)
-            .then((data) => {
+        Promise.all([adminCustomersApi.getById(id), adminMembershipsApi.listForCustomer(id)])
+            .then(([data, mlist]) => {
                 if (cancelled) return;
                 setCustomer(data);
+                setMemberships(mlist);
                 setLoading(false);
             })
             .catch(() => {
@@ -74,6 +84,28 @@ export function CustomerEditPage() {
                 <p role="alert" className="text-sm text-destructive">
                     {deleteError}
                 </p>
+            )}
+
+            <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="heading-3">Абонементы</h3>
+                    <button
+                        type="button"
+                        onClick={() => setShowAssign(true)}
+                        className="rounded border border-border px-3 py-1 text-sm hover:bg-surface-hover"
+                    >
+                        Назначить план
+                    </button>
+                </div>
+                <MembershipHistory items={memberships} onChange={setMemberships} />
+            </section>
+
+            {showAssign && id && (
+                <AssignMembershipModal
+                    customerId={id}
+                    onClose={() => setShowAssign(false)}
+                    onAssigned={(created) => setMemberships((prev) => [created, ...prev])}
+                />
             )}
 
             <CustomerForm

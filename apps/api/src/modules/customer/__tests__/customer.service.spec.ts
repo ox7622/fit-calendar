@@ -2,7 +2,7 @@ import { Customer, Reminder } from '@fitcalendar/db';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { FindOperator, type Repository } from 'typeorm';
 
 import { CustomerService, InvalidPhoneFormatError } from '../customer.service';
 
@@ -186,6 +186,177 @@ describe('CustomerService', () => {
         it('returns not_found when the id does not exist', async () => {
             customerRepo.findOne.mockResolvedValueOnce(null);
             expect(await service.deleteCustomer('missing')).toBe('not_found');
+        });
+    });
+
+    describe('update', () => {
+        it('returns null when customer does not exist', async () => {
+            customerRepo.findOne.mockResolvedValueOnce(null);
+            expect(await service.update('missing', { firstName: 'X' })).toBeNull();
+            expect(customerRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('normalizes phone when provided', async () => {
+            const existing = buildCustomer({ phone: '+74951234567' });
+            customerRepo.findOne.mockResolvedValueOnce(existing);
+            customerRepo.save.mockImplementation(async (c) => c as Customer);
+
+            const result = await service.update('cust-1', { phone: '8 (812) 000-00-00' });
+
+            expect(result?.phone).toBe('+78120000000');
+        });
+
+        it('throws InvalidPhoneFormatError when an invalid phone is provided', async () => {
+            customerRepo.findOne.mockResolvedValueOnce(buildCustomer());
+
+            await expect(service.update('cust-1', { phone: 'abc' })).rejects.toThrow(InvalidPhoneFormatError);
+            expect(customerRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('only patches fields that are explicitly provided (undefined fields stay untouched)', async () => {
+            const existing = buildCustomer({
+                firstName: 'Иван',
+                lastName: 'Петров',
+                email: 'old@example.com',
+                isActive: true,
+            });
+            customerRepo.findOne.mockResolvedValueOnce(existing);
+            customerRepo.save.mockImplementation(async (c) => c as Customer);
+
+            // Only firstName changes; lastName, email, isActive must stay.
+            const result = await service.update('cust-1', { firstName: 'Новый' });
+
+            expect(result?.firstName).toBe('Новый');
+            expect(result?.lastName).toBe('Петров');
+            expect(result?.email).toBe('old@example.com');
+            expect(result?.isActive).toBe(true);
+        });
+
+        it('treats explicit null as a clear for nullable fields (lastName, email, telegramId, notes)', async () => {
+            const existing = buildCustomer({
+                lastName: 'Петров',
+                email: 'old@example.com',
+                telegramId: 999,
+                telegramUsername: 'tg',
+                notes: 'old note',
+            });
+            customerRepo.findOne.mockResolvedValueOnce(existing);
+            customerRepo.save.mockImplementation(async (c) => c as Customer);
+
+            const result = await service.update('cust-1', {
+                lastName: null,
+                email: null,
+                telegramId: null,
+                telegramUsername: null,
+                notes: null,
+            });
+
+            expect(result?.lastName).toBeNull();
+            expect(result?.email).toBeNull();
+            expect(result?.telegramId).toBeNull();
+            expect(result?.telegramUsername).toBeNull();
+            expect(result?.notes).toBeNull();
+        });
+
+        it('flips isActive false → true', async () => {
+            const existing = buildCustomer({ isActive: false });
+            customerRepo.findOne.mockResolvedValueOnce(existing);
+            customerRepo.save.mockImplementation(async (c) => c as Customer);
+
+            const result = await service.update('cust-1', { isActive: true });
+
+            expect(result?.isActive).toBe(true);
+        });
+    });
+
+    describe('findAll', () => {
+        beforeEach(() => {
+            customerRepo.findAndCount.mockResolvedValue([[], 0]);
+        });
+
+        it('defaults to page=1, pageSize=50 with no search/filter', async () => {
+            const result = await service.findAll({});
+
+            expect(result.page).toBe(1);
+            expect(result.pageSize).toBe(50);
+            const call = customerRepo.findAndCount.mock.calls[0][0];
+            expect(call?.take).toBe(50);
+            expect(call?.skip).toBe(0);
+            // No search, no filters → `where` is the (empty) filter object, NOT an array.
+            expect(Array.isArray(call?.where)).toBe(false);
+        });
+
+        it('caps pageSize at 200 even when caller asks for more', async () => {
+            await service.findAll({ pageSize: 9999 });
+            expect(customerRepo.findAndCount.mock.calls[0][0]?.take).toBe(200);
+        });
+
+        it('isActive=false filter is applied (not coerced to undefined for falsy boolean)', async () => {
+            await service.findAll({ isActive: false });
+            const where = customerRepo.findAndCount.mock.calls[0][0]?.where as Record<string, unknown>;
+            expect(where.isActive).toBe(false);
+        });
+
+        it('linkedOnly filter sets a telegramId IS NOT NULL operator', async () => {
+            await service.findAll({ linkedOnly: true });
+            const where = customerRepo.findAndCount.mock.calls[0][0]?.where as Record<string, unknown>;
+            expect(where.telegramId).toBeInstanceOf(FindOperator);
+        });
+
+        it('search composes OR across firstName / lastName / phone / telegramUsername', async () => {
+            await service.findAll({ search: 'Анна' });
+            const whereArr = customerRepo.findAndCount.mock.calls[0][0]?.where as Record<string, unknown>[];
+            expect(Array.isArray(whereArr)).toBe(true);
+            expect(whereArr).toHaveLength(4);
+            // Each clause is the search term on a different field.
+            const fields = whereArr.map((clause) =>
+                Object.keys(clause).find((k) => k !== 'isActive' && k !== 'telegramId'),
+            );
+            expect(new Set(fields)).toEqual(new Set(['firstName', 'lastName', 'phone', 'telegramUsername']));
+        });
+
+        it('search clauses each carry the active+linked filters too (so search doesnt bypass them)', async () => {
+            await service.findAll({ search: 'Иван', isActive: true, linkedOnly: true });
+            const whereArr = customerRepo.findAndCount.mock.calls[0][0]?.where as Record<string, unknown>[];
+            expect(whereArr).toHaveLength(4);
+            for (const clause of whereArr) {
+                expect(clause.isActive).toBe(true);
+                expect(clause.telegramId).toBeInstanceOf(FindOperator);
+            }
+        });
+
+        it('trims whitespace-only search to nothing (no array, just filters)', async () => {
+            await service.findAll({ search: '   ', isActive: true });
+            const where = customerRepo.findAndCount.mock.calls[0][0]?.where;
+            expect(Array.isArray(where)).toBe(false);
+            expect((where as Record<string, unknown>).isActive).toBe(true);
+        });
+    });
+
+    describe('findTelegramIdsByCustomerIds (Story 5.5)', () => {
+        it('short-circuits to [] on empty input without hitting the DB', async () => {
+            const result = await service.findTelegramIdsByCustomerIds([]);
+            expect(result).toEqual([]);
+        });
+    });
+
+    describe('findById / findByPhone / findByTelegramId — thin pass-throughs', () => {
+        it('findById delegates to repo.findOne with the id', async () => {
+            customerRepo.findOne.mockResolvedValueOnce(buildCustomer({ id: 'x' }));
+            await service.findById('x');
+            expect(customerRepo.findOne).toHaveBeenCalledWith({ where: { id: 'x' } });
+        });
+
+        it('findByPhone queries with the normalized phone as-given', async () => {
+            customerRepo.findOne.mockResolvedValueOnce(null);
+            await service.findByPhone('+74951234567');
+            expect(customerRepo.findOne).toHaveBeenCalledWith({ where: { phone: '+74951234567' } });
+        });
+
+        it('findByTelegramId queries with the numeric telegramId', async () => {
+            customerRepo.findOne.mockResolvedValueOnce(null);
+            await service.findByTelegramId(999);
+            expect(customerRepo.findOne).toHaveBeenCalledWith({ where: { telegramId: 999 } });
         });
     });
 });

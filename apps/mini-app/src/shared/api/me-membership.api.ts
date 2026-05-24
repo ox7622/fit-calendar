@@ -14,6 +14,13 @@ export interface IMembershipPlanSnapshot {
     priceRub: number;
 }
 
+export interface ICurrentFreeze {
+    id: string;
+    startDate: string;
+    endDate: string;
+    durationDays: number;
+}
+
 export interface IMembership {
     id: string;
     customerId: string;
@@ -25,6 +32,7 @@ export interface IMembership {
     status: TMembershipStatus;
     notes: string | null;
     plan: IMembershipPlanSnapshot;
+    currentFreeze: ICurrentFreeze | null;
     createdAt: string;
 }
 

@@ -25,9 +25,25 @@ function pluralDays(n: number): string {
     return `${n} дней`;
 }
 
+function isFreezeActive(membership: IMembership, now: Date = new Date()): boolean {
+    if (!membership.currentFreeze) return false;
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(
+        2,
+        '0',
+    )}`;
+    return membership.currentFreeze.startDate <= today && today <= membership.currentFreeze.endDate;
+}
+
 export function MembershipCard({ membership }: IMembershipCardProps) {
+    const frozen = isFreezeActive(membership);
+
     return (
         <div className="rounded-lg border border-border bg-card p-4">
+            {frozen && membership.currentFreeze && (
+                <div className="-mt-2 mb-3 -mx-2 rounded-md bg-yellow-500/20 px-3 py-1.5 text-sm text-yellow-500">
+                    ❄️ Заморожен до {formatExpiry(membership.currentFreeze.endDate)}
+                </div>
+            )}
             <h2 className="heading-2">{membership.plan.name}</h2>
             <p className="text-body-secondary mt-1">Действует до {formatExpiry(membership.endDate)}</p>
 

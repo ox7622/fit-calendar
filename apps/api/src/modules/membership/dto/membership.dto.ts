@@ -1,4 +1,4 @@
-import { CustomerMembership, MembershipPlan, TMembershipStatus } from '@fitcalendar/db';
+import { CustomerMembership, FreezeEvent, MembershipPlan, TMembershipStatus } from '@fitcalendar/db';
 import { ApiProperty } from '@nestjs/swagger';
 import { differenceInCalendarDays, format } from 'date-fns';
 
@@ -13,6 +13,13 @@ export class MembershipPlanSnapshotDto {
     @ApiProperty() priceRub: number;
 }
 
+export class CurrentFreezeDto {
+    @ApiProperty() id: string;
+    @ApiProperty({ description: 'YYYY-MM-DD' }) startDate: string;
+    @ApiProperty({ description: 'YYYY-MM-DD' }) endDate: string;
+    @ApiProperty() durationDays: number;
+}
+
 export class MembershipResponseDto {
     @ApiProperty() id: string;
     @ApiProperty() customerId: string;
@@ -24,6 +31,8 @@ export class MembershipResponseDto {
     @ApiProperty({ enum: ['active', 'expired', 'cancelled'] }) status: TMembershipStatus;
     @ApiProperty({ nullable: true, type: String }) notes: string | null;
     @ApiProperty({ type: MembershipPlanSnapshotDto }) plan: MembershipPlanSnapshotDto;
+    @ApiProperty({ type: CurrentFreezeDto, nullable: true })
+    currentFreeze: CurrentFreezeDto | null;
     @ApiProperty() createdAt: Date;
 }
 
@@ -55,7 +64,21 @@ export function toPlanSnapshot(plan: MembershipPlan): MembershipPlanSnapshotDto 
     };
 }
 
-export function toMembershipResponse(membership: CustomerMembership, now: Date = new Date()): MembershipResponseDto {
+export function toCurrentFreeze(freeze: FreezeEvent | null): CurrentFreezeDto | null {
+    if (!freeze) return null;
+    return {
+        id: freeze.id,
+        startDate: format(freeze.startDate, 'yyyy-MM-dd'),
+        endDate: format(freeze.endDate, 'yyyy-MM-dd'),
+        durationDays: freeze.durationDays,
+    };
+}
+
+export function toMembershipResponse(
+    membership: CustomerMembership,
+    options: { now?: Date; currentFreeze?: FreezeEvent | null } = {},
+): MembershipResponseDto {
+    const now = options.now ?? new Date();
     const days = differenceInCalendarDays(membership.endDate, now);
     return {
         id: membership.id,
@@ -68,6 +91,7 @@ export function toMembershipResponse(membership: CustomerMembership, now: Date =
         status: membership.status,
         notes: membership.notes,
         plan: toPlanSnapshot(membership.plan),
+        currentFreeze: toCurrentFreeze(options.currentFreeze ?? null),
         createdAt: membership.createdAt,
     };
 }

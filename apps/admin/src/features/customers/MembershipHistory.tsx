@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { FreezePanel } from '@/features/customers/FreezePanel';
 import { GuestVisitsPanel } from '@/features/customers/GuestVisitsPanel';
 import { adminMembershipsApi, ApiError, type IAdminMembership } from '@/shared/api';
 
@@ -151,6 +152,13 @@ export function MembershipHistory({ items, onChange }: IMembershipHistoryProps) 
                     onRemainingChange={(remaining) =>
                         onChange(items.map((m) => (m.id === active.id ? { ...m, guestVisitsRemaining: remaining } : m)))
                     }
+                />
+            )}
+
+            {active && (
+                <FreezePanel
+                    membership={active}
+                    onMembershipChange={(next) => onChange(items.map((m) => (m.id === active.id ? next : m)))}
                 />
             )}
 

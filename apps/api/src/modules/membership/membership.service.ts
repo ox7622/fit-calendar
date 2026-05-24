@@ -1,7 +1,7 @@
-import { Customer, CustomerMembership, GuestVisit, MembershipPlan, TDurationUnit } from '@fitcalendar/db';
+import { Customer, CustomerMembership, FreezeEvent, GuestVisit, MembershipPlan, TDurationUnit } from '@fitcalendar/db';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { addDays, addMonths, addWeeks } from 'date-fns';
+import { addDays, addMonths, addWeeks, subDays } from 'date-fns';
 import { DataSource, Repository } from 'typeorm';
 
 export type TAssignResult =
@@ -29,6 +29,17 @@ export interface IGuestVisitResult {
     remaining: number;
 }
 
+interface IRecordFreezeInput {
+    startDate: string;
+    durationDays: number;
+    notes?: string;
+}
+
+export interface IFreezeResult {
+    freeze: FreezeEvent;
+    membership: CustomerMembership;
+}
+
 @Injectable()
 export class MembershipService {
     private readonly logger = new Logger(MembershipService.name);
@@ -42,6 +53,8 @@ export class MembershipService {
         private readonly planRepo: Repository<MembershipPlan>,
         @InjectRepository(GuestVisit)
         private readonly guestVisitRepo: Repository<GuestVisit>,
+        @InjectRepository(FreezeEvent)
+        private readonly freezeRepo: Repository<FreezeEvent>,
         @InjectDataSource()
         private readonly dataSource: DataSource,
     ) {}
@@ -235,6 +248,142 @@ export class MembershipService {
             return { remaining: membership.guestVisitsRemaining };
         });
     }
+
+    findFreezesByMembership(membershipId: string): Promise<FreezeEvent[]> {
+        return this.freezeRepo.find({
+            where: { customerMembershipId: membershipId },
+            order: { startDate: 'DESC' },
+        });
+    }
+
+    /**
+     * Story 7.6 — record a single-contiguous freeze on an active membership.
+     * AC2 caps each membership at one freeze for MVP (re-freezing is a
+     * future story). The membership's `endDate` shifts forward by
+     * `durationDays` immediately at record time, even if startDate is in
+     * the future — see story Dev Notes "Why the freeze reservation
+     * includes future starts".
+     */
+    async recordFreeze(membershipId: string, dto: IRecordFreezeInput, adminId: string): Promise<IFreezeResult> {
+        if (!Number.isInteger(dto.durationDays) || dto.durationDays < 1) {
+            throw new BadRequestException({
+                statusCode: 400,
+                error: 'Bad Request',
+                code: 'INVALID_DURATION',
+                message: 'Длительность заморозки должна быть положительным целым числом дней.',
+            });
+        }
+
+        return this.dataSource.transaction(async (manager) => {
+            const repo = manager.getRepository(CustomerMembership);
+            const membership = await repo.findOne({
+                where: { id: membershipId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!membership) throw new NotFoundException(`Membership ${membershipId} not found`);
+            if (membership.status !== 'active') {
+                throw new BadRequestException({
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    code: 'MEMBERSHIP_NOT_ACTIVE',
+                    message: 'Абонемент не активен — заморозка невозможна.',
+                });
+            }
+
+            const freezeRepo = manager.getRepository(FreezeEvent);
+            const existingCount = await freezeRepo.count({ where: { customerMembershipId: membershipId } });
+            if (existingCount > 0) {
+                throw new BadRequestException({
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    code: 'FREEZE_ALREADY_USED',
+                    message: 'Заморозка уже использована для этого абонемента.',
+                });
+            }
+            if (dto.durationDays > membership.freezeDaysRemaining) {
+                throw new BadRequestException({
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    code: 'INSUFFICIENT_FREEZE_DAYS',
+                    message:
+                        `Недостаточно дней заморозки: запрошено ${dto.durationDays}, ` +
+                        `доступно ${membership.freezeDaysRemaining}.`,
+                });
+            }
+
+            // Parse YYYY-MM-DD directly into UTC midnight. `parseISO` followed
+            // by `normalizeDate` would shift the day in non-UTC timezones
+            // (parseISO interprets the string as local time, then UTC extraction
+            // jumps back a calendar day in eastward zones).
+            const start = parseDateOnly(dto.startDate);
+            // Inclusive endDate: a 7-day freeze starting Mon ends the following Sun.
+            const freezeEnd = addDays(start, dto.durationDays - 1);
+            // Membership endDate shifts by durationDays (not durationDays - 1).
+            membership.endDate = addDays(membership.endDate, dto.durationDays);
+            membership.freezeDaysRemaining -= dto.durationDays;
+            await repo.save(membership);
+
+            const freeze = await freezeRepo.save(
+                freezeRepo.create({
+                    customerMembershipId: membershipId,
+                    startDate: start,
+                    endDate: freezeEnd,
+                    durationDays: dto.durationDays,
+                    notes: dto.notes?.trim() || null,
+                    recordedByAdminId: adminId,
+                }),
+            );
+            this.logger.log(`Recorded freeze ${freeze.id} for membership ${membershipId} (${dto.durationDays}d)`);
+            return { freeze, membership };
+        });
+    }
+
+    /**
+     * Story 7.6 — undo a freeze: increment counter back, shift endDate
+     * backward by `durationDays`, delete the FreezeEvent row.
+     */
+    async undoFreeze(freezeId: string): Promise<{ membership: CustomerMembership }> {
+        return this.dataSource.transaction(async (manager) => {
+            const freezeRepo = manager.getRepository(FreezeEvent);
+            const freeze = await freezeRepo.findOne({ where: { id: freezeId } });
+            if (!freeze) throw new NotFoundException(`FreezeEvent ${freezeId} not found`);
+
+            const repo = manager.getRepository(CustomerMembership);
+            const membership = await repo.findOne({
+                where: { id: freeze.customerMembershipId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!membership) {
+                throw new NotFoundException(`Membership ${freeze.customerMembershipId} not found`);
+            }
+            membership.endDate = subDays(membership.endDate, freeze.durationDays);
+            membership.freezeDaysRemaining += freeze.durationDays;
+            await repo.save(membership);
+            await freezeRepo.delete({ id: freezeId });
+            this.logger.log(`Undid freeze ${freezeId} (membership ${membership.id})`);
+            return { membership };
+        });
+    }
+
+    /**
+     * Story 7.6 — return the freeze (if any) whose [startDate, endDate]
+     * range contains today. Used by `me/membership` to surface the
+     * "❄️ Заморожен" banner. Returns null when no freeze exists or
+     * today is outside the freeze window.
+     */
+    async getActiveFreezeForMembership(membershipId: string, now: Date = new Date()): Promise<FreezeEvent | null> {
+        const freezes = await this.freezeRepo.find({
+            where: { customerMembershipId: membershipId },
+            order: { startDate: 'DESC' },
+        });
+        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        for (const f of freezes) {
+            if (f.startDate.getTime() <= today.getTime() && today.getTime() <= f.endDate.getTime()) {
+                return f;
+            }
+        }
+        return null;
+    }
 }
 
 /** Postgres `date` columns surface as Date set to midnight UTC. */
@@ -242,6 +391,15 @@ function normalizeDate(input: Date | string): Date {
     const d = input instanceof Date ? input : new Date(input);
     // Strip time to midnight UTC so the column round-trips cleanly.
     return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/**
+ * Parse a YYYY-MM-DD string into UTC midnight, sidestepping `parseISO`'s
+ * local-time interpretation. Used for Postgres `date` column inputs.
+ */
+function parseDateOnly(iso: string): Date {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d));
 }
 
 export function addByUnit(startDate: Date, value: number, unit: TDurationUnit): Date {

@@ -24,6 +24,7 @@ export class MeMembershipController {
     async getMine(@CustomerDecorator() customer: Customer): Promise<MeMembershipResponseDto> {
         const membership = await this.membershipService.getCurrentForCustomer(customer.id);
         if (!membership) return { membership: null };
-        return { membership: toMembershipResponse(membership) };
+        const currentFreeze = await this.membershipService.getActiveFreezeForMembership(membership.id);
+        return { membership: toMembershipResponse(membership, { currentFreeze }) };
     }
 }

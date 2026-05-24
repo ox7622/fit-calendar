@@ -8,3 +8,4 @@ export * from './admin-user.entity';
 export * from './membership-plan.entity';
 export * from './customer-membership.entity';
 export * from './guest-visit.entity';
+export * from './freeze-event.entity';

@@ -1,4 +1,4 @@
-import { Customer, CustomerMembership, GuestVisit, MembershipPlan } from '@fitcalendar/db';
+import { Customer, CustomerMembership, FreezeEvent, GuestVisit, MembershipPlan } from '@fitcalendar/db';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -43,8 +43,10 @@ describe('MembershipService', () => {
     let customerRepo: { findOne: jest.Mock };
     let planRepo: { findOne: jest.Mock };
     let guestVisitRepo: { find: jest.Mock };
+    let freezeRepo: { find: jest.Mock };
     let txMembershipRepo: { findOne: jest.Mock; save: jest.Mock };
     let txGuestVisitRepo: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
+    let txFreezeRepo: { count: jest.Mock; findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
     let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
@@ -58,6 +60,7 @@ describe('MembershipService', () => {
         customerRepo = { findOne: jest.fn() };
         planRepo = { findOne: jest.fn() };
         guestVisitRepo = { find: jest.fn() };
+        freezeRepo = { find: jest.fn().mockResolvedValue([]) };
 
         txMembershipRepo = { findOne: jest.fn(), save: jest.fn(async (e) => e) };
         txGuestVisitRepo = {
@@ -66,10 +69,18 @@ describe('MembershipService', () => {
             save: jest.fn(async (entity) => entity as GuestVisit),
             delete: jest.fn(async () => ({ affected: 1 })),
         };
+        txFreezeRepo = {
+            count: jest.fn().mockResolvedValue(0),
+            findOne: jest.fn(),
+            create: jest.fn((dto) => ({ id: 'fz-new', ...dto } as FreezeEvent)),
+            save: jest.fn(async (entity) => entity as FreezeEvent),
+            delete: jest.fn(async () => ({ affected: 1 })),
+        };
         const manager = {
             getRepository: (target: unknown): unknown => {
                 if (target === CustomerMembership) return txMembershipRepo;
                 if (target === GuestVisit) return txGuestVisitRepo;
+                if (target === FreezeEvent) return txFreezeRepo;
                 throw new Error(`Unexpected target ${String(target)}`);
             },
         } as unknown as EntityManager;
@@ -84,6 +95,7 @@ describe('MembershipService', () => {
                 { provide: getRepositoryToken(Customer), useValue: customerRepo },
                 { provide: getRepositoryToken(MembershipPlan), useValue: planRepo },
                 { provide: getRepositoryToken(GuestVisit), useValue: guestVisitRepo },
+                { provide: getRepositoryToken(FreezeEvent), useValue: freezeRepo },
                 { provide: getDataSourceToken(), useValue: dataSource as unknown as DataSource },
             ],
         }).compile();
@@ -327,6 +339,129 @@ describe('MembershipService', () => {
                 where: { customerMembershipId: 'm1' },
                 order: { visitedAt: 'DESC' },
             });
+        });
+    });
+
+    describe('recordFreeze (Story 7.6)', () => {
+        it('shifts endDate by durationDays + decrements counter + inserts inclusive freeze row', async () => {
+            const membership = buildMembership({
+                endDate: new Date('2026-12-31T00:00:00Z'),
+                freezeDaysRemaining: 30,
+                status: 'active',
+            });
+            txMembershipRepo.findOne.mockResolvedValueOnce(membership);
+            // No existing freeze in tx repo (default count = 0).
+
+            const result = await service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 14 }, 'admin-1');
+
+            // endDate shifts by full durationDays (14) — Dec 31 → Jan 14.
+            expect(membership.endDate.toISOString().slice(0, 10)).toBe('2027-01-14');
+            // freezeDaysRemaining decremented by 14 (30 → 16).
+            expect(membership.freezeDaysRemaining).toBe(16);
+            // Freeze row uses inclusive endDate: 14-day freeze from Jun 1 → Jun 14.
+            const created = txFreezeRepo.create.mock.calls[0][0];
+            expect((created.startDate as Date).toISOString().slice(0, 10)).toBe('2026-06-01');
+            expect((created.endDate as Date).toISOString().slice(0, 10)).toBe('2026-06-14');
+            expect(created.durationDays).toBe(14);
+            expect(created.recordedByAdminId).toBe('admin-1');
+            expect(result.freeze).toBeDefined();
+        });
+
+        it('rejects INVALID_DURATION when durationDays < 1', async () => {
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 0 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+            expect(dataSource.transaction).not.toHaveBeenCalled();
+        });
+
+        it('rejects INVALID_DURATION when durationDays is non-integer', async () => {
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 1.5 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('rejects MEMBERSHIP_NOT_ACTIVE on cancelled membership', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ status: 'cancelled' }));
+
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 7 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+            expect(txFreezeRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('rejects MEMBERSHIP_NOT_ACTIVE on expired membership', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ status: 'expired' }));
+
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 7 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('rejects FREEZE_ALREADY_USED when a freeze row already exists', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ status: 'active' }));
+            txFreezeRepo.count.mockResolvedValueOnce(1);
+
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 7 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+            expect(txFreezeRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('rejects INSUFFICIENT_FREEZE_DAYS when durationDays > freezeDaysRemaining', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(
+                buildMembership({ status: 'active', freezeDaysRemaining: 10 }),
+            );
+
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 14 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+            expect(txFreezeRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('rejects when plan freezeDaysAllowed = 0 (remaining starts at 0 anyway)', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(
+                buildMembership({ status: 'active', freezeDaysRemaining: 0 }),
+            );
+
+            await expect(
+                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 1 }, 'admin-1'),
+            ).rejects.toThrow(BadRequestException);
+        });
+    });
+
+    describe('undoFreeze (Story 7.6)', () => {
+        it('reverses endDate shift and increments counter', async () => {
+            const freeze = {
+                id: 'fz1',
+                customerMembershipId: 'm1',
+                startDate: new Date('2026-06-01T00:00:00Z'),
+                endDate: new Date('2026-06-14T00:00:00Z'),
+                durationDays: 14,
+                notes: null,
+                recordedByAdminId: 'admin-1',
+                createdAt: new Date(),
+            } as FreezeEvent;
+            txFreezeRepo.findOne.mockResolvedValueOnce(freeze);
+            const membership = buildMembership({
+                endDate: new Date('2027-01-14T00:00:00Z'),
+                freezeDaysRemaining: 16,
+            });
+            txMembershipRepo.findOne.mockResolvedValueOnce(membership);
+
+            await service.undoFreeze('fz1');
+
+            // endDate reverts by 14 days → 2026-12-31
+            expect(membership.endDate.toISOString().slice(0, 10)).toBe('2026-12-31');
+            // freezeDaysRemaining restored 16 → 30
+            expect(membership.freezeDaysRemaining).toBe(30);
+            expect(txFreezeRepo.delete).toHaveBeenCalledWith({ id: 'fz1' });
+        });
+
+        it('throws 404 when the freeze does not exist', async () => {
+            txFreezeRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.undoFreeze('missing')).rejects.toThrow(NotFoundException);
+            expect(txMembershipRepo.findOne).not.toHaveBeenCalled();
         });
     });
 });

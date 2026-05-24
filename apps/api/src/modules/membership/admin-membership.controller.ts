@@ -20,8 +20,10 @@ import type { IAdminUserContext } from '../../common/guards/admin-auth.guard';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 import { AssignMembershipDto, UpdateMembershipDto } from './dto/assign-membership.dto';
+import { FreezeEventDto, FreezeResultDto, UndoFreezeResultDto, toFreezeDto } from './dto/freeze.dto';
 import { GuestVisitDto, GuestVisitResultDto, UndoGuestVisitResultDto, toGuestVisitDto } from './dto/guest-visit.dto';
 import { ActiveExistsErrorDto, MembershipResponseDto, toMembershipResponse } from './dto/membership.dto';
+import { RecordFreezeDto } from './dto/record-freeze.dto';
 import { RecordGuestVisitDto } from './dto/record-guest-visit.dto';
 import { MembershipService } from './membership.service';
 
@@ -152,5 +154,57 @@ export class AdminMembershipController {
     @ApiResponse({ status: 404 })
     async undoGuestVisit(@Param('visitId', new ParseUUIDPipe()) visitId: string): Promise<UndoGuestVisitResultDto> {
         return this.membershipService.undoGuestVisit(visitId);
+    }
+
+    @Get('admin/memberships/:id/freezes')
+    @ApiOperation({ summary: 'List freezes for a membership (0 or 1 for MVP)' })
+    @ApiResponse({ status: 200, type: [FreezeEventDto] })
+    async listFreezes(@Param('id', new ParseUUIDPipe()) id: string): Promise<FreezeEventDto[]> {
+        const freezes = await this.membershipService.findFreezesByMembership(id);
+        return freezes.map(toFreezeDto);
+    }
+
+    @Post('admin/memberships/:id/freezes')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Record a freeze (shifts membership endDate + decrements freezeDaysRemaining atomically)',
+        description:
+            'Returns 400 with code INVALID_DURATION / MEMBERSHIP_NOT_ACTIVE / FREEZE_ALREADY_USED / ' +
+            'INSUFFICIENT_FREEZE_DAYS depending on which guard fails. The endDate shift happens at ' +
+            'record time even for future startDates (see Story 7.6 Dev Notes).',
+    })
+    @ApiResponse({ status: 201, type: FreezeResultDto })
+    @ApiResponse({ status: 400 })
+    @ApiResponse({ status: 404 })
+    async recordFreeze(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @Body() dto: RecordFreezeDto,
+        @AdminUser() admin: IAdminUserContext,
+    ): Promise<FreezeResultDto> {
+        const result = await this.membershipService.recordFreeze(
+            id,
+            { startDate: dto.startDate, durationDays: dto.durationDays, notes: dto.notes },
+            admin.id,
+        );
+        const membership = await this.membershipService.findById(result.membership.id);
+        const currentFreeze = await this.membershipService.getActiveFreezeForMembership(result.membership.id);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return { freeze: toFreezeDto(result.freeze), membership: toMembershipResponse(membership!, { currentFreeze }) };
+    }
+
+    @Delete('admin/freezes/:freezeId')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Undo a freeze (reverses endDate shift + counter)',
+        description: 'Flat URL — freeze id is globally unique. Same pattern as guest-visit undo.',
+    })
+    @ApiResponse({ status: 200, type: UndoFreezeResultDto })
+    @ApiResponse({ status: 404 })
+    async undoFreeze(@Param('freezeId', new ParseUUIDPipe()) freezeId: string): Promise<UndoFreezeResultDto> {
+        const result = await this.membershipService.undoFreeze(freezeId);
+        const membership = await this.membershipService.findById(result.membership.id);
+        const currentFreeze = await this.membershipService.getActiveFreezeForMembership(result.membership.id);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return { membership: toMembershipResponse(membership!, { currentFreeze }) };
     }
 }

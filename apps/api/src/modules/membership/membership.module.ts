@@ -1,4 +1,4 @@
-import { Customer, CustomerMembership, GuestVisit, MembershipPlan } from '@fitcalendar/db';
+import { Customer, CustomerMembership, FreezeEvent, GuestVisit, MembershipPlan } from '@fitcalendar/db';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -10,7 +10,10 @@ import { MembershipExpirationService } from './membership-expiration.service';
 import { MembershipService } from './membership.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([CustomerMembership, Customer, MembershipPlan, GuestVisit]), AdminAuthModule],
+    imports: [
+        TypeOrmModule.forFeature([CustomerMembership, Customer, MembershipPlan, GuestVisit, FreezeEvent]),
+        AdminAuthModule,
+    ],
     controllers: [AdminMembershipController, MeMembershipController],
     providers: [MembershipService, MembershipExpirationService],
     exports: [MembershipService],

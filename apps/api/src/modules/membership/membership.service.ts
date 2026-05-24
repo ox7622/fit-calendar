@@ -398,7 +398,11 @@ function normalizeDate(input: Date | string): Date {
  * local-time interpretation. Used for Postgres `date` column inputs.
  */
 function parseDateOnly(iso: string): Date {
-    const [y, m, d] = iso.split('-').map(Number);
+    const parts = iso.split('-').map(Number);
+    const [y, m, d] = parts;
+    if (y === undefined || m === undefined || d === undefined) {
+        throw new Error(`parseDateOnly: expected YYYY-MM-DD, got "${iso}"`);
+    }
     return new Date(Date.UTC(y, m - 1, d));
 }
 

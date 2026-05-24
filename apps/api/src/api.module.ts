@@ -6,6 +6,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 
 import { validate } from './config/env.validation';
@@ -29,6 +30,13 @@ import { AppService } from './services/app.service';
 
 @Module({
     imports: [
+        /**
+         * Sentry — installs the global exception filter that auto-reports
+         * uncaught exceptions. The actual `Sentry.init` runs in
+         * `instrument.ts` (imported at the very top of main.ts so it
+         * loads before NestJS). No-op when SENTRY_DSN is unset.
+         */
+        SentryModule.forRoot(),
         /**
          * Config
          */

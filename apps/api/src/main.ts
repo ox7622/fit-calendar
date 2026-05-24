@@ -1,6 +1,11 @@
+// Sentry MUST be initialized before any other imports that you want to instrument.
+// We gate on `SENTRY_DSN` so local dev / CI without a DSN doesn't pay the cost.
+import './instrument';
+
 import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
 
 import { ApiModule } from './api.module';
@@ -15,6 +20,24 @@ async function bootstrap() {
 
     // подключение конфига
     const configService = app.get(ConfigService);
+
+    // Security headers (helmet). Defaults are fine for an API serving JSON +
+    // multipart uploads; we relax CSP only because Swagger UI needs inline
+    // styles + scripts to render at /api/docs. If you ever serve HTML from
+    // this API beyond Swagger, audit the directive carefully.
+    app.use(
+        helmet({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'"],
+                    styleSrc: ["'self'", "'unsafe-inline'"],
+                    scriptSrc: ["'self'", "'unsafe-inline'"],
+                    imgSrc: ["'self'", 'data:', 'https:'],
+                },
+            },
+            crossOriginEmbedderPolicy: false,
+        }),
+    );
 
     // Global exception filter
     app.useGlobalFilters(new HttpExceptionFilter());

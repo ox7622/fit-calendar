@@ -395,7 +395,7 @@ describe('ReminderService', () => {
     });
 
     describe('findPendingByClassWithCustomer (Story 5.4)', () => {
-        it('builds a QB joining Customer, filters pending + non-null telegramId, and coerces telegramId to number', async () => {
+        it('joins Customer, filters pending + non-null telegramId, coerces telegramId to number', async () => {
             const qb = {
                 innerJoin: jest.fn().mockReturnThis(),
                 select: jest.fn().mockReturnThis(),

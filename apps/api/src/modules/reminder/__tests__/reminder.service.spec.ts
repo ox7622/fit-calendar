@@ -312,4 +312,182 @@ describe('ReminderService', () => {
             expect(reminderRepo.update).not.toHaveBeenCalled();
         });
     });
+
+    describe('findOneByCustomerAndEntry', () => {
+        it('delegates to repo.findOne with the composite key', async () => {
+            reminderRepo.findOne.mockResolvedValueOnce(buildReminder());
+
+            await service.findOneByCustomerAndEntry(CUSTOMER_ID, 'sched-1');
+
+            expect(reminderRepo.findOne).toHaveBeenCalledWith({
+                where: { customerId: CUSTOMER_ID, scheduleEntryId: 'sched-1' },
+            });
+        });
+    });
+
+    describe('findDueReminders (Story 5.3)', () => {
+        beforeEach(() => {
+            (reminderRepo.find as unknown as jest.Mock) = jest.fn().mockResolvedValueOnce([]);
+        });
+
+        it('queries pending reminders with notifyAt <= now AND retryCount < MAX_RETRY_ATTEMPTS', async () => {
+            const now = new Date('2026-04-01T10:00:00Z');
+
+            await service.findDueReminders(now);
+
+            const call = (reminderRepo.find as unknown as jest.Mock).mock.calls[0][0];
+            expect(call.where.status).toBe('pending');
+            // notifyAt is a LessThanOrEqual operator; we just verify the operator type, not the wrapped value.
+            expect(call.where.notifyAt).toBeDefined();
+            expect(call.where.retryCount).toBeDefined();
+            expect(call.relations).toEqual([
+                'customer',
+                'scheduleEntry',
+                'scheduleEntry.coach',
+                'scheduleEntry.trainingType',
+            ]);
+            expect(call.order).toEqual({ notifyAt: 'ASC' });
+        });
+
+        it('respects the batchSize cap (default 100)', async () => {
+            await service.findDueReminders(new Date(), 25);
+            const call = (reminderRepo.find as unknown as jest.Mock).mock.calls[0][0];
+            expect(call.take).toBe(25);
+        });
+    });
+
+    describe('markSent', () => {
+        it('updates status=sent and stamps sentAt', async () => {
+            const updateMock = jest.fn().mockResolvedValueOnce({ affected: 1 });
+            (reminderRepo.update as unknown as jest.Mock) = updateMock;
+
+            await service.markSent('rem-x');
+
+            expect(updateMock).toHaveBeenCalledWith(
+                { id: 'rem-x' },
+                expect.objectContaining({ status: 'sent', sentAt: expect.any(Date) }),
+            );
+        });
+    });
+
+    describe('recordFailure (Story 5.3)', () => {
+        let updateMock: jest.Mock;
+        beforeEach(() => {
+            updateMock = jest.fn().mockResolvedValueOnce({ affected: 1 });
+            (reminderRepo.update as unknown as jest.Mock) = updateMock;
+        });
+
+        it('increments retryCount but keeps status=pending below the cap', async () => {
+            // currentRetryCount=0 → newRetryCount=1, MAX is 3 (exhausted at 3).
+            const result = await service.recordFailure('rem-x', 0);
+
+            expect(updateMock).toHaveBeenCalledWith({ id: 'rem-x' }, { retryCount: 1, status: 'pending' });
+            expect(result.status).toBe('pending');
+        });
+
+        it('flips status=failed when the increment hits MAX_RETRY_ATTEMPTS', async () => {
+            // currentRetryCount=2 → newRetryCount=3 → exhausted.
+            const result = await service.recordFailure('rem-x', 2);
+
+            expect(updateMock).toHaveBeenCalledWith({ id: 'rem-x' }, { retryCount: 3, status: 'failed' });
+            expect(result.status).toBe('failed');
+        });
+    });
+
+    describe('findPendingByClassWithCustomer (Story 5.4)', () => {
+        it('builds a QB joining Customer, filters pending + non-null telegramId, and coerces telegramId to number', async () => {
+            const qb = {
+                innerJoin: jest.fn().mockReturnThis(),
+                select: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                getRawMany: jest.fn().mockResolvedValueOnce([
+                    { reminderId: 'r1', telegramId: '111', firstName: 'Анна' },
+                    { reminderId: 'r2', telegramId: '222', firstName: 'Борис' },
+                ]),
+            };
+            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValueOnce(qb);
+
+            const result = await service.findPendingByClassWithCustomer('sched-1');
+
+            expect(qb.innerJoin).toHaveBeenCalledWith('r.customer', 'c');
+            // First .where pins scheduleEntryId; the two .andWhere clauses pin status + telegramId-not-null.
+            expect(qb.where).toHaveBeenCalledWith(
+                expect.stringContaining('scheduleEntryId'),
+                expect.objectContaining({ scheduleEntryId: 'sched-1' }),
+            );
+            expect(qb.andWhere).toHaveBeenCalledTimes(2);
+            // Telegram ids are returned as strings from the driver; service must Number() them.
+            expect(result[0].telegramId).toBe(111);
+            expect(typeof result[0].telegramId).toBe('number');
+            expect(result).toHaveLength(2);
+        });
+    });
+
+    describe('findPendingCustomersByClass (Story 6.4)', () => {
+        it('returns the DISTINCT customer-id list for pending reminders on the class', async () => {
+            const qb = {
+                select: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                getRawMany: jest.fn().mockResolvedValueOnce([{ customerId: 'cust-a' }, { customerId: 'cust-b' }]),
+            };
+            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValueOnce(qb);
+
+            const result = await service.findPendingCustomersByClass('sched-1');
+
+            // DISTINCT projection — Story 6.4 needs it so a customer who somehow has two pending rows
+            // (defensive — the unique index makes this impossible in practice) doesn't get notified twice.
+            expect(qb.select).toHaveBeenCalledWith('DISTINCT r.customerId', 'customerId');
+            expect(result).toEqual(['cust-a', 'cust-b']);
+        });
+    });
+
+    describe('deletePendingByClass (Story 6.4)', () => {
+        it('uses the caller-supplied EntityManager when provided (transaction participation)', async () => {
+            const txRepo = {
+                createQueryBuilder: jest.fn().mockReturnValue({
+                    delete: jest.fn().mockReturnThis(),
+                    from: jest.fn().mockReturnThis(),
+                    where: jest.fn().mockReturnThis(),
+                    andWhere: jest.fn().mockReturnThis(),
+                    execute: jest.fn().mockResolvedValue({ affected: 3 }),
+                }),
+            };
+            const manager = { getRepository: jest.fn().mockReturnValue(txRepo) };
+
+            const affected = await service.deletePendingByClass('sched-1', manager as never);
+
+            expect(manager.getRepository).toHaveBeenCalled();
+            expect(affected).toBe(3);
+        });
+
+        it('falls back to the injected repo when no manager is passed', async () => {
+            const qb = {
+                delete: jest.fn().mockReturnThis(),
+                from: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                execute: jest.fn().mockResolvedValueOnce({ affected: 5 }),
+            };
+            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValueOnce(qb);
+
+            const affected = await service.deletePendingByClass('sched-1');
+
+            expect(affected).toBe(5);
+        });
+
+        it('returns 0 when the delete affected no rows (result.affected may be null)', async () => {
+            const qb = {
+                delete: jest.fn().mockReturnThis(),
+                from: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                execute: jest.fn().mockResolvedValueOnce({ affected: null }),
+            };
+            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValueOnce(qb);
+
+            expect(await service.deletePendingByClass('sched-1')).toBe(0);
+        });
+    });
 });

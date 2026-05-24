@@ -135,4 +135,56 @@ describe('AdminTrainingTypesService', () => {
         await expect(service.deleteType('t1')).rejects.toThrow(ConflictException);
         expect(typeRepo.remove).not.toHaveBeenCalled();
     });
+
+    it('findById returns the type when it exists', async () => {
+        typeRepo.findOne.mockResolvedValueOnce(buildType({ id: 't1', name: 'Йога' }));
+
+        const result = await service.findById('t1');
+
+        expect(result.id).toBe('t1');
+        expect(result.name).toBe('Йога');
+    });
+
+    it('findById throws 404 when missing', async () => {
+        typeRepo.findOne.mockResolvedValueOnce(null);
+        await expect(service.findById('missing')).rejects.toThrow(NotFoundException);
+    });
+
+    it('deleteType throws 404 when type does not exist', async () => {
+        typeRepo.findOne.mockResolvedValueOnce(null);
+        await expect(service.deleteType('missing')).rejects.toThrow(NotFoundException);
+        expect(scheduleRepo.count).not.toHaveBeenCalled();
+    });
+
+    it('update patches every editable field when all are provided', async () => {
+        // Covers the conditional branches for name/description/difficulty/impactTypes/equipment
+        // that other tests skip (existing 'isActive=false' test only hits one branch).
+        const existing = buildType({
+            id: 't1',
+            name: 'Йога',
+            description: null,
+            difficulty: 'beginner',
+            impactTypes: ['flexibility'],
+            equipment: [],
+            isActive: true,
+        });
+        typeRepo.findOne.mockResolvedValueOnce(existing);
+        typeRepo.save.mockImplementationOnce(async (e) => e as TrainingType);
+
+        const result = await service.update('t1', {
+            name: 'Силовая йога',
+            description: 'Активный класс',
+            difficulty: 'advanced',
+            impactTypes: ['flexibility', 'strength'],
+            equipment: ['Коврик', 'Гантели'],
+            isActive: false,
+        });
+
+        expect(result.name).toBe('Силовая йога');
+        expect(result.description).toBe('Активный класс');
+        expect(result.difficulty).toBe('advanced');
+        expect(result.impactTypes).toEqual(['flexibility', 'strength']);
+        expect(result.equipment).toEqual(['Коврик', 'Гантели']);
+        expect(result.isActive).toBe(false);
+    });
 });

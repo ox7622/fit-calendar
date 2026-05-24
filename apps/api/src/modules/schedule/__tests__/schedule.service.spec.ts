@@ -258,4 +258,125 @@ describe('ScheduleService', () => {
             }
         });
     });
+
+    describe('getById', () => {
+        it('returns the mapped DTO when the entry exists', async () => {
+            mockScheduleRepository.findOne.mockResolvedValueOnce(createMockEntry());
+
+            const result = await service.getById('entry-uuid-1');
+
+            expect(mockScheduleRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 'entry-uuid-1' },
+                relations: ['trainingType', 'coach'],
+            });
+            expect(result.id).toBe('entry-uuid-1');
+            expect(result.name).toBe('Yoga');
+        });
+
+        it('throws NotFoundException when the entry does not exist', async () => {
+            mockScheduleRepository.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.getById('missing')).rejects.toThrow(/not found/);
+        });
+    });
+
+    describe('filter composition (buildWhere via getToday)', () => {
+        it('applies coachId filter to the where clause', async () => {
+            mockScheduleRepository.find.mockResolvedValueOnce([]);
+
+            await service.getToday({ coachId: 'coach-x' });
+
+            const where = mockScheduleRepository.find.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+            expect(where.coachId).toBe('coach-x');
+            expect(where.status).toBe('scheduled');
+        });
+
+        it('applies trainingTypeId filter', async () => {
+            mockScheduleRepository.find.mockResolvedValueOnce([]);
+
+            await service.getToday({ trainingTypeId: 'type-x' });
+
+            const where = mockScheduleRepository.find.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+            expect(where.trainingTypeId).toBe('type-x');
+        });
+
+        it('routes difficultyLevel into the nested trainingType where clause', async () => {
+            mockScheduleRepository.find.mockResolvedValueOnce([]);
+
+            await service.getToday({ difficultyLevel: 'advanced' });
+
+            const where = mockScheduleRepository.find.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+            // Filter is on the joined relation, not the top-level columns.
+            const tt = where.trainingType as Record<string, unknown> | undefined;
+            expect(tt?.difficulty).toBe('advanced');
+        });
+
+        it('routes impactType array into ArrayContains on the joined trainingType', async () => {
+            mockScheduleRepository.find.mockResolvedValueOnce([]);
+
+            await service.getToday({ impactType: ['cardio'] });
+
+            const where = mockScheduleRepository.find.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+            const tt = where.trainingType as Record<string, unknown> | undefined;
+            // ArrayContains returns a FindOperator instance — just verify it's set.
+            expect(tt?.impactTypes).toBeDefined();
+        });
+
+        it('drops the status=scheduled clamp when includeCancelled is true', async () => {
+            mockScheduleRepository.find.mockResolvedValueOnce([]);
+
+            await service.getToday({ includeCancelled: true });
+
+            const where = mockScheduleRepository.find.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+            expect(where.status).toBeUndefined();
+        });
+    });
+
+    describe('getTrainingTypes', () => {
+        it('returns active training types mapped to the metadata shape', async () => {
+            mockTrainingTypeRepository.find.mockResolvedValueOnce([
+                {
+                    id: 't1',
+                    name: 'Yoga',
+                    description: null,
+                    difficulty: 'beginner',
+                    impactTypes: ['flexibility'],
+                    equipment: ['Mat'],
+                    isActive: true,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    scheduleEntries: [],
+                } as TrainingType,
+            ]);
+
+            const result = await service.getTrainingTypes();
+
+            expect(mockTrainingTypeRepository.find).toHaveBeenCalledWith({
+                where: { isActive: true },
+                order: { name: 'ASC' },
+            });
+            expect(result).toEqual([
+                {
+                    id: 't1',
+                    name: 'Yoga',
+                    description: null,
+                    difficulty: 'beginner',
+                    impactTypes: ['flexibility'],
+                    equipment: ['Mat'],
+                },
+            ]);
+        });
+    });
+
+    describe('static metadata helpers', () => {
+        it('getDifficultyLevels returns the three known levels in order', () => {
+            const levels = service.getDifficultyLevels();
+            expect(levels.map((l) => l.value)).toEqual(['beginner', 'intermediate', 'advanced']);
+        });
+
+        it('getImpactTypes returns the four known impact tags', () => {
+            const impacts = service.getImpactTypes();
+            expect(impacts.map((i) => i.value)).toEqual(['cardio', 'strength', 'flexibility', 'balance']);
+        });
+    });
 });

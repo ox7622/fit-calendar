@@ -163,4 +163,70 @@ describe('AdminCoachesService', () => {
             await expect(service.deleteCoach('missing')).rejects.toThrow(NotFoundException);
         });
     });
+
+    describe('findById', () => {
+        it('returns the coach when it exists', async () => {
+            coachRepo.findOne.mockResolvedValueOnce(buildCoach({ id: 'c1', name: 'Мария' }));
+
+            const result = await service.findById('c1');
+
+            expect(result.id).toBe('c1');
+            expect(result.name).toBe('Мария');
+        });
+
+        it('throws 404 when missing', async () => {
+            coachRepo.findOne.mockResolvedValueOnce(null);
+            await expect(service.findById('missing')).rejects.toThrow(NotFoundException);
+        });
+    });
+
+    describe('setPhoto', () => {
+        it('throws 404 when coach does not exist (does not call Cloudinary)', async () => {
+            coachRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.setPhoto('missing', Buffer.from('img'))).rejects.toThrow(NotFoundException);
+            expect(cloudinary.uploadCoachPhoto).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('update — full-field patching', () => {
+        it('patches every editable field when all provided', async () => {
+            // Other tests only exercise isActive — this covers name/bio/specializations/certifications too.
+            const existing = buildCoach({
+                id: 'c1',
+                name: 'Мария',
+                bio: null,
+                specializations: [],
+                certifications: [],
+                isActive: true,
+            });
+            coachRepo.findOne.mockResolvedValueOnce(existing);
+            coachRepo.save.mockImplementationOnce(async (c) => c as Coach);
+
+            const result = await service.update('c1', {
+                name: 'Мария И.',
+                bio: 'Сертифицированный тренер по йоге',
+                specializations: ['Йога', 'Пилатес'],
+                certifications: ['ACE', 'NASM'],
+                isActive: false,
+            });
+
+            expect(result.name).toBe('Мария И.');
+            expect(result.bio).toBe('Сертифицированный тренер по йоге');
+            expect(result.specializations).toEqual(['Йога', 'Пилатес']);
+            expect(result.certifications).toEqual(['ACE', 'NASM']);
+            expect(result.isActive).toBe(false);
+        });
+    });
+
+    describe('countScheduleEntries', () => {
+        it('delegates to the schedule repo with the right filter', async () => {
+            scheduleRepo.count.mockResolvedValueOnce(7);
+
+            const result = await service.countScheduleEntries('c1');
+
+            expect(scheduleRepo.count).toHaveBeenCalledWith({ where: { coachId: 'c1' } });
+            expect(result).toBe(7);
+        });
+    });
 });

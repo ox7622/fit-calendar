@@ -1,4 +1,4 @@
-import { Customer, Reminder } from '@fitcalendar/db';
+import { Customer, CustomerMembership, Reminder } from '@fitcalendar/db';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Not, Repository } from 'typeorm';
@@ -52,6 +52,8 @@ export class CustomerService {
         private readonly customerRepo: Repository<Customer>,
         @InjectRepository(Reminder)
         private readonly reminderRepo: Repository<Reminder>,
+        @InjectRepository(CustomerMembership)
+        private readonly membershipRepo: Repository<CustomerMembership>,
     ) {}
 
     findById(id: string): Promise<Customer | null> {
@@ -227,14 +229,26 @@ export class CustomerService {
 
     /**
      * Returns: 'deleted' | 'not_found' | 'has_dependencies'.
-     * Has-dependencies guard counts reminders today and will count memberships
-     * once Story 7.4 lands.
+     *
+     * Hard delete cascades aggressively — Customer → CustomerMembership →
+     * GuestVisit + FreezeEvent (all `ON DELETE CASCADE`), and Customer →
+     * Reminder (also CASCADE). A successful hard delete here silently
+     * wipes the customer's entire history. We refuse if ANY of those
+     * dependent rows exist; the everyday path is `isActive=false` (soft
+     * delete via update), which preserves history.
+     *
+     * Memberships count any status (active / expired / cancelled) — cancelled
+     * is still audit trail, and we shouldn't drop the customer record if it
+     * leaves orphan historical memberships unresolvable.
      */
     async deleteCustomer(id: string): Promise<'deleted' | 'not_found' | 'has_dependencies'> {
         const customer = await this.findById(id);
         if (!customer) return 'not_found';
-        const reminderCount = await this.reminderRepo.count({ where: { customerId: id } });
-        if (reminderCount > 0) {
+        const [reminderCount, membershipCount] = await Promise.all([
+            this.reminderRepo.count({ where: { customerId: id } }),
+            this.membershipRepo.count({ where: { customerId: id } }),
+        ]);
+        if (reminderCount > 0 || membershipCount > 0) {
             return 'has_dependencies';
         }
         await this.customerRepo.remove(customer);

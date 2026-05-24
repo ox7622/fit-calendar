@@ -1,4 +1,4 @@
-import { MembershipPlan } from '@fitcalendar/db';
+import { CustomerMembership, MembershipPlan } from '@fitcalendar/db';
 import { formatDuration } from '@fitcalendar/shared';
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +15,8 @@ export class MembershipPlansService {
     constructor(
         @InjectRepository(MembershipPlan)
         private readonly planRepository: Repository<MembershipPlan>,
+        @InjectRepository(CustomerMembership)
+        private readonly membershipRepository: Repository<CustomerMembership>,
     ) {}
 
     async findAllActive(): Promise<PlanResponseDto[]> {
@@ -72,10 +74,11 @@ export class MembershipPlansService {
             throw new NotFoundException(`Membership plan with id ${id} not found`);
         }
 
-        // Story 7.4 will add CustomerMembership; once that ships, count references here.
-        // For now no membership table exists, so the count is structurally zero.
-        // The reference check is wired through countReferences() so 7.4 can patch it
-        // by injecting a membership repo without changing the controller surface.
+        // Soft-delete is `isActive=false`; hard delete is the escape hatch for
+        // "created by mistake, never used". Block if ANY membership references
+        // the plan (active, expired, or cancelled — they're all history we
+        // shouldn't lose). The FK is `ON DELETE NO ACTION` so without this
+        // guard Postgres would reject the delete with 23503, surfacing as 500.
         const referenceCount = await this.countReferences(id);
         if (referenceCount > 0) {
             throw new ConflictException('План не может быть удалён: есть активные подписки. Используйте деактивацию.');
@@ -86,12 +89,12 @@ export class MembershipPlansService {
     }
 
     /**
-     * Count of memberships referencing this plan. Story 7.4 will wire the real query
-     * once the customer_memberships table exists. For 7.1 there are no references.
+     * Number of memberships (any status) referencing this plan. Includes
+     * expired + cancelled rows on purpose — they're history; we don't drop
+     * a plan whose past assignments would otherwise be unresolvable.
      */
     async countReferences(planId: string): Promise<number> {
-        void planId;
-        return 0;
+        return this.membershipRepository.count({ where: { planId } });
     }
 }
 

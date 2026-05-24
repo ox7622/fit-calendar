@@ -3,8 +3,8 @@
 Survey of every hard-delete site in the API, the guards that protect them, and
 where soft-delete would actually pay off vs. where hard-delete is correct.
 
-**Two real bugs surfaced during this audit** (see §3) — they're flagged but
-unfixed in this doc. Treat them as follow-up tickets.
+**Two real bugs surfaced during this audit** (see §3). Both are now fixed in
+the follow-up commit; this doc records the fix.
 
 ## 1. Entity-level current state
 
@@ -30,7 +30,8 @@ a `status` enum (for richer state machines like `scheduled→cancelled→expired
 
 ### 2.1 `MembershipPlan.remove()` — `membership-plans.service.ts:84`
 
-- **Guard:** `countReferences(planId)` — **stub, always returns 0** (see §3.1).
+- **Guard:** `countReferences(planId)` — now queries the
+  `customer_memberships` repo (was a stub returning 0 — see §3.1).
 - **FK behavior:** `customer_memberships.planId` has `ON DELETE NO ACTION`. A real
   delete attempt on a referenced plan would fail at the DB with FK violation
   surfaced as 500.
@@ -110,10 +111,13 @@ a `status` enum (for richer state machines like `scheduled→cancelled→expired
   (§3.2). Don't add `deletedAt` — `isActive=false` already provides the
   hide-from-roster soft state.
 
-## 3. Real bugs found during this audit
+## 3. Real bugs found during this audit (now fixed)
 
-### 3.1 `MembershipPlansService.countReferences` is a stub
+Both were abandoned 7.4-era TODOs. Fixed in the commit that follows this doc.
 
+### 3.1 `MembershipPlansService.countReferences` was a stub — **fixed**
+
+It used to be:
 ```ts
 async countReferences(planId: string): Promise<number> {
     void planId;
@@ -121,23 +125,26 @@ async countReferences(planId: string): Promise<number> {
 }
 ```
 
-The comment promises Story 7.4 would wire the real query. 7.4 shipped. Nobody
-came back. Today an admin can delete any plan; the Postgres FK rejects the
-delete at the DB level with `ON DELETE NO ACTION`, but the user sees 500
-instead of the 409 the controller is trying to surface.
+The comment promised Story 7.4 would wire the real query. 7.4 shipped. Nobody
+came back. Pre-fix, an admin could delete any plan; the Postgres FK rejected
+the delete at the DB level (`ON DELETE NO ACTION`) and the user saw a 500
+instead of the 409 the controller was trying to surface.
 
-**Fix:** inject the `CustomerMembership` repo, count rows where `planId = ?`,
-return the count.
+Now: injects the `CustomerMembership` repo and counts rows where
+`planId = ?`. The 409 path is honest again.
 
-### 3.2 `CustomerService.deleteCustomer` doesn't count memberships
+### 3.2 `CustomerService.deleteCustomer` didn't count memberships — **fixed**
 
-Same shape. Same abandoned TODO. The reminder count is the only gate; a
-customer with active memberships but no reminders can be deleted, and the
-CASCADE chain silently wipes their entire history.
+Same shape. Same abandoned TODO. The reminder count used to be the only gate;
+a customer with active memberships but no reminders could be hard-deleted, and
+the CASCADE chain silently wiped their entire history (memberships → guest
+visits + freeze events; plus reminders directly).
 
-**Fix:** also count `customer_memberships.customerId = ?`. Optionally also
-count `reminders` via the existing path. Return `'has_dependencies'` if
-either is non-zero.
+Now: also counts `customer_memberships` for that customer (any status —
+cancelled rows are still audit trail). Returns `'has_dependencies'` if either
+reminder count OR membership count is non-zero. Spec coverage added for the
+memberships-only case, which is the one that would have triggered the silent
+wipe.
 
 ## 4. Recommendations
 

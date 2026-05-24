@@ -1,4 +1,4 @@
-import { Customer, Reminder } from '@fitcalendar/db';
+import { Customer, CustomerMembership, Reminder } from '@fitcalendar/db';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -27,6 +27,7 @@ describe('CustomerService', () => {
     let service: CustomerService;
     let customerRepo: jest.Mocked<Repository<Customer>>;
     let reminderRepo: jest.Mocked<Repository<Reminder>>;
+    let membershipRepo: jest.Mocked<Repository<CustomerMembership>>;
 
     beforeEach(async () => {
         customerRepo = {
@@ -41,11 +42,16 @@ describe('CustomerService', () => {
             count: jest.fn().mockResolvedValue(0),
         } as unknown as jest.Mocked<Repository<Reminder>>;
 
+        membershipRepo = {
+            count: jest.fn().mockResolvedValue(0),
+        } as unknown as jest.Mocked<Repository<CustomerMembership>>;
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 CustomerService,
                 { provide: getRepositoryToken(Customer), useValue: customerRepo },
                 { provide: getRepositoryToken(Reminder), useValue: reminderRepo },
+                { provide: getRepositoryToken(CustomerMembership), useValue: membershipRepo },
             ],
         }).compile();
 
@@ -161,10 +167,11 @@ describe('CustomerService', () => {
     });
 
     describe('deleteCustomer', () => {
-        it('removes the customer when no reminders reference it', async () => {
+        it('removes the customer when no reminders OR memberships reference it', async () => {
             const customer = buildCustomer();
             customerRepo.findOne.mockResolvedValueOnce(customer);
             reminderRepo.count.mockResolvedValueOnce(0);
+            membershipRepo.count.mockResolvedValueOnce(0);
 
             const result = await service.deleteCustomer('cust-1');
 
@@ -176,11 +183,39 @@ describe('CustomerService', () => {
             const customer = buildCustomer();
             customerRepo.findOne.mockResolvedValueOnce(customer);
             reminderRepo.count.mockResolvedValueOnce(3);
+            membershipRepo.count.mockResolvedValueOnce(0);
 
             const result = await service.deleteCustomer('cust-1');
 
             expect(result).toBe('has_dependencies');
             expect(customerRepo.remove).not.toHaveBeenCalled();
+        });
+
+        it('returns has_dependencies when ONLY memberships reference the customer (no reminders)', async () => {
+            // Pre-fix bug: this customer would have been hard-deleted, cascading
+            // away the membership + any guest visits / freezes attached to it.
+            const customer = buildCustomer();
+            customerRepo.findOne.mockResolvedValueOnce(customer);
+            reminderRepo.count.mockResolvedValueOnce(0);
+            membershipRepo.count.mockResolvedValueOnce(1);
+
+            const result = await service.deleteCustomer('cust-1');
+
+            expect(result).toBe('has_dependencies');
+            expect(customerRepo.remove).not.toHaveBeenCalled();
+        });
+
+        it('counts memberships of any status (active / expired / cancelled all block delete)', async () => {
+            // The where clause is { customerId } with no status filter — verify
+            // we don't accidentally narrow to active-only.
+            const customer = buildCustomer();
+            customerRepo.findOne.mockResolvedValueOnce(customer);
+            reminderRepo.count.mockResolvedValueOnce(0);
+            membershipRepo.count.mockResolvedValueOnce(2);
+
+            await service.deleteCustomer('cust-1');
+
+            expect(membershipRepo.count).toHaveBeenCalledWith({ where: { customerId: 'cust-1' } });
         });
 
         it('returns not_found when the id does not exist', async () => {

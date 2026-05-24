@@ -1,4 +1,4 @@
-import { MembershipPlan } from '@fitcalendar/db';
+import { CustomerMembership, MembershipPlan } from '@fitcalendar/db';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -25,6 +25,7 @@ const buildPlan = (overrides: Partial<MembershipPlan> = {}): MembershipPlan => (
 describe('MembershipPlansService', () => {
     let service: MembershipPlansService;
     let mockRepository: jest.Mocked<Repository<MembershipPlan>>;
+    let membershipRepository: jest.Mocked<Repository<CustomerMembership>>;
 
     beforeEach(async () => {
         mockRepository = {
@@ -35,13 +36,15 @@ describe('MembershipPlansService', () => {
             remove: jest.fn(),
         } as unknown as jest.Mocked<Repository<MembershipPlan>>;
 
+        membershipRepository = {
+            count: jest.fn().mockResolvedValue(0),
+        } as unknown as jest.Mocked<Repository<CustomerMembership>>;
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 MembershipPlansService,
-                {
-                    provide: getRepositoryToken(MembershipPlan),
-                    useValue: mockRepository,
-                },
+                { provide: getRepositoryToken(MembershipPlan), useValue: mockRepository },
+                { provide: getRepositoryToken(CustomerMembership), useValue: membershipRepository },
             ],
         }).compile();
 
@@ -171,19 +174,33 @@ describe('MembershipPlansService', () => {
             expect(mockRepository.remove).toHaveBeenCalledWith(plan);
         });
 
-        it('throws Conflict when memberships reference the plan', async () => {
+        it('throws Conflict when memberships reference the plan (via the real countReferences query)', async () => {
             const plan = buildPlan({ id: 'plan-1' });
             mockRepository.findOne.mockResolvedValue(plan);
-            jest.spyOn(service, 'countReferences').mockResolvedValue(3);
+            // Pre-fix bug: countReferences was a stub always returning 0, so this
+            // test only passed because of the jest.spyOn override below. The real
+            // query now hits membershipRepository.count(), so we drive the fake
+            // count there.
+            membershipRepository.count.mockResolvedValueOnce(3);
 
             await expect(service.deletePlan('plan-1')).rejects.toThrow(ConflictException);
             expect(mockRepository.remove).not.toHaveBeenCalled();
+            expect(membershipRepository.count).toHaveBeenCalledWith({ where: { planId: 'plan-1' } });
         });
 
         it('throws NotFound when the plan does not exist', async () => {
             mockRepository.findOne.mockResolvedValue(null);
 
             await expect(service.deletePlan('missing')).rejects.toThrow(NotFoundException);
+        });
+
+        it('countReferences delegates to the membership repo with the right filter', async () => {
+            membershipRepository.count.mockResolvedValueOnce(7);
+
+            const result = await service.countReferences('plan-1');
+
+            expect(membershipRepository.count).toHaveBeenCalledWith({ where: { planId: 'plan-1' } });
+            expect(result).toBe(7);
         });
     });
 });

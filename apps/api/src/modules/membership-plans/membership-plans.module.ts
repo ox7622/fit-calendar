@@ -1,4 +1,4 @@
-import { MembershipPlan } from '@fitcalendar/db';
+import { CustomerMembership, MembershipPlan } from '@fitcalendar/db';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -11,7 +11,7 @@ import { MembershipPlansService } from './membership-plans.service';
 @Module({
     // AdminAuthModule re-exports JwtModule + AdminAuthGuard so the admin
     // controller can resolve the guard's dependencies.
-    imports: [TypeOrmModule.forFeature([MembershipPlan]), AdminAuthModule],
+    imports: [TypeOrmModule.forFeature([MembershipPlan, CustomerMembership]), AdminAuthModule],
     controllers: [MembershipPlansController, AdminMembershipPlansController],
     providers: [MembershipPlansService],
     exports: [MembershipPlansService],

@@ -1,4 +1,4 @@
-import { Customer, Reminder } from '@fitcalendar/db';
+import { Customer, CustomerMembership, Reminder } from '@fitcalendar/db';
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -16,7 +16,7 @@ import { MeController } from './me.controller';
  */
 @Global()
 @Module({
-    imports: [TypeOrmModule.forFeature([Customer, Reminder]), AdminAuthModule],
+    imports: [TypeOrmModule.forFeature([Customer, Reminder, CustomerMembership]), AdminAuthModule],
     controllers: [MeController, AdminCustomerController],
     providers: [CustomerService, CustomerImportService],
     exports: [CustomerService],

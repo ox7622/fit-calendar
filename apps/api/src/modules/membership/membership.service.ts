@@ -2,7 +2,9 @@ import { Customer, CustomerMembership, FreezeEvent, GuestVisit, MembershipPlan, 
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, addMonths, addWeeks, subDays } from 'date-fns';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
+
+const PG_UNIQUE_VIOLATION = '23505';
 
 export type TAssignResult =
     | { status: 'created'; membership: CustomerMembership }
@@ -102,6 +104,12 @@ export class MembershipService {
      * instead of creating a duplicate (which would silently violate AC4).
      * Customer + plan validity is checked outside the lock — those
      * failures don't race and would only waste a transaction.
+     *
+     * Defense in depth: there's a unique partial index
+     * `uq_active_membership_per_customer` ON `customer_memberships`
+     * ("customerId") WHERE status='active'. If the row lock is ever
+     * bypassed (raw INSERT, a script, a future code path forgetting the
+     * lock), the INSERT throws 23505 and we map it to `active_exists`.
      */
     async assign(customerId: string, dto: IAssignInput, adminId: string | null): Promise<TAssignResult> {
         const plan = await this.planRepo.findOne({ where: { id: dto.planId } });
@@ -109,43 +117,60 @@ export class MembershipService {
             throw new BadRequestException('Абонемент не найден или неактивен');
         }
 
-        return this.dataSource.transaction(async (manager) => {
-            const customerRepo = manager.getRepository(Customer);
-            const customer = await customerRepo.findOne({
-                where: { id: customerId },
-                lock: { mode: 'pessimistic_write' },
+        try {
+            return await this.dataSource.transaction(async (manager) => {
+                const customerRepo = manager.getRepository(Customer);
+                const customer = await customerRepo.findOne({
+                    where: { id: customerId },
+                    lock: { mode: 'pessimistic_write' },
+                });
+                if (!customer || !customer.isActive) {
+                    throw new BadRequestException('Клиент не найден или неактивен');
+                }
+
+                const existingActive = await this.getCurrentForCustomer(customerId, manager);
+                if (existingActive) {
+                    return { status: 'active_exists', existingActive };
+                }
+
+                const startDate = normalizeDate(dto.startDate);
+                const endDate = addByUnit(startDate, plan.durationValue, plan.durationUnit);
+
+                const membershipRepo = manager.getRepository(CustomerMembership);
+                const created = membershipRepo.create({
+                    customerId,
+                    planId: plan.id,
+                    startDate,
+                    endDate,
+                    guestVisitsRemaining: plan.guestVisitsAllowed,
+                    freezeDaysRemaining: plan.freezeDaysAllowed,
+                    status: 'active',
+                    notes: dto.notes?.trim() || null,
+                    createdByAdminId: adminId,
+                });
+                const saved = await membershipRepo.save(created);
+                // Reload with relations so the response carries the embedded plan.
+                const reloaded = await membershipRepo.findOne({ where: { id: saved.id }, relations: ['plan'] });
+                this.logger.log(`Assigned plan ${plan.id} to customer ${customerId} (membership ${saved.id})`);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                return { status: 'created', membership: reloaded! };
             });
-            if (!customer || !customer.isActive) {
-                throw new BadRequestException('Клиент не найден или неактивен');
+        } catch (err) {
+            // Unique-index violation = a concurrent assign won the lock race
+            // (shouldn't happen with the pessimistic_write lock, but the
+            // partial index is the DB-level safety net). Re-read the winner
+            // and surface it via the discriminated `active_exists` path.
+            if (this.isActiveMembershipUniqueViolation(err)) {
+                const winner = await this.getCurrentForCustomer(customerId);
+                if (winner) {
+                    this.logger.warn(
+                        `Race on assign for customer ${customerId} — unique index caught it; returning active_exists`,
+                    );
+                    return { status: 'active_exists', existingActive: winner };
+                }
             }
-
-            const existingActive = await this.getCurrentForCustomer(customerId, manager);
-            if (existingActive) {
-                return { status: 'active_exists', existingActive };
-            }
-
-            const startDate = normalizeDate(dto.startDate);
-            const endDate = addByUnit(startDate, plan.durationValue, plan.durationUnit);
-
-            const membershipRepo = manager.getRepository(CustomerMembership);
-            const created = membershipRepo.create({
-                customerId,
-                planId: plan.id,
-                startDate,
-                endDate,
-                guestVisitsRemaining: plan.guestVisitsAllowed,
-                freezeDaysRemaining: plan.freezeDaysAllowed,
-                status: 'active',
-                notes: dto.notes?.trim() || null,
-                createdByAdminId: adminId,
-            });
-            const saved = await membershipRepo.save(created);
-            // Reload with relations so the response carries the embedded plan.
-            const reloaded = await membershipRepo.findOne({ where: { id: saved.id }, relations: ['plan'] });
-            this.logger.log(`Assigned plan ${plan.id} to customer ${customerId} (membership ${saved.id})`);
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            return { status: 'created', membership: reloaded! };
-        });
+            throw err;
+        }
     }
 
     /**
@@ -404,6 +429,18 @@ export class MembershipService {
             }
         }
         return null;
+    }
+
+    /**
+     * Detects the 23505 unique-violation specifically on the
+     * `uq_active_membership_per_customer` partial index. Other 23505s
+     * (e.g. PK collisions if something's deeply wrong) should still
+     * propagate so they don't get silently swallowed.
+     */
+    private isActiveMembershipUniqueViolation(err: unknown): boolean {
+        if (!(err instanceof QueryFailedError)) return false;
+        const driverErr = err as QueryFailedError & { code?: string; constraint?: string };
+        return driverErr.code === PG_UNIQUE_VIOLATION && driverErr.constraint === 'uq_active_membership_per_customer';
     }
 }
 

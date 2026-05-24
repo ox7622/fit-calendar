@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
-import type { DataSource, EntityManager } from 'typeorm';
+import { QueryFailedError, type DataSource, type EntityManager } from 'typeorm';
 
 import { MembershipService, addByUnit } from '../membership.service';
 
@@ -186,6 +186,46 @@ describe('MembershipService', () => {
                 service.assign('c1', { planId: 'plan-12m', startDate: new Date('2026-01-15Z') }, null),
             ).rejects.toThrow(BadRequestException);
             expect(dataSource.transaction).not.toHaveBeenCalled();
+        });
+
+        it('maps uq_active_membership_per_customer 23505 to active_exists (defense in depth)', async () => {
+            // Race scenario: the lock somehow lets two assigns through. The
+            // unique partial index catches the second INSERT with 23505 and
+            // the service maps that to active_exists by re-reading the
+            // winner outside the transaction.
+            planRepo.findOne.mockResolvedValueOnce(buildPlan());
+            txCustomerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
+            txMembershipRepo.findOne.mockResolvedValueOnce(null); // lock check sees none
+            const uniqueViolation = new QueryFailedError('insert', [], new Error('duplicate'));
+            (uniqueViolation as QueryFailedError & { code: string; constraint: string }).code = '23505';
+            (uniqueViolation as QueryFailedError & { code: string; constraint: string }).constraint =
+                'uq_active_membership_per_customer';
+            txMembershipRepo.save.mockRejectedValueOnce(uniqueViolation);
+            // After the violation, the recovery re-reads via the non-tx repo.
+            const winner = buildMembership({ id: 'm-winner' });
+            membershipRepo.findOne.mockResolvedValueOnce(winner);
+
+            const result = await service.assign('c1', { planId: 'plan-12m', startDate: new Date('2026-01-15Z') }, null);
+
+            expect(result.status).toBe('active_exists');
+            if (result.status === 'active_exists') {
+                expect(result.existingActive.id).toBe('m-winner');
+            }
+        });
+
+        it('does NOT swallow unrelated 23505 violations (different constraint name)', async () => {
+            planRepo.findOne.mockResolvedValueOnce(buildPlan());
+            txCustomerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
+            txMembershipRepo.findOne.mockResolvedValueOnce(null);
+            const otherViolation = new QueryFailedError('insert', [], new Error('something else'));
+            (otherViolation as QueryFailedError & { code: string; constraint: string }).code = '23505';
+            (otherViolation as QueryFailedError & { code: string; constraint: string }).constraint =
+                'pk_something_else';
+            txMembershipRepo.save.mockRejectedValueOnce(otherViolation);
+
+            await expect(
+                service.assign('c1', { planId: 'plan-12m', startDate: new Date('2026-01-15Z') }, null),
+            ).rejects.toThrow(QueryFailedError);
         });
     });
 

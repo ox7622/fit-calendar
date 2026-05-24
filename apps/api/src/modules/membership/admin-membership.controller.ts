@@ -2,6 +2,7 @@ import {
     Body,
     ConflictException,
     Controller,
+    Delete,
     Get,
     HttpCode,
     HttpStatus,
@@ -19,7 +20,9 @@ import type { IAdminUserContext } from '../../common/guards/admin-auth.guard';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 import { AssignMembershipDto, UpdateMembershipDto } from './dto/assign-membership.dto';
+import { GuestVisitDto, GuestVisitResultDto, UndoGuestVisitResultDto, toGuestVisitDto } from './dto/guest-visit.dto';
 import { ActiveExistsErrorDto, MembershipResponseDto, toMembershipResponse } from './dto/membership.dto';
+import { RecordGuestVisitDto } from './dto/record-guest-visit.dto';
 import { MembershipService } from './membership.service';
 
 @ApiTags('Admin Memberships')
@@ -103,5 +106,51 @@ export class AdminMembershipController {
         const cancelled = await this.membershipService.cancel(id);
         if (!cancelled) throw new NotFoundException(`Membership ${id} not found`);
         return toMembershipResponse(cancelled);
+    }
+
+    @Get('admin/memberships/:id/guest-visits')
+    @ApiOperation({ summary: 'List guest visits for a membership (newest first)' })
+    @ApiResponse({ status: 200, type: [GuestVisitDto] })
+    async listGuestVisits(@Param('id', new ParseUUIDPipe()) id: string): Promise<GuestVisitDto[]> {
+        const visits = await this.membershipService.findGuestVisitsByMembership(id);
+        return visits.map(toGuestVisitDto);
+    }
+
+    @Post('admin/memberships/:id/guest-visits')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Record a guest visit (decrements remaining counter atomically)',
+        description:
+            'Returns 400 with code NO_GUEST_VISITS_REMAINING when the counter is exhausted, or ' +
+            'MEMBERSHIP_NOT_ACTIVE when the membership is expired or cancelled.',
+    })
+    @ApiResponse({ status: 201, type: GuestVisitResultDto })
+    @ApiResponse({ status: 400, description: 'NO_GUEST_VISITS_REMAINING or MEMBERSHIP_NOT_ACTIVE' })
+    @ApiResponse({ status: 404 })
+    async recordGuestVisit(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @Body() dto: RecordGuestVisitDto,
+        @AdminUser() admin: IAdminUserContext,
+    ): Promise<GuestVisitResultDto> {
+        const result = await this.membershipService.recordGuestVisit(
+            id,
+            { visitedAt: dto.visitedAt ? new Date(dto.visitedAt) : undefined, notes: dto.notes },
+            admin.id,
+        );
+        return { visit: toGuestVisitDto(result.visit), remaining: result.remaining };
+    }
+
+    @Delete('admin/guest-visits/:visitId')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Undo a guest visit (increments remaining counter)',
+        description:
+            'Flat URL (no membershipId) because the visit id is globally unique. Mirrors how ' +
+            'Story 6.4 cancellation routes work.',
+    })
+    @ApiResponse({ status: 200, type: UndoGuestVisitResultDto })
+    @ApiResponse({ status: 404 })
+    async undoGuestVisit(@Param('visitId', new ParseUUIDPipe()) visitId: string): Promise<UndoGuestVisitResultDto> {
+        return this.membershipService.undoGuestVisit(visitId);
     }
 }

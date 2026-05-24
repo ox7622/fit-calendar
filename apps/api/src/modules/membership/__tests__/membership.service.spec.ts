@@ -1,8 +1,9 @@
-import { Customer, CustomerMembership, MembershipPlan } from '@fitcalendar/db';
+import { Customer, CustomerMembership, GuestVisit, MembershipPlan } from '@fitcalendar/db';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
+import type { DataSource, EntityManager } from 'typeorm';
 
 import { MembershipService, addByUnit } from '../membership.service';
 
@@ -41,6 +42,10 @@ describe('MembershipService', () => {
     let membershipRepo: { findOne: jest.Mock; find: jest.Mock; create: jest.Mock; save: jest.Mock; update: jest.Mock };
     let customerRepo: { findOne: jest.Mock };
     let planRepo: { findOne: jest.Mock };
+    let guestVisitRepo: { find: jest.Mock };
+    let txMembershipRepo: { findOne: jest.Mock; save: jest.Mock };
+    let txGuestVisitRepo: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
+    let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
         membershipRepo = {
@@ -52,6 +57,25 @@ describe('MembershipService', () => {
         };
         customerRepo = { findOne: jest.fn() };
         planRepo = { findOne: jest.fn() };
+        guestVisitRepo = { find: jest.fn() };
+
+        txMembershipRepo = { findOne: jest.fn(), save: jest.fn(async (e) => e) };
+        txGuestVisitRepo = {
+            findOne: jest.fn(),
+            create: jest.fn((dto) => ({ id: 'gv-new', ...dto } as GuestVisit)),
+            save: jest.fn(async (entity) => entity as GuestVisit),
+            delete: jest.fn(async () => ({ affected: 1 })),
+        };
+        const manager = {
+            getRepository: (target: unknown): unknown => {
+                if (target === CustomerMembership) return txMembershipRepo;
+                if (target === GuestVisit) return txGuestVisitRepo;
+                throw new Error(`Unexpected target ${String(target)}`);
+            },
+        } as unknown as EntityManager;
+        dataSource = {
+            transaction: jest.fn(async (cb: (m: EntityManager) => Promise<unknown>) => cb(manager)),
+        };
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -59,6 +83,8 @@ describe('MembershipService', () => {
                 { provide: getRepositoryToken(CustomerMembership), useValue: membershipRepo },
                 { provide: getRepositoryToken(Customer), useValue: customerRepo },
                 { provide: getRepositoryToken(MembershipPlan), useValue: planRepo },
+                { provide: getRepositoryToken(GuestVisit), useValue: guestVisitRepo },
+                { provide: getDataSourceToken(), useValue: dataSource as unknown as DataSource },
             ],
         }).compile();
 
@@ -201,6 +227,106 @@ describe('MembershipService', () => {
             membershipRepo.findOne.mockResolvedValueOnce(null);
             const result = await service.getCurrentForCustomer('c1');
             expect(result).toBeNull();
+        });
+    });
+
+    describe('recordGuestVisit (Story 7.5)', () => {
+        it('decrements remaining and inserts the visit row in one transaction', async () => {
+            const membership = buildMembership({ status: 'active', guestVisitsRemaining: 2 });
+            txMembershipRepo.findOne.mockResolvedValueOnce(membership);
+
+            const result = await service.recordGuestVisit('m1', { notes: 'guest' }, 'admin-1');
+
+            expect(txMembershipRepo.findOne).toHaveBeenCalledWith({
+                where: { id: 'm1' },
+                lock: { mode: 'pessimistic_write' },
+            });
+            expect(membership.guestVisitsRemaining).toBe(1);
+            expect(result.remaining).toBe(1);
+            expect(txGuestVisitRepo.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    customerMembershipId: 'm1',
+                    notes: 'guest',
+                    recordedByAdminId: 'admin-1',
+                }),
+            );
+        });
+
+        it('uses an explicit visitedAt when provided', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ guestVisitsRemaining: 2 }));
+            const explicitDate = new Date('2026-04-10T12:34:00Z');
+
+            await service.recordGuestVisit('m1', { visitedAt: explicitDate }, 'admin-1');
+
+            expect(txGuestVisitRepo.create).toHaveBeenCalledWith(expect.objectContaining({ visitedAt: explicitDate }));
+        });
+
+        it('throws 400 NO_GUEST_VISITS_REMAINING when counter is 0', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ guestVisitsRemaining: 0 }));
+
+            await expect(service.recordGuestVisit('m1', {}, 'admin-1')).rejects.toThrow(BadRequestException);
+            expect(txMembershipRepo.save).not.toHaveBeenCalled();
+            expect(txGuestVisitRepo.save).not.toHaveBeenCalled();
+        });
+
+        it('throws 400 MEMBERSHIP_NOT_ACTIVE on cancelled membership', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ status: 'cancelled' }));
+
+            await expect(service.recordGuestVisit('m1', {}, 'admin-1')).rejects.toThrow(BadRequestException);
+        });
+
+        it('throws 400 MEMBERSHIP_NOT_ACTIVE on expired membership', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ status: 'expired' }));
+
+            await expect(service.recordGuestVisit('m1', {}, 'admin-1')).rejects.toThrow(BadRequestException);
+        });
+
+        it('throws 404 when the membership does not exist', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.recordGuestVisit('missing', {}, 'admin-1')).rejects.toThrow(NotFoundException);
+        });
+    });
+
+    describe('undoGuestVisit (Story 7.5)', () => {
+        it('increments remaining and deletes the visit row', async () => {
+            const visit = {
+                id: 'gv1',
+                customerMembershipId: 'm1',
+                visitedAt: new Date(),
+                notes: null,
+                recordedByAdminId: 'admin-1',
+                createdAt: new Date(),
+            } as GuestVisit;
+            txGuestVisitRepo.findOne.mockResolvedValueOnce(visit);
+            const membership = buildMembership({ guestVisitsRemaining: 1 });
+            txMembershipRepo.findOne.mockResolvedValueOnce(membership);
+
+            const result = await service.undoGuestVisit('gv1');
+
+            expect(membership.guestVisitsRemaining).toBe(2);
+            expect(result.remaining).toBe(2);
+            expect(txGuestVisitRepo.delete).toHaveBeenCalledWith({ id: 'gv1' });
+        });
+
+        it('throws 404 when the visit does not exist', async () => {
+            txGuestVisitRepo.findOne.mockResolvedValueOnce(null);
+
+            await expect(service.undoGuestVisit('missing')).rejects.toThrow(NotFoundException);
+            expect(txMembershipRepo.findOne).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('findGuestVisitsByMembership (Story 7.5)', () => {
+        it('queries with DESC visitedAt order', async () => {
+            guestVisitRepo.find.mockResolvedValueOnce([]);
+
+            await service.findGuestVisitsByMembership('m1');
+
+            expect(guestVisitRepo.find).toHaveBeenCalledWith({
+                where: { customerMembershipId: 'm1' },
+                order: { visitedAt: 'DESC' },
+            });
         });
     });
 });

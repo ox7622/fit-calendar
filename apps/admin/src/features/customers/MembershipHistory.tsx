@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { GuestVisitsPanel } from '@/features/customers/GuestVisitsPanel';
 import { adminMembershipsApi, ApiError, type IAdminMembership } from '@/shared/api';
 
 interface IMembershipHistoryProps {
@@ -142,6 +143,15 @@ export function MembershipHistory({ items, onChange }: IMembershipHistoryProps) 
                 </div>
             ) : (
                 <p className="text-body-secondary">Активного абонемента нет.</p>
+            )}
+
+            {active && (
+                <GuestVisitsPanel
+                    membership={active}
+                    onRemainingChange={(remaining) =>
+                        onChange(items.map((m) => (m.id === active.id ? { ...m, guestVisitsRemaining: remaining } : m)))
+                    }
+                />
             )}
 
             {past.length > 0 && (

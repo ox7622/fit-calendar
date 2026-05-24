@@ -49,6 +49,25 @@ export function isActiveExistsError(data: unknown): data is IActiveExistsError {
     return typeof data === 'object' && data !== null && (data as { code?: string }).code === 'ACTIVE_MEMBERSHIP_EXISTS';
 }
 
+export interface IGuestVisit {
+    id: string;
+    customerMembershipId: string;
+    visitedAt: string;
+    notes: string | null;
+    recordedByAdminId: string;
+    createdAt: string;
+}
+
+export interface IRecordGuestVisitPayload {
+    visitedAt?: string;
+    notes?: string;
+}
+
+export interface IGuestVisitResult {
+    visit: IGuestVisit;
+    remaining: number;
+}
+
 export const adminMembershipsApi = {
     listForCustomer: (customerId: string): Promise<IAdminMembership[]> =>
         adminApiClient.get<IAdminMembership[]>(`/admin/customers/${customerId}/memberships`),
@@ -61,6 +80,15 @@ export const adminMembershipsApi = {
 
     cancel: (id: string): Promise<IAdminMembership> =>
         adminApiClient.post<IAdminMembership>(`/admin/memberships/${id}/cancel`),
+
+    getGuestVisits: (membershipId: string): Promise<IGuestVisit[]> =>
+        adminApiClient.get<IGuestVisit[]>(`/admin/memberships/${membershipId}/guest-visits`),
+
+    recordGuestVisit: (membershipId: string, payload: IRecordGuestVisitPayload): Promise<IGuestVisitResult> =>
+        adminApiClient.post<IGuestVisitResult>(`/admin/memberships/${membershipId}/guest-visits`, payload),
+
+    undoGuestVisit: (visitId: string): Promise<{ remaining: number }> =>
+        adminApiClient.delete<{ remaining: number }>(`/admin/guest-visits/${visitId}`),
 };
 
 export { ApiError };

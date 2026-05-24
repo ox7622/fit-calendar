@@ -1,8 +1,8 @@
-import { Customer, CustomerMembership, MembershipPlan, TDurationUnit } from '@fitcalendar/db';
+import { Customer, CustomerMembership, GuestVisit, MembershipPlan, TDurationUnit } from '@fitcalendar/db';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, addMonths, addWeeks } from 'date-fns';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 export type TAssignResult =
     | { status: 'created'; membership: CustomerMembership }
@@ -19,6 +19,16 @@ interface IUpdateInput {
     notes?: string | null;
 }
 
+interface IRecordGuestVisitInput {
+    visitedAt?: Date;
+    notes?: string;
+}
+
+export interface IGuestVisitResult {
+    visit: GuestVisit;
+    remaining: number;
+}
+
 @Injectable()
 export class MembershipService {
     private readonly logger = new Logger(MembershipService.name);
@@ -30,6 +40,10 @@ export class MembershipService {
         private readonly customerRepo: Repository<Customer>,
         @InjectRepository(MembershipPlan)
         private readonly planRepo: Repository<MembershipPlan>,
+        @InjectRepository(GuestVisit)
+        private readonly guestVisitRepo: Repository<GuestVisit>,
+        @InjectDataSource()
+        private readonly dataSource: DataSource,
     ) {}
 
     /**
@@ -130,6 +144,96 @@ export class MembershipService {
         this.logger.log(`Cancelled membership ${id}`);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return (await this.membershipRepo.findOne({ where: { id }, relations: ['plan'] }))!;
+    }
+
+    findGuestVisitsByMembership(membershipId: string): Promise<GuestVisit[]> {
+        return this.guestVisitRepo.find({
+            where: { customerMembershipId: membershipId },
+            order: { visitedAt: 'DESC' },
+        });
+    }
+
+    /**
+     * Story 7.5 — record a guest visit atomically with the counter
+     * decrement. Pessimistic write lock on the membership row prevents
+     * two concurrent admin clicks from both reading `remaining: 1` and
+     * each inserting a visit (leaving the counter +1 too low).
+     *
+     * Status + counter guards happen inside the transaction so the lock
+     * covers both the read-of-state and the write-of-state.
+     */
+    async recordGuestVisit(
+        membershipId: string,
+        dto: IRecordGuestVisitInput,
+        adminId: string,
+    ): Promise<IGuestVisitResult> {
+        return this.dataSource.transaction(async (manager) => {
+            const repo = manager.getRepository(CustomerMembership);
+            const membership = await repo.findOne({
+                where: { id: membershipId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!membership) throw new NotFoundException(`Membership ${membershipId} not found`);
+            if (membership.status !== 'active') {
+                throw new BadRequestException({
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    code: 'MEMBERSHIP_NOT_ACTIVE',
+                    message: 'Абонемент не активен — нельзя записать гостевой визит.',
+                });
+            }
+            if (membership.guestVisitsRemaining <= 0) {
+                throw new BadRequestException({
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    code: 'NO_GUEST_VISITS_REMAINING',
+                    message: 'Гостевые визиты исчерпаны.',
+                });
+            }
+            membership.guestVisitsRemaining -= 1;
+            await repo.save(membership);
+
+            const visitRepo = manager.getRepository(GuestVisit);
+            const visit = await visitRepo.save(
+                visitRepo.create({
+                    customerMembershipId: membershipId,
+                    visitedAt: dto.visitedAt ?? new Date(),
+                    notes: dto.notes?.trim() || null,
+                    recordedByAdminId: adminId,
+                }),
+            );
+            this.logger.log(`Recorded guest visit ${visit.id} for membership ${membershipId}`);
+            return { visit, remaining: membership.guestVisitsRemaining };
+        });
+    }
+
+    /**
+     * Story 7.5 — undo a recorded visit (admin fat-finger correction).
+     * Increment is NOT capped at `plan.guestVisitsAllowed`; if state ever
+     * drifts, the admin UI surfaces it visibly and reception can fix
+     * manually. YAGNI on the cap.
+     */
+    async undoGuestVisit(visitId: string): Promise<{ remaining: number }> {
+        return this.dataSource.transaction(async (manager) => {
+            const visitRepo = manager.getRepository(GuestVisit);
+            const visit = await visitRepo.findOne({ where: { id: visitId } });
+            if (!visit) throw new NotFoundException(`GuestVisit ${visitId} not found`);
+
+            const repo = manager.getRepository(CustomerMembership);
+            const membership = await repo.findOne({
+                where: { id: visit.customerMembershipId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!membership) {
+                // CASCADE on delete should make this unreachable in practice.
+                throw new NotFoundException(`Membership ${visit.customerMembershipId} not found`);
+            }
+            membership.guestVisitsRemaining += 1;
+            await repo.save(membership);
+            await visitRepo.delete({ id: visitId });
+            this.logger.log(`Undid guest visit ${visitId} (membership ${membership.id})`);
+            return { remaining: membership.guestVisitsRemaining };
+        });
     }
 }
 

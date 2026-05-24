@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
+import { detectImageFormat } from '../../../common/utils/image-magic-bytes';
 
 import { AdminCoachesService } from './admin-coaches.service';
 import { CoachDto, CoachOptionDto } from './dto/coach.dto';
@@ -108,8 +109,10 @@ export class AdminCoachesController {
         if (!file) {
             throw new BadRequestException('Файл не загружен');
         }
-        if (!file.mimetype.startsWith('image/')) {
-            throw new BadRequestException('Поддерживаются только изображения');
+        // MIME is client-set and trivially spoofable; magic-byte sniffing
+        // catches a renamed .html posted as image/jpeg.
+        if (!detectImageFormat(file.buffer)) {
+            throw new BadRequestException('Поддерживаются только изображения JPEG / PNG / WebP / GIF');
         }
         return this.coachesService.setPhoto(id, file.buffer);
     }

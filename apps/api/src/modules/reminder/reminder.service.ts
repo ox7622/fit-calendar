@@ -222,9 +222,15 @@ export class ReminderService {
      * for the given class. Captured BEFORE `deletePendingByClass` so the
      * cancellation event payload still names everyone who would have been
      * reminded (Story 5.5's listener uses this list to send notifications).
+     *
+     * Accepts an optional `EntityManager` so the caller can scope the read to
+     * the same transaction as the subsequent `deletePendingByClass`. Without
+     * it, a new subscriber slipping in between read and delete would be
+     * silently removed from `reminders` but missing from the event payload.
      */
-    async findPendingCustomersByClass(scheduleEntryId: string): Promise<string[]> {
-        const rows = await this.reminderRepo
+    async findPendingCustomersByClass(scheduleEntryId: string, manager?: EntityManager): Promise<string[]> {
+        const repo = manager ? manager.getRepository(Reminder) : this.reminderRepo;
+        const rows = await repo
             .createQueryBuilder('r')
             .select('DISTINCT r.customerId', 'customerId')
             .where('r.scheduleEntryId = :scheduleEntryId', { scheduleEntryId })

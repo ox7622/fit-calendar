@@ -179,53 +179,69 @@ export class AdminScheduleService {
      * existing record without re-emitting the event or re-deleting reminders.
      *
      * Side-effects on the `scheduled → cancelled` transition:
-     *   1. Capture affected customer UUIDs from pending reminders.
-     *   2. In a single transaction: flip status + reason on the schedule entry,
-     *      bulk-delete pending reminders.
-     *   3. AFTER commit, emit SCHEDULE_CANCELLED_EVENT so Story 5.5's listener
-     *      can notify subscribers. Emit-after-commit avoids "we sent the
-     *      cancellation notification, but the DB rolled back" inconsistency.
+     *   1. In a single transaction with a pessimistic_write lock on the
+     *      schedule entry: re-check the status (the lock blocks a racing
+     *      cancel; once the racer commits, this caller sees status=cancelled
+     *      and bails out idempotently — no duplicate event), capture the
+     *      affected customer ids, flip status + reason, bulk-delete pending
+     *      reminders.
+     *   2. AFTER commit, emit SCHEDULE_CANCELLED_EVENT so Story 5.5's
+     *      listener can notify subscribers. Emit-after-commit avoids "we
+     *      sent the cancellation notification, but the DB rolled back".
+     *
+     * The customer-id capture happens INSIDE the transaction so a new
+     * subscriber arriving between read-of-customers and delete-of-reminders
+     * is either included in the event (their reminder existed at read time)
+     * or skipped entirely (they inserted after the read, the row stays).
      */
     async cancel(id: string, reason: string | null): Promise<AdminScheduleItemDto> {
-        const entry = await this.scheduleRepo.findOne({
-            where: { id },
-            relations: ['coach', 'trainingType'],
-        });
-        if (!entry) {
-            throw new NotFoundException(`Schedule entry ${id} not found`);
-        }
-        if (entry.status === 'cancelled') {
-            // Idempotent path — return the existing record, no event, no DB writes.
-            return toAdminScheduleItem(entry);
-        }
-
-        const affectedCustomerIds = await this.reminderService.findPendingCustomersByClass(id);
-        const snapshot = {
-            className: entry.trainingType.name,
-            startTime: entry.startTime,
-            coachName: entry.coach.name,
+        type TCancelResult = {
+            entry: ScheduleEntry;
+            wasAlreadyCancelled: boolean;
+            affectedCustomerIds: string[];
         };
 
-        await this.dataSource.transaction(async (manager) => {
+        const result: TCancelResult = await this.dataSource.transaction(async (manager) => {
+            const lockedRepo = manager.getRepository(ScheduleEntry);
+            const entry = await lockedRepo.findOne({
+                where: { id },
+                relations: ['coach', 'trainingType'],
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!entry) {
+                throw new NotFoundException(`Schedule entry ${id} not found`);
+            }
+            if (entry.status === 'cancelled') {
+                // Idempotent path — return the existing record. No event, no writes.
+                return { entry, wasAlreadyCancelled: true, affectedCustomerIds: [] };
+            }
+
+            const affectedCustomerIds = await this.reminderService.findPendingCustomersByClass(id, manager);
             await manager.update(ScheduleEntry, { id }, { status: 'cancelled', cancellationReason: reason });
             await this.reminderService.deletePendingByClass(id, manager);
+
+            entry.status = 'cancelled';
+            entry.cancellationReason = reason;
+            return { entry, wasAlreadyCancelled: false, affectedCustomerIds };
         });
+
+        if (result.wasAlreadyCancelled) {
+            return toAdminScheduleItem(result.entry);
+        }
 
         const payload: IScheduleCancelledPayload = {
             scheduleEntryId: id,
             cancellationReason: reason,
-            affectedCustomerIds,
-            snapshot,
+            affectedCustomerIds: result.affectedCustomerIds,
+            snapshot: {
+                className: result.entry.trainingType.name,
+                startTime: result.entry.startTime,
+                coachName: result.entry.coach.name,
+            },
         };
         this.eventEmitter.emit(SCHEDULE_CANCELLED_EVENT, payload);
-
-        const reloaded = await this.scheduleRepo.findOne({
-            where: { id },
-            relations: ['coach', 'trainingType'],
-        });
-        this.logger.log(`Cancelled schedule entry ${id} (affected ${affectedCustomerIds.length} customer(s))`);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return toAdminScheduleItem(reloaded!);
+        this.logger.log(`Cancelled schedule entry ${id} (affected ${result.affectedCustomerIds.length} customer(s))`);
+        return toAdminScheduleItem(result.entry);
     }
 
     /**

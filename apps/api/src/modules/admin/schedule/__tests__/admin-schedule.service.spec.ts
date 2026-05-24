@@ -73,6 +73,7 @@ describe('AdminScheduleService', () => {
         Pick<ReminderService, 'recomputeNotifyAtForClass' | 'findPendingCustomersByClass' | 'deletePendingByClass'>
     >;
     let txManagerUpdate: jest.Mock;
+    let txScheduleRepo: { findOne: jest.Mock };
     let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
@@ -93,8 +94,16 @@ describe('AdminScheduleService', () => {
         };
 
         txManagerUpdate = jest.fn().mockResolvedValue({ affected: 1 });
+        txScheduleRepo = { findOne: jest.fn() };
+        const manager = {
+            update: txManagerUpdate,
+            getRepository: (target: unknown): unknown => {
+                if (target === ScheduleEntry) return txScheduleRepo;
+                throw new Error(`Unexpected target ${String(target)}`);
+            },
+        };
         dataSource = {
-            transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb({ update: txManagerUpdate })),
+            transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb(manager)),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -314,26 +323,29 @@ describe('AdminScheduleService', () => {
     });
 
     describe('cancel (Story 6.4)', () => {
-        it('flips status, persists reason, deletes pending reminders, and emits the event', async () => {
+        it('flips status, persists reason, deletes pending reminders, emits the event, takes a row lock', async () => {
             const entry = buildEntry({ id: 'sched-cancel', status: 'scheduled' });
-            scheduleRepo.findOne
-                .mockResolvedValueOnce(entry) // initial load
-                .mockResolvedValueOnce({
-                    ...entry,
-                    status: 'cancelled',
-                    cancellationReason: 'Coach sick',
-                } as ScheduleEntry); // reload
+            txScheduleRepo.findOne.mockResolvedValueOnce(entry);
             reminderService.findPendingCustomersByClass.mockResolvedValueOnce(['cust-a', 'cust-b']);
 
             const result = await service.cancel('sched-cancel', 'Coach sick');
 
-            // Pending customers captured BEFORE delete (order matters for the event payload).
-            const captureCallOrder = reminderService.findPendingCustomersByClass.mock.invocationCallOrder[0];
-            const deleteCallOrder = reminderService.deletePendingByClass.mock.invocationCallOrder[0];
-            expect(captureCallOrder).toBeLessThan(deleteCallOrder);
+            // The status check happens INSIDE the transaction under a row lock
+            // (post-QA fix — two concurrent cancels can't both emit the event).
+            expect(txScheduleRepo.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id: 'sched-cancel' },
+                    lock: { mode: 'pessimistic_write' },
+                }),
+            );
 
-            // Schedule update + reminder delete happen inside the transaction.
-            expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+            // findPendingCustomersByClass now runs inside the transaction with
+            // the manager, so a new subscriber sneaking in between read +
+            // delete can't be silently dropped from the event payload.
+            expect(reminderService.findPendingCustomersByClass).toHaveBeenCalledWith('sched-cancel', expect.anything());
+            expect(reminderService.deletePendingByClass).toHaveBeenCalledWith('sched-cancel', expect.anything());
+
+            // Schedule update happens inside the transaction.
             expect(txManagerUpdate).toHaveBeenCalledWith(
                 ScheduleEntry,
                 { id: 'sched-cancel' },
@@ -360,9 +372,7 @@ describe('AdminScheduleService', () => {
 
         it('accepts a null reason and surfaces it in the event payload', async () => {
             const entry = buildEntry({ id: 'sched-null-reason', status: 'scheduled' });
-            scheduleRepo.findOne
-                .mockResolvedValueOnce(entry)
-                .mockResolvedValueOnce({ ...entry, status: 'cancelled', cancellationReason: null } as ScheduleEntry);
+            txScheduleRepo.findOne.mockResolvedValueOnce(entry);
 
             await service.cancel('sched-null-reason', null);
 
@@ -377,30 +387,30 @@ describe('AdminScheduleService', () => {
             );
         });
 
-        it('is idempotent: re-cancelling an already-cancelled class returns record without side-effects', async () => {
+        it('is idempotent: re-cancelling already-cancelled class returns the record with no side-effects', async () => {
+            // The lock-and-recheck pattern means the txn DOES open, but exits
+            // early once the (locked) status reads as cancelled. No update,
+            // no event, no reminder churn.
             const entry = buildEntry({ id: 'sched-already', status: 'cancelled', cancellationReason: 'Old reason' });
-            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+            txScheduleRepo.findOne.mockResolvedValueOnce(entry);
 
             const result = await service.cancel('sched-already', 'New reason');
 
             expect(result.id).toBe('sched-already');
-            expect(dataSource.transaction).not.toHaveBeenCalled();
+            expect(txManagerUpdate).not.toHaveBeenCalled();
             expect(reminderService.findPendingCustomersByClass).not.toHaveBeenCalled();
             expect(reminderService.deletePendingByClass).not.toHaveBeenCalled();
             expect(eventEmitter.emit).not.toHaveBeenCalled();
         });
 
-        it('throws 404 when the entry does not exist', async () => {
-            scheduleRepo.findOne.mockResolvedValueOnce(null);
+        it('throws 404 when the entry does not exist (no event emitted)', async () => {
+            txScheduleRepo.findOne.mockResolvedValueOnce(null);
 
             await expect(service.cancel('missing', 'reason')).rejects.toThrow(NotFoundException);
-            expect(dataSource.transaction).not.toHaveBeenCalled();
             expect(eventEmitter.emit).not.toHaveBeenCalled();
         });
 
-        it('does NOT emit the event if the transaction throws', async () => {
-            const entry = buildEntry({ id: 'sched-tx-fail', status: 'scheduled' });
-            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+        it('does NOT emit the event if the transaction throws (pre-emit failure)', async () => {
             dataSource.transaction.mockRejectedValueOnce(new Error('db unavailable'));
 
             await expect(service.cancel('sched-tx-fail', 'reason')).rejects.toThrow('db unavailable');

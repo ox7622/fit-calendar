@@ -44,7 +44,8 @@ describe('MembershipService', () => {
     let planRepo: { findOne: jest.Mock };
     let guestVisitRepo: { find: jest.Mock };
     let freezeRepo: { find: jest.Mock };
-    let txMembershipRepo: { findOne: jest.Mock; save: jest.Mock };
+    let txMembershipRepo: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock };
+    let txCustomerRepo: { findOne: jest.Mock };
     let txGuestVisitRepo: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
     let txFreezeRepo: { count: jest.Mock; findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
     let dataSource: { transaction: jest.Mock };
@@ -62,7 +63,12 @@ describe('MembershipService', () => {
         guestVisitRepo = { find: jest.fn() };
         freezeRepo = { find: jest.fn().mockResolvedValue([]) };
 
-        txMembershipRepo = { findOne: jest.fn(), save: jest.fn(async (e) => e) };
+        txMembershipRepo = {
+            findOne: jest.fn(),
+            create: jest.fn((dto) => dto as CustomerMembership),
+            save: jest.fn(async (e) => ({ ...e, id: e.id ?? 'm-new' } as CustomerMembership)),
+        };
+        txCustomerRepo = { findOne: jest.fn() };
         txGuestVisitRepo = {
             findOne: jest.fn(),
             create: jest.fn((dto) => ({ id: 'gv-new', ...dto } as GuestVisit)),
@@ -79,6 +85,7 @@ describe('MembershipService', () => {
         const manager = {
             getRepository: (target: unknown): unknown => {
                 if (target === CustomerMembership) return txMembershipRepo;
+                if (target === Customer) return txCustomerRepo;
                 if (target === GuestVisit) return txGuestVisitRepo;
                 if (target === FreezeEvent) return txFreezeRepo;
                 throw new Error(`Unexpected target ${String(target)}`);
@@ -113,11 +120,12 @@ describe('MembershipService', () => {
     });
 
     describe('assign', () => {
-        it('creates with computed endDate + snapshot counters for a 12-month plan', async () => {
-            customerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
+        it('creates with computed endDate + snapshot counters; locks the Customer row inside the txn', async () => {
             planRepo.findOne.mockResolvedValueOnce(buildPlan());
-            membershipRepo.findOne
-                .mockResolvedValueOnce(null) // no active
+            // Customer + active-membership lookup BOTH happen via the locked manager (post-QA fix).
+            txCustomerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
+            txMembershipRepo.findOne
+                .mockResolvedValueOnce(null) // no active membership under the lock
                 .mockResolvedValueOnce(buildMembership({ id: 'm-new' })); // reload after save
 
             const result = await service.assign(
@@ -127,7 +135,14 @@ describe('MembershipService', () => {
             );
 
             expect(result.status).toBe('created');
-            const created = membershipRepo.create.mock.calls[0][0];
+            // Verify the lock was requested on the Customer row (the serialization point).
+            expect(txCustomerRepo.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id: 'c1' },
+                    lock: { mode: 'pessimistic_write' },
+                }),
+            );
+            const created = txMembershipRepo.create.mock.calls[0][0];
             expect(created).toMatchObject({
                 customerId: 'c1',
                 planId: 'plan-12m',
@@ -136,15 +151,14 @@ describe('MembershipService', () => {
                 status: 'active',
                 createdByAdminId: 'admin-1',
             });
-            // 12 months from 2026-01-15 → 2027-01-15
             expect((created.endDate as Date).toISOString().slice(0, 10)).toBe('2027-01-15');
         });
 
         it('returns active_exists without inserting when a current active membership exists', async () => {
-            customerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
             planRepo.findOne.mockResolvedValueOnce(buildPlan());
+            txCustomerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
             const existing = buildMembership({ id: 'm-old' });
-            membershipRepo.findOne.mockResolvedValueOnce(existing);
+            txMembershipRepo.findOne.mockResolvedValueOnce(existing);
 
             const result = await service.assign('c1', { planId: 'plan-12m', startDate: new Date('2026-02-01Z') }, null);
 
@@ -152,24 +166,26 @@ describe('MembershipService', () => {
             if (result.status === 'active_exists') {
                 expect(result.existingActive.id).toBe('m-old');
             }
-            expect(membershipRepo.save).not.toHaveBeenCalled();
+            expect(txMembershipRepo.create).not.toHaveBeenCalled();
+            expect(txMembershipRepo.save).not.toHaveBeenCalled();
         });
 
-        it('rejects assignment to an inactive customer (400)', async () => {
-            customerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: false } as Customer);
+        it('rejects assignment to an inactive customer (400) — caught inside the locked txn', async () => {
+            planRepo.findOne.mockResolvedValueOnce(buildPlan());
+            txCustomerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: false } as Customer);
 
             await expect(
                 service.assign('c1', { planId: 'plan-12m', startDate: new Date('2026-01-15Z') }, null),
             ).rejects.toThrow(BadRequestException);
         });
 
-        it('rejects assignment to an inactive plan (400)', async () => {
-            customerRepo.findOne.mockResolvedValueOnce({ id: 'c1', isActive: true } as Customer);
+        it('rejects assignment to an inactive plan (400) — fail-fast before the txn opens', async () => {
             planRepo.findOne.mockResolvedValueOnce({ ...buildPlan(), isActive: false } as MembershipPlan);
 
             await expect(
                 service.assign('c1', { planId: 'plan-12m', startDate: new Date('2026-01-15Z') }, null),
             ).rejects.toThrow(BadRequestException);
+            expect(dataSource.transaction).not.toHaveBeenCalled();
         });
     });
 

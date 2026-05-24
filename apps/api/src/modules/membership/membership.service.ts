@@ -2,7 +2,7 @@ import { Customer, CustomerMembership, FreezeEvent, GuestVisit, MembershipPlan, 
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, addMonths, addWeeks, subDays } from 'date-fns';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 
 export type TAssignResult =
     | { status: 'created'; membership: CustomerMembership }
@@ -63,9 +63,14 @@ export class MembershipService {
      * Story 7.4 — single active membership per customer (AC4). Defensive
      * `order: { endDate: 'DESC' }` returns the latest if invariant is ever
      * violated (e.g. by a manual DB edit) so the system stays usable.
+     *
+     * Accepts an optional `EntityManager` so callers running inside a
+     * transaction (notably `assign`, which locks the Customer row first)
+     * can re-check membership state under the lock.
      */
-    async getCurrentForCustomer(customerId: string): Promise<CustomerMembership | null> {
-        return this.membershipRepo.findOne({
+    async getCurrentForCustomer(customerId: string, manager?: EntityManager): Promise<CustomerMembership | null> {
+        const repo = manager ? manager.getRepository(CustomerMembership) : this.membershipRepo;
+        return repo.findOne({
             where: { customerId, status: 'active' },
             relations: ['plan'],
             order: { endDate: 'DESC' },
@@ -89,42 +94,58 @@ export class MembershipService {
      * `active_exists` → 409 with the existing membership's identifiers.
      * Per Dev Notes, this is deliberately NOT a magic upsert; the admin
      * confirms cancel-then-create as two explicit calls.
+     *
+     * The active-membership check runs INSIDE a transaction with a
+     * pessimistic_write lock on the Customer row. Two concurrent assigns
+     * to the same customer serialize on that lock; the second observes
+     * the first's just-committed membership and returns `active_exists`
+     * instead of creating a duplicate (which would silently violate AC4).
+     * Customer + plan validity is checked outside the lock — those
+     * failures don't race and would only waste a transaction.
      */
     async assign(customerId: string, dto: IAssignInput, adminId: string | null): Promise<TAssignResult> {
-        const customer = await this.customerRepo.findOne({ where: { id: customerId } });
-        if (!customer || !customer.isActive) {
-            throw new BadRequestException('Клиент не найден или неактивен');
-        }
         const plan = await this.planRepo.findOne({ where: { id: dto.planId } });
         if (!plan || !plan.isActive) {
             throw new BadRequestException('Абонемент не найден или неактивен');
         }
 
-        const existingActive = await this.getCurrentForCustomer(customerId);
-        if (existingActive) {
-            return { status: 'active_exists', existingActive };
-        }
+        return this.dataSource.transaction(async (manager) => {
+            const customerRepo = manager.getRepository(Customer);
+            const customer = await customerRepo.findOne({
+                where: { id: customerId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!customer || !customer.isActive) {
+                throw new BadRequestException('Клиент не найден или неактивен');
+            }
 
-        const startDate = normalizeDate(dto.startDate);
-        const endDate = addByUnit(startDate, plan.durationValue, plan.durationUnit);
+            const existingActive = await this.getCurrentForCustomer(customerId, manager);
+            if (existingActive) {
+                return { status: 'active_exists', existingActive };
+            }
 
-        const created = this.membershipRepo.create({
-            customerId,
-            planId: plan.id,
-            startDate,
-            endDate,
-            guestVisitsRemaining: plan.guestVisitsAllowed,
-            freezeDaysRemaining: plan.freezeDaysAllowed,
-            status: 'active',
-            notes: dto.notes?.trim() || null,
-            createdByAdminId: adminId,
+            const startDate = normalizeDate(dto.startDate);
+            const endDate = addByUnit(startDate, plan.durationValue, plan.durationUnit);
+
+            const membershipRepo = manager.getRepository(CustomerMembership);
+            const created = membershipRepo.create({
+                customerId,
+                planId: plan.id,
+                startDate,
+                endDate,
+                guestVisitsRemaining: plan.guestVisitsAllowed,
+                freezeDaysRemaining: plan.freezeDaysAllowed,
+                status: 'active',
+                notes: dto.notes?.trim() || null,
+                createdByAdminId: adminId,
+            });
+            const saved = await membershipRepo.save(created);
+            // Reload with relations so the response carries the embedded plan.
+            const reloaded = await membershipRepo.findOne({ where: { id: saved.id }, relations: ['plan'] });
+            this.logger.log(`Assigned plan ${plan.id} to customer ${customerId} (membership ${saved.id})`);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            return { status: 'created', membership: reloaded! };
         });
-        const saved = await this.membershipRepo.save(created);
-        // Reload with relations so the response carries the embedded plan.
-        const reloaded = await this.membershipRepo.findOne({ where: { id: saved.id }, relations: ['plan'] });
-        this.logger.log(`Assigned plan ${plan.id} to customer ${customerId} (membership ${saved.id})`);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return { status: 'created', membership: reloaded! };
     }
 
     /**

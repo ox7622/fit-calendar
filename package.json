@@ -135,6 +135,7 @@
         "@nestjs/throttler": "^6.5.0",
         "@nestjs/typeorm": "^11.0.0",
         "@sentry/nestjs": "^10.53.1",
+        "@sentry/react": "^10.55.0",
         "@twa-dev/sdk": "^8.0.2",
         "@types/papaparse": "^5.5.2",
         "@types/pg": "^8.15.4",

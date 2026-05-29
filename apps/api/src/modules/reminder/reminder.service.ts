@@ -2,7 +2,7 @@ import { Reminder, ScheduleEntry } from '@fitcalendar/db';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { subMinutes } from 'date-fns';
-import { EntityManager, LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 
 import { ReminderListItemDto, toReminderListItem } from './dto/reminder-list-item.dto';
 import { ReminderResponseDto, toReminderResponse } from './dto/reminder-response.dto';
@@ -124,18 +124,38 @@ export class ReminderService {
      * Story 5.3 — pulls everything the dispatcher needs to build a message
      * in one query. Excludes reminders that have hit `MAX_RETRY_ATTEMPTS`
      * so failed sends drop out of the working set automatically.
+     *
+     * Also excludes (Story 7.6 follow-up) reminders whose class falls inside
+     * an active freeze on the customer's active membership: if the member
+     * can't attend, we shouldn't ping them. The check is "the class's
+     * startTime::date is within `[freeze.startDate, freeze.endDate]` on a
+     * membership where `status='active'`". Customers with no active
+     * membership pass through (no freeze → not excluded), which matches the
+     * existing dispatcher behavior.
      */
     findDueReminders(now: Date = new Date(), batchSize = 100): Promise<Reminder[]> {
-        return this.reminderRepo.find({
-            where: {
-                status: 'pending',
-                notifyAt: LessThanOrEqual(now),
-                retryCount: LessThanOrEqual(MAX_RETRY_ATTEMPTS - 1),
-            },
-            relations: ['customer', 'scheduleEntry', 'scheduleEntry.coach', 'scheduleEntry.trainingType'],
-            order: { notifyAt: 'ASC' },
-            take: batchSize,
-        });
+        return this.reminderRepo
+            .createQueryBuilder('r')
+            .leftJoinAndSelect('r.customer', 'customer')
+            .leftJoinAndSelect('r.scheduleEntry', 'entry')
+            .leftJoinAndSelect('entry.coach', 'coach')
+            .leftJoinAndSelect('entry.trainingType', 'trainingType')
+            .where('r.status = :pending', { pending: 'pending' })
+            .andWhere('r.notifyAt <= :now', { now })
+            .andWhere('r.retryCount <= :maxRetry', { maxRetry: MAX_RETRY_ATTEMPTS - 1 })
+            .andWhere(
+                `NOT EXISTS (
+                    SELECT 1
+                      FROM customer_memberships m
+                      JOIN freeze_events f ON f."customerMembershipId" = m.id
+                     WHERE m."customerId" = r."customerId"
+                       AND m.status = 'active'
+                       AND entry."startTime"::date BETWEEN f."startDate" AND f."endDate"
+                )`,
+            )
+            .orderBy('r.notifyAt', 'ASC')
+            .take(batchSize)
+            .getMany();
     }
 
     async markSent(reminderId: string): Promise<void> {

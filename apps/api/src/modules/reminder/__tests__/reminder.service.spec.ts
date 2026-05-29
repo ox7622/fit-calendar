@@ -325,34 +325,73 @@ describe('ReminderService', () => {
         });
     });
 
-    describe('findDueReminders (Story 5.3)', () => {
+    describe('findDueReminders (Story 5.3 + 7.6 freeze-aware)', () => {
+        // Records every andWhere call so each test can assert which filters
+        // the dispatcher applied without depending on call order.
+        type TQbCall = { sql: string; params?: Record<string, unknown> };
+        let qbCalls: TQbCall[];
+        let qbTake: number | undefined;
+
         beforeEach(() => {
-            (reminderRepo.find as unknown as jest.Mock) = jest.fn().mockResolvedValueOnce([]);
+            qbCalls = [];
+            qbTake = undefined;
+            const qb = {
+                leftJoinAndSelect: jest.fn().mockReturnThis(),
+                where: jest.fn(function (sql: string, params?: Record<string, unknown>) {
+                    qbCalls.push({ sql, params });
+                    return qb;
+                }),
+                andWhere: jest.fn(function (sql: string, params?: Record<string, unknown>) {
+                    qbCalls.push({ sql, params });
+                    return qb;
+                }),
+                orderBy: jest.fn().mockReturnThis(),
+                take: jest.fn(function (n: number) {
+                    qbTake = n;
+                    return qb;
+                }),
+                getMany: jest.fn().mockResolvedValue([]),
+            };
+            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValue(qb);
         });
 
         it('queries pending reminders with notifyAt <= now AND retryCount < MAX_RETRY_ATTEMPTS', async () => {
             const now = new Date('2026-04-01T10:00:00Z');
-
             await service.findDueReminders(now);
 
-            const call = (reminderRepo.find as unknown as jest.Mock).mock.calls[0][0];
-            expect(call.where.status).toBe('pending');
-            // notifyAt is a LessThanOrEqual operator; we just verify the operator type, not the wrapped value.
-            expect(call.where.notifyAt).toBeDefined();
-            expect(call.where.retryCount).toBeDefined();
-            expect(call.relations).toEqual([
-                'customer',
-                'scheduleEntry',
-                'scheduleEntry.coach',
-                'scheduleEntry.trainingType',
-            ]);
-            expect(call.order).toEqual({ notifyAt: 'ASC' });
+            // Joined relations so the dispatcher gets customer + entry + coach + trainingType.
+            const qb = (reminderRepo.createQueryBuilder as unknown as jest.Mock).mock.results[0].value;
+            expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('r.customer', 'customer');
+            expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('r.scheduleEntry', 'entry');
+            expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('entry.coach', 'coach');
+            expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('entry.trainingType', 'trainingType');
+
+            // Core filters wired with parameter binding (no SQL injection of `now`).
+            expect(qbCalls.find((c) => c.sql.includes('r.status = :pending'))?.params).toEqual({ pending: 'pending' });
+            expect(qbCalls.find((c) => c.sql.includes('r.notifyAt <= :now'))?.params).toEqual({ now });
+            expect(qbCalls.find((c) => c.sql.includes('r.retryCount <= :maxRetry'))?.params).toEqual({ maxRetry: 2 });
         });
 
         it('respects the batchSize cap (default 100)', async () => {
             await service.findDueReminders(new Date(), 25);
-            const call = (reminderRepo.find as unknown as jest.Mock).mock.calls[0][0];
-            expect(call.take).toBe(25);
+            expect(qbTake).toBe(25);
+        });
+
+        // Story 7.6 follow-up: frozen members shouldn't get reminded for
+        // classes that fall inside their freeze window. We assert the
+        // generated NOT EXISTS subquery references the right columns; the
+        // semantic check (a frozen member's reminder really doesn't fire)
+        // belongs to an integration test against a real DB, not a unit
+        // spec that mocks the query builder.
+        it('excludes reminders whose class startTime falls inside an active freeze on the customer', async () => {
+            await service.findDueReminders(new Date());
+
+            const freezeClause = qbCalls.find((c) => c.sql.includes('NOT EXISTS'));
+            expect(freezeClause).toBeDefined();
+            expect(freezeClause?.sql).toMatch(/customer_memberships/);
+            expect(freezeClause?.sql).toMatch(/freeze_events/);
+            expect(freezeClause?.sql).toMatch(/m\.status = 'active'/);
+            expect(freezeClause?.sql).toMatch(/entry\."startTime"::date BETWEEN/);
         });
     });
 

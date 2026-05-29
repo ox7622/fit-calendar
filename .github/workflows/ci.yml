@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - '**'
+      - "**"
   pull_request:
     branches:
       - develop
@@ -26,11 +26,18 @@ jobs:
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Supply-chain gate. Currently set to `critical` because the baseline
+      # has 13 high-severity advisories in transitive deps (typeorm, multer,
+      # path-to-regexp, etc.) that need coordinated upstream bumps. Ratchet
+      # to `high` once the next round of dependency bumps lands.
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=critical
 
       - name: Set Nx SHAs for affected computation
         uses: nrwl/nx-set-shas@v4

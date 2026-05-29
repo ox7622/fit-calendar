@@ -39,6 +39,7 @@
         "node": "22.13.1"
     },
     "engineStrict": true,
+    "packageManager": "pnpm@10.25.0",
     "pnpm": {
         "overrides": {
             "sha.js@<2.4.12": ">=2.4.12"

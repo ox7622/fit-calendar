@@ -50,7 +50,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push API image
+      # Build → scan → push. The build is cached by docker/build-push-action,
+      # so the post-scan push reuses layers and stays fast. Trivy fails the
+      # workflow on HIGH/CRITICAL CVEs with available fixes (`--ignore-unfixed`
+      # silences un-actionable noise from base-image deps). If you need to
+      # ship despite a flagged CVE, document it in the workflow comments —
+      # don't add a blanket allowlist.
+      - name: Build API image (load only, scan before push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/apps/Dockerfile.api
+          load: true
+          push: false
+          tags: fit-calendar-api:scan
+
+      - name: Scan API image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: fit-calendar-api:scan
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+
+      - name: Push API image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -60,7 +84,25 @@ jobs:
             ${{ env.API_IMAGE }}:latest
             ${{ env.API_IMAGE }}:${{ steps.meta.outputs.sha_tag }}
 
-      - name: Build and push Bot image
+      - name: Build Bot image (load only, scan before push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/apps/Dockerfile.bot
+          load: true
+          push: false
+          tags: fit-calendar-bot:scan
+
+      - name: Scan Bot image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: fit-calendar-bot:scan
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+
+      - name: Push Bot image
         uses: docker/build-push-action@v6
         with:
           context: .

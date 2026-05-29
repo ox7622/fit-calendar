@@ -4,6 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Not, Repository } from 'typeorm';
 
 import { normalizeRussianPhone } from '../../common/utils/phone';
+import { AdminAuditService } from '../admin/audit';
+import type { IAuditContext } from '../admin/audit/audit-context';
 
 import type { CreateCustomerDto } from './dto/create-customer.dto';
 import type { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -54,6 +56,7 @@ export class CustomerService {
         private readonly reminderRepo: Repository<Reminder>,
         @InjectRepository(CustomerMembership)
         private readonly membershipRepo: Repository<CustomerMembership>,
+        private readonly auditService: AdminAuditService,
     ) {}
 
     findById(id: string): Promise<Customer | null> {
@@ -241,7 +244,7 @@ export class CustomerService {
      * is still audit trail, and we shouldn't drop the customer record if it
      * leaves orphan historical memberships unresolvable.
      */
-    async deleteCustomer(id: string): Promise<'deleted' | 'not_found' | 'has_dependencies'> {
+    async deleteCustomer(id: string, audit?: IAuditContext): Promise<'deleted' | 'not_found' | 'has_dependencies'> {
         const customer = await this.findById(id);
         if (!customer) return 'not_found';
         const [reminderCount, membershipCount] = await Promise.all([
@@ -251,8 +254,17 @@ export class CustomerService {
         if (reminderCount > 0 || membershipCount > 0) {
             return 'has_dependencies';
         }
+        const snapshot = { phone: customer.phone, firstName: customer.firstName, lastName: customer.lastName };
         await this.customerRepo.remove(customer);
         this.logger.log(`Deleted customer ${id}`);
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_customer',
+            resourceType: 'customer',
+            resourceId: id,
+            metadata: snapshot,
+        });
         return 'deleted';
     }
 }

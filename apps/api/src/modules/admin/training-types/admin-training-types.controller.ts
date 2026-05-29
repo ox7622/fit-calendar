@@ -5,6 +5,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     Param,
     ParseUUIDPipe,
     Post,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { AdminUser } from '../../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 
 import { AdminTrainingTypesService } from './admin-training-types.service';
@@ -79,7 +81,11 @@ export class AdminTrainingTypesController {
     @ApiResponse({ status: 204 })
     @ApiResponse({ status: 404 })
     @ApiResponse({ status: 409, description: 'Type has schedule entries — use deactivation' })
-    async deleteType(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-        await this.typesService.deleteType(id);
+    async deleteType(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
+    ): Promise<void> {
+        await this.typesService.deleteType(id, { adminUserId, ipAddress });
     }
 }

@@ -3,6 +3,8 @@ import { ConflictException, Injectable, Logger, NotFoundException } from '@nestj
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { AdminAuditService } from '../audit';
+import type { IAuditContext } from '../audit/audit-context';
 import { CloudinaryService } from '../uploads/cloudinary.service';
 
 import { CoachDto, CoachOptionDto, toCoachDto } from './dto/coach.dto';
@@ -19,6 +21,7 @@ export class AdminCoachesService {
         @InjectRepository(ScheduleEntry)
         private readonly scheduleRepo: Repository<ScheduleEntry>,
         private readonly cloudinary: CloudinaryService,
+        private readonly auditService: AdminAuditService,
     ) {}
 
     async findAll(): Promise<CoachDto[]> {
@@ -89,7 +92,7 @@ export class AdminCoachesService {
      * cascade-delete attendance history — both unacceptable, so the admin
      * is forced to deactivate (AC7) instead.
      */
-    async deleteCoach(id: string): Promise<void> {
+    async deleteCoach(id: string, audit?: IAuditContext): Promise<void> {
         const coach = await this.coachRepo.findOne({ where: { id } });
         if (!coach) {
             throw new NotFoundException(`Coach ${id} not found`);
@@ -98,8 +101,17 @@ export class AdminCoachesService {
         if (entryCount > 0) {
             throw new ConflictException('Тренер не может быть удалён: есть занятия. Используйте деактивацию.');
         }
+        const snapshot = { name: coach.name };
         await this.coachRepo.remove(coach);
         this.logger.log(`Deleted coach ${id}`);
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_coach',
+            resourceType: 'coach',
+            resourceId: id,
+            metadata: snapshot,
+        });
     }
 
     /**

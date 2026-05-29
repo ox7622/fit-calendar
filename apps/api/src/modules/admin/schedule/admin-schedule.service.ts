@@ -6,6 +6,8 @@ import { addDays, startOfWeek } from 'date-fns';
 import { DataSource, Repository } from 'typeorm';
 
 import { ReminderService } from '../../reminder/reminder.service';
+import { AdminAuditService } from '../audit';
+import type { IAuditContext } from '../audit/audit-context';
 
 import { AdminScheduleItemDto, AdminScheduleListResponseDto, toAdminScheduleItem } from './dto/admin-schedule-list.dto';
 import { AdminScheduleQueryDto } from './dto/admin-schedule-query.dto';
@@ -37,6 +39,7 @@ export class AdminScheduleService {
         private readonly dataSource: DataSource,
         private readonly eventEmitter: EventEmitter2,
         private readonly reminderService: ReminderService,
+        private readonly auditService: AdminAuditService,
     ) {}
 
     async findAll(query: AdminScheduleQueryDto): Promise<AdminScheduleListResponseDto> {
@@ -194,7 +197,7 @@ export class AdminScheduleService {
      * is either included in the event (their reminder existed at read time)
      * or skipped entirely (they inserted after the read, the row stays).
      */
-    async cancel(id: string, reason: string | null): Promise<AdminScheduleItemDto> {
+    async cancel(id: string, reason: string | null, audit?: IAuditContext): Promise<AdminScheduleItemDto> {
         type TCancelResult = {
             entry: ScheduleEntry;
             wasAlreadyCancelled: boolean;
@@ -241,6 +244,19 @@ export class AdminScheduleService {
         };
         this.eventEmitter.emit(SCHEDULE_CANCELLED_EVENT, payload);
         this.logger.log(`Cancelled schedule entry ${id} (affected ${result.affectedCustomerIds.length} customer(s))`);
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'cancel_schedule_entry',
+            resourceType: 'schedule_entry',
+            resourceId: id,
+            metadata: {
+                reason,
+                affectedCustomers: result.affectedCustomerIds.length,
+                className: result.entry.trainingType.name,
+                startTime: result.entry.startTime,
+            },
+        });
         return toAdminScheduleItem(result.entry);
     }
 
@@ -250,10 +266,10 @@ export class AdminScheduleService {
      *   - have no reminders at all (sent + failed rows are audit trail).
      * Otherwise 409 with a Russian explanation pointing the admin at cancel instead.
      */
-    async deleteEntry(id: string): Promise<void> {
+    async deleteEntry(id: string, audit?: IAuditContext): Promise<void> {
         const entry = await this.scheduleRepo.findOne({
             where: { id },
-            relations: ['reminders'],
+            relations: ['reminders', 'coach', 'trainingType'],
         });
         if (!entry) {
             throw new NotFoundException(`Schedule entry ${id} not found`);
@@ -264,8 +280,21 @@ export class AdminScheduleService {
         if (entry.reminders.length > 0) {
             throw new ConflictException('Класс нельзя удалить: есть напоминания. Используйте отмену.');
         }
+        const snapshot = {
+            startTime: entry.startTime,
+            coachName: entry.coach?.name,
+            className: entry.trainingType?.name,
+        };
         await this.scheduleRepo.remove(entry);
         this.logger.log(`Deleted schedule entry ${id}`);
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_schedule_entry',
+            resourceType: 'schedule_entry',
+            resourceId: id,
+            metadata: snapshot,
+        });
     }
 
     private async assertActiveCoach(coachId: string): Promise<void> {

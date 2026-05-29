@@ -4,7 +4,10 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { FindOperator, type Repository } from 'typeorm';
 
+import { AdminAuditService } from '../../admin/audit';
 import { CustomerService, InvalidPhoneFormatError } from '../customer.service';
+
+const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
 const buildCustomer = (overrides: Partial<Customer> = {}): Customer => ({
     id: 'cust-1',
@@ -30,6 +33,7 @@ describe('CustomerService', () => {
     let membershipRepo: jest.Mocked<Repository<CustomerMembership>>;
 
     beforeEach(async () => {
+        mockAuditService.record.mockClear();
         customerRepo = {
             findOne: jest.fn(),
             findAndCount: jest.fn(),
@@ -52,6 +56,7 @@ describe('CustomerService', () => {
                 { provide: getRepositoryToken(Customer), useValue: customerRepo },
                 { provide: getRepositoryToken(Reminder), useValue: reminderRepo },
                 { provide: getRepositoryToken(CustomerMembership), useValue: membershipRepo },
+                { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
 
@@ -167,16 +172,39 @@ describe('CustomerService', () => {
     });
 
     describe('deleteCustomer', () => {
-        it('removes the customer when no reminders OR memberships reference it', async () => {
+        it('removes the customer when no reminders OR memberships reference it, and records audit', async () => {
             const customer = buildCustomer();
             customerRepo.findOne.mockResolvedValueOnce(customer);
             reminderRepo.count.mockResolvedValueOnce(0);
             membershipRepo.count.mockResolvedValueOnce(0);
 
-            const result = await service.deleteCustomer('cust-1');
+            const result = await service.deleteCustomer('cust-1', {
+                adminUserId: 'admin-1',
+                ipAddress: '10.0.0.1',
+            });
 
             expect(result).toBe('deleted');
             expect(customerRepo.remove).toHaveBeenCalledWith(customer);
+            expect(mockAuditService.record).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    adminUserId: 'admin-1',
+                    ipAddress: '10.0.0.1',
+                    action: 'delete_customer',
+                    resourceType: 'customer',
+                    resourceId: 'cust-1',
+                }),
+            );
+        });
+
+        it('does NOT record audit when delete is blocked by dependencies', async () => {
+            const customer = buildCustomer();
+            customerRepo.findOne.mockResolvedValueOnce(customer);
+            reminderRepo.count.mockResolvedValueOnce(1);
+            membershipRepo.count.mockResolvedValueOnce(0);
+
+            await service.deleteCustomer('cust-1');
+
+            expect(mockAuditService.record).not.toHaveBeenCalled();
         });
 
         it('returns has_dependencies when reminders reference the customer', async () => {

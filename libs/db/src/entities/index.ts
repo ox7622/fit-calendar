@@ -9,3 +9,4 @@ export * from './membership-plan.entity';
 export * from './customer-membership.entity';
 export * from './guest-visit.entity';
 export * from './freeze-event.entity';
+export * from './admin-audit-log.entity';

@@ -5,7 +5,10 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
+import { AdminAuditService } from '../../admin/audit';
 import { MembershipPlansService } from '../membership-plans.service';
+
+const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
 const buildPlan = (overrides: Partial<MembershipPlan> = {}): MembershipPlan => ({
     id: 'plan-uuid-1',
@@ -28,6 +31,7 @@ describe('MembershipPlansService', () => {
     let membershipRepository: jest.Mocked<Repository<CustomerMembership>>;
 
     beforeEach(async () => {
+        mockAuditService.record.mockClear();
         mockRepository = {
             find: jest.fn(),
             findOne: jest.fn(),
@@ -45,6 +49,7 @@ describe('MembershipPlansService', () => {
                 MembershipPlansService,
                 { provide: getRepositoryToken(MembershipPlan), useValue: mockRepository },
                 { provide: getRepositoryToken(CustomerMembership), useValue: membershipRepository },
+                { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
 

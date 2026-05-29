@@ -13,6 +13,7 @@ import { validate } from './config/env.validation';
 import { loggerConfig } from './config/logger.config';
 import { AppController } from './controllers/app.controller';
 import { HealthController } from './controllers/health.controller';
+import { AdminAuditModule } from './modules/admin/audit';
 import { AdminAuthModule } from './modules/admin/auth';
 import { AdminClubModule } from './modules/admin/club';
 import { AdminCoachesModule } from './modules/admin/coaches';
@@ -99,6 +100,11 @@ import { AppService } from './services/app.service';
          * Reminder Module
          */
         ReminderModule,
+        /**
+         * Admin Audit Module — @Global; exposes AdminAuditService for the
+         * append-only trail of destructive admin actions.
+         */
+        AdminAuditModule,
         /**
          * Admin Auth Module
          */

@@ -6,6 +6,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     NotFoundException,
     Param,
     ParseUUIDPipe,
@@ -152,8 +153,12 @@ export class AdminMembershipController {
     })
     @ApiResponse({ status: 200, type: UndoGuestVisitResultDto })
     @ApiResponse({ status: 404 })
-    async undoGuestVisit(@Param('visitId', new ParseUUIDPipe()) visitId: string): Promise<UndoGuestVisitResultDto> {
-        return this.membershipService.undoGuestVisit(visitId);
+    async undoGuestVisit(
+        @Param('visitId', new ParseUUIDPipe()) visitId: string,
+        @AdminUser() admin: IAdminUserContext,
+        @Ip() ipAddress: string,
+    ): Promise<UndoGuestVisitResultDto> {
+        return this.membershipService.undoGuestVisit(visitId, { adminUserId: admin.id, ipAddress });
     }
 
     @Get('admin/memberships/:id/freezes')
@@ -200,8 +205,12 @@ export class AdminMembershipController {
     })
     @ApiResponse({ status: 200, type: UndoFreezeResultDto })
     @ApiResponse({ status: 404 })
-    async undoFreeze(@Param('freezeId', new ParseUUIDPipe()) freezeId: string): Promise<UndoFreezeResultDto> {
-        const result = await this.membershipService.undoFreeze(freezeId);
+    async undoFreeze(
+        @Param('freezeId', new ParseUUIDPipe()) freezeId: string,
+        @AdminUser() admin: IAdminUserContext,
+        @Ip() ipAddress: string,
+    ): Promise<UndoFreezeResultDto> {
+        const result = await this.membershipService.undoFreeze(freezeId, { adminUserId: admin.id, ipAddress });
         const membership = await this.membershipService.findById(result.membership.id);
         const currentFreeze = await this.membershipService.getActiveFreezeForMembership(result.membership.id);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

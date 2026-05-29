@@ -6,6 +6,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     Param,
     ParseUUIDPipe,
     Post,
@@ -17,6 +18,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { AdminUser } from '../../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 import { detectImageFormat } from '../../../common/utils/image-magic-bytes';
 
@@ -89,8 +91,12 @@ export class AdminCoachesController {
     @ApiResponse({ status: 204 })
     @ApiResponse({ status: 404 })
     @ApiResponse({ status: 409, description: 'Coach has schedule entries — use deactivation' })
-    async deleteCoach(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-        await this.coachesService.deleteCoach(id);
+    async deleteCoach(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
+    ): Promise<void> {
+        await this.coachesService.deleteCoach(id, { adminUserId, ipAddress });
     }
 
     @Post(':id/photo')

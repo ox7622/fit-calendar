@@ -5,7 +5,10 @@ import { Test } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import { QueryFailedError, type DataSource, type EntityManager } from 'typeorm';
 
+import { AdminAuditService } from '../../admin/audit';
 import { MembershipService, addByUnit } from '../membership.service';
+
+const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
 const buildPlan = (overrides: Partial<MembershipPlan> = {}): MembershipPlan =>
     ({
@@ -51,6 +54,7 @@ describe('MembershipService', () => {
     let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
+        mockAuditService.record.mockClear();
         membershipRepo = {
             findOne: jest.fn(),
             find: jest.fn(),
@@ -104,6 +108,7 @@ describe('MembershipService', () => {
                 { provide: getRepositoryToken(GuestVisit), useValue: guestVisitRepo },
                 { provide: getRepositoryToken(FreezeEvent), useValue: freezeRepo },
                 { provide: getDataSourceToken(), useValue: dataSource as unknown as DataSource },
+                { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
 

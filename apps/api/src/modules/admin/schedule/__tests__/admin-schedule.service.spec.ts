@@ -7,8 +7,11 @@ import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import type { DataSource } from 'typeorm';
 
 import { ReminderService } from '../../../reminder/reminder.service';
+import { AdminAuditService } from '../../audit';
 import { AdminScheduleService } from '../admin-schedule.service';
 import { SCHEDULE_CANCELLED_EVENT, SCHEDULE_CHANGED_EVENT } from '../schedule.events';
+
+const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
 type TQueryBuilderMock = {
     innerJoinAndSelect: jest.Mock;
@@ -77,6 +80,7 @@ describe('AdminScheduleService', () => {
     let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
+        mockAuditService.record.mockClear();
         scheduleRepo = {
             createQueryBuilder: jest.fn(),
             findOne: jest.fn(),
@@ -115,6 +119,7 @@ describe('AdminScheduleService', () => {
                 { provide: getDataSourceToken(), useValue: dataSource as unknown as DataSource },
                 { provide: EventEmitter2, useValue: eventEmitter },
                 { provide: ReminderService, useValue: reminderService },
+                { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
 

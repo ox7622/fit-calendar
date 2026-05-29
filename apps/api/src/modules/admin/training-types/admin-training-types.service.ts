@@ -3,6 +3,9 @@ import { ConflictException, Injectable, Logger, NotFoundException } from '@nestj
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { AdminAuditService } from '../audit';
+import type { IAuditContext } from '../audit/audit-context';
+
 import { CreateTrainingTypeDto } from './dto/create-training-type.dto';
 import { TrainingTypeDto, TrainingTypeOptionDto, toTrainingTypeDto } from './dto/training-type.dto';
 import { UpdateTrainingTypeDto } from './dto/update-training-type.dto';
@@ -16,6 +19,7 @@ export class AdminTrainingTypesService {
         private readonly typeRepo: Repository<TrainingType>,
         @InjectRepository(ScheduleEntry)
         private readonly scheduleRepo: Repository<ScheduleEntry>,
+        private readonly auditService: AdminAuditService,
     ) {}
 
     async findAll(): Promise<TrainingTypeDto[]> {
@@ -71,14 +75,23 @@ export class AdminTrainingTypesService {
      * are not auto-cleaned — see Story 6.6 Dev Notes "Why we don't propagate
      * metadata changes to existing schedule entries".
      */
-    async deleteType(id: string): Promise<void> {
+    async deleteType(id: string, audit?: IAuditContext): Promise<void> {
         const type = await this.typeRepo.findOne({ where: { id } });
         if (!type) throw new NotFoundException(`TrainingType ${id} not found`);
         const entryCount = await this.scheduleRepo.count({ where: { trainingTypeId: id } });
         if (entryCount > 0) {
             throw new ConflictException('Тип не может быть удалён: есть занятия. Используйте деактивацию.');
         }
+        const snapshot = { name: type.name };
         await this.typeRepo.remove(type);
         this.logger.log(`Deleted training type ${id}`);
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_training_type',
+            resourceType: 'training_type',
+            resourceId: id,
+            metadata: snapshot,
+        });
     }
 }

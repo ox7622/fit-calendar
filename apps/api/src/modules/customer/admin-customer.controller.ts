@@ -7,6 +7,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     NotFoundException,
     Param,
     ParseUUIDPipe,
@@ -22,6 +23,7 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiResponse, ApiTag
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
+import { AdminUser } from '../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 import { CustomerImportService } from './customer-import.service';
@@ -152,8 +154,12 @@ export class AdminCustomerController {
     @ApiResponse({ status: 204 })
     @ApiResponse({ status: 404 })
     @ApiResponse({ status: 409, description: 'Customer has dependent records' })
-    async delete(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-        const result = await this.customerService.deleteCustomer(id);
+    async delete(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
+    ): Promise<void> {
+        const result = await this.customerService.deleteCustomer(id, { adminUserId, ipAddress });
         if (result === 'not_found') {
             throw new NotFoundException(`Customer ${id} not found`);
         }

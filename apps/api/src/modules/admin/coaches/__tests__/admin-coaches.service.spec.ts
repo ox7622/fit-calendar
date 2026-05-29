@@ -4,8 +4,11 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { AdminAuditService } from '../../audit';
 import { CloudinaryService } from '../../uploads/cloudinary.service';
 import { AdminCoachesService } from '../admin-coaches.service';
+
+const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
 const buildCoach = (overrides: Partial<Coach> = {}): Coach =>
     ({
@@ -34,6 +37,7 @@ describe('AdminCoachesService', () => {
     let cloudinary: jest.Mocked<Pick<CloudinaryService, 'uploadCoachPhoto'>>;
 
     beforeEach(async () => {
+        mockAuditService.record.mockClear();
         coachRepo = {
             find: jest.fn(),
             findOne: jest.fn(),
@@ -50,6 +54,7 @@ describe('AdminCoachesService', () => {
                 { provide: getRepositoryToken(Coach), useValue: coachRepo },
                 { provide: getRepositoryToken(ScheduleEntry), useValue: scheduleRepo },
                 { provide: CloudinaryService, useValue: cloudinary },
+                { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
 

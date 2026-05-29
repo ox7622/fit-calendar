@@ -4,6 +4,9 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, addMonths, addWeeks, subDays } from 'date-fns';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 
+import { AdminAuditService } from '../admin/audit';
+import type { IAuditContext } from '../admin/audit/audit-context';
+
 const PG_UNIQUE_VIOLATION = '23505';
 
 export type TAssignResult =
@@ -59,6 +62,7 @@ export class MembershipService {
         private readonly freezeRepo: Repository<FreezeEvent>,
         @InjectDataSource()
         private readonly dataSource: DataSource,
+        private readonly auditService: AdminAuditService,
     ) {}
 
     /**
@@ -272,8 +276,8 @@ export class MembershipService {
      * drifts, the admin UI surfaces it visibly and reception can fix
      * manually. YAGNI on the cap.
      */
-    async undoGuestVisit(visitId: string): Promise<{ remaining: number }> {
-        return this.dataSource.transaction(async (manager) => {
+    async undoGuestVisit(visitId: string, audit?: IAuditContext): Promise<{ remaining: number }> {
+        const result = await this.dataSource.transaction(async (manager) => {
             const visitRepo = manager.getRepository(GuestVisit);
             const visit = await visitRepo.findOne({ where: { id: visitId } });
             if (!visit) throw new NotFoundException(`GuestVisit ${visitId} not found`);
@@ -291,8 +295,21 @@ export class MembershipService {
             await repo.save(membership);
             await visitRepo.delete({ id: visitId });
             this.logger.log(`Undid guest visit ${visitId} (membership ${membership.id})`);
-            return { remaining: membership.guestVisitsRemaining };
+            return {
+                remaining: membership.guestVisitsRemaining,
+                membershipId: membership.id,
+                visitedAt: visit.visitedAt,
+            };
         });
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_guest_visit',
+            resourceType: 'guest_visit',
+            resourceId: visitId,
+            metadata: { membershipId: result.membershipId, visitedAt: result.visitedAt },
+        });
+        return { remaining: result.remaining };
     }
 
     findFreezesByMembership(membershipId: string): Promise<FreezeEvent[]> {
@@ -388,8 +405,8 @@ export class MembershipService {
      * Story 7.6 — undo a freeze: increment counter back, shift endDate
      * backward by `durationDays`, delete the FreezeEvent row.
      */
-    async undoFreeze(freezeId: string): Promise<{ membership: CustomerMembership }> {
-        return this.dataSource.transaction(async (manager) => {
+    async undoFreeze(freezeId: string, audit?: IAuditContext): Promise<{ membership: CustomerMembership }> {
+        const result = await this.dataSource.transaction(async (manager) => {
             const freezeRepo = manager.getRepository(FreezeEvent);
             const freeze = await freezeRepo.findOne({ where: { id: freezeId } });
             if (!freeze) throw new NotFoundException(`FreezeEvent ${freezeId} not found`);
@@ -407,8 +424,25 @@ export class MembershipService {
             await repo.save(membership);
             await freezeRepo.delete({ id: freezeId });
             this.logger.log(`Undid freeze ${freezeId} (membership ${membership.id})`);
-            return { membership };
+            return {
+                membership,
+                snapshot: {
+                    membershipId: membership.id,
+                    durationDays: freeze.durationDays,
+                    startDate: freeze.startDate,
+                    endDate: freeze.endDate,
+                },
+            };
         });
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_freeze_event',
+            resourceType: 'freeze_event',
+            resourceId: freezeId,
+            metadata: result.snapshot,
+        });
+        return { membership: result.membership };
     }
 
     /**

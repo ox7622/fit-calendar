@@ -4,7 +4,10 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { AdminAuditService } from '../../audit';
 import { AdminTrainingTypesService } from '../admin-training-types.service';
+
+const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
 const buildType = (overrides: Partial<TrainingType> = {}): TrainingType =>
     ({
@@ -32,6 +35,7 @@ describe('AdminTrainingTypesService', () => {
     let scheduleRepo: { count: jest.Mock };
 
     beforeEach(async () => {
+        mockAuditService.record.mockClear();
         typeRepo = {
             find: jest.fn(),
             findOne: jest.fn(),
@@ -46,6 +50,7 @@ describe('AdminTrainingTypesService', () => {
                 AdminTrainingTypesService,
                 { provide: getRepositoryToken(TrainingType), useValue: typeRepo },
                 { provide: getRepositoryToken(ScheduleEntry), useValue: scheduleRepo },
+                { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
 

@@ -5,6 +5,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     Param,
     ParseUUIDPipe,
     Post,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { AdminUser } from '../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 import { CreatePlanDto } from './dto/create-plan.dto';
@@ -85,7 +87,11 @@ export class AdminMembershipPlansController {
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     @ApiResponse({ status: 404, description: 'Plan not found' })
     @ApiResponse({ status: 409, description: 'Plan has memberships — deactivate instead' })
-    async deletePlan(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-        await this.plansService.deletePlan(id);
+    async deletePlan(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
+    ): Promise<void> {
+        await this.plansService.deletePlan(id, { adminUserId, ipAddress });
     }
 }

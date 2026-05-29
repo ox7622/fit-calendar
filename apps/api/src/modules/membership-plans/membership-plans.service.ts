@@ -4,6 +4,9 @@ import { ConflictException, Injectable, Logger, NotFoundException } from '@nestj
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { AdminAuditService } from '../admin/audit';
+import type { IAuditContext } from '../admin/audit/audit-context';
+
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { AdminPlanResponseDto, PlanOptionDto, PlanResponseDto } from './dto/plan-response.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
@@ -17,6 +20,7 @@ export class MembershipPlansService {
         private readonly planRepository: Repository<MembershipPlan>,
         @InjectRepository(CustomerMembership)
         private readonly membershipRepository: Repository<CustomerMembership>,
+        private readonly auditService: AdminAuditService,
     ) {}
 
     async findAllActive(): Promise<PlanResponseDto[]> {
@@ -68,7 +72,7 @@ export class MembershipPlansService {
         return toAdminPlanResponse(saved);
     }
 
-    async deletePlan(id: string): Promise<void> {
+    async deletePlan(id: string, audit?: IAuditContext): Promise<void> {
         const plan = await this.planRepository.findOne({ where: { id } });
         if (!plan) {
             throw new NotFoundException(`Membership plan with id ${id} not found`);
@@ -84,8 +88,17 @@ export class MembershipPlansService {
             throw new ConflictException('План не может быть удалён: есть активные подписки. Используйте деактивацию.');
         }
 
+        const snapshot = { name: plan.name, durationValue: plan.durationValue, durationUnit: plan.durationUnit };
         await this.planRepository.remove(plan);
         this.logger.log(`Deleted membership plan ${id}`);
+        await this.auditService.record({
+            adminUserId: audit?.adminUserId ?? null,
+            ipAddress: audit?.ipAddress ?? null,
+            action: 'delete_plan',
+            resourceType: 'membership_plan',
+            resourceId: id,
+            metadata: snapshot,
+        });
     }
 
     /**

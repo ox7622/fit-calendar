@@ -5,6 +5,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     Param,
     ParseUUIDPipe,
     Post,
@@ -14,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { AdminUser } from '../../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 
 import { AdminScheduleService } from './admin-schedule.service';
@@ -101,8 +103,10 @@ export class AdminScheduleController {
     async cancel(
         @Param('id', new ParseUUIDPipe()) id: string,
         @Body() dto: CancelClassDto,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
     ): Promise<AdminScheduleItemDto> {
-        return this.scheduleService.cancel(id, dto.reason ?? null);
+        return this.scheduleService.cancel(id, dto.reason ?? null, { adminUserId, ipAddress });
     }
 
     @Delete(':id')
@@ -119,7 +123,11 @@ export class AdminScheduleController {
     @ApiResponse({ status: 401 })
     @ApiResponse({ status: 404 })
     @ApiResponse({ status: 409, description: 'Class has reminders or is still in the future' })
-    async deleteEntry(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-        await this.scheduleService.deleteEntry(id);
+    async deleteEntry(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
+    ): Promise<void> {
+        await this.scheduleService.deleteEntry(id, { adminUserId, ipAddress });
     }
 }

@@ -36,6 +36,10 @@ Source of truth is [`.env.example`](../../.env.example). Production must define
 | `API_URL` | API | Used by the bot to register the Telegram webhook (`{API_URL}/bot/webhook`). |
 | `VITE_API_URL` | Mini-app + admin builds | Baked into the bundle at build time, not runtime — rebuild + redeploy the frontends if it changes. |
 | `LOG_LEVEL` | API | Defaults to `info`. |
+| `SWAGGER_ENABLED` | API | Default `true`. Set to `false` in production so the API schema isn't publicly discoverable. |
+| `NX_DB_POOL_MAX` / `NX_DB_STATEMENT_TIMEOUT_MS` / `NX_DB_IDLE_TX_TIMEOUT_MS` | API | Defaults: 10, 30000, 60000. Tune `NX_DB_POOL_MAX` proportionally when scaling out replicas. |
+| `VITE_SENTRY_DSN_ADMIN` / `VITE_SENTRY_DSN_MINI` | Admin / Mini-app builds | Without these, Sentry init no-ops; frontend errors stay invisible. Baked at build time — rebuild + redeploy frontends if changed. |
+| `VITE_SENTRY_ENVIRONMENT` / `VITE_SENTRY_RELEASE` | Admin / Mini-app builds | Optional labels forwarded to Sentry; default to Vite `MODE`. |
 
 > Both Cloudinary credentials and `TELEGRAM_BOT_TOKEN` are technically optional at boot
 > for ergonomics during local dev. In **production** treat them as required and check
@@ -92,8 +96,11 @@ If the API has a regression:
 ## 8. Known gaps to watch for (track in issues, not blockers)
 
 -   **Single-instance API only.** `ReminderDispatcherService.isProcessing` is an in-memory boolean; running ≥2 replicas causes duplicate sends. Before scaling out, swap to `pg_try_advisory_lock`.
--   **No row lock on `cancel()` (6.4) or `assign()` (7.4).** Concurrent admin clicks can double-emit events or violate the "single active membership" invariant. Low risk on a single reception desk.
 -   **Out-of-band notifications don't persist retry state** (5.4/5.5). API restart mid-retry → user misses the message but sees the corrected state in the Mini App on next fetch.
 -   **Reminder dispatcher is unaware of freezes** (7.6). Frozen members still get reminders for classes during the freeze window.
+-   **Admin audit log has no UI yet.** Destructive admin actions write to the `admin_audit_log` table (see Hardening Pass 2). Admins read it via SQL until a panel ships.
+-   **`pnpm audit` gate in CI is set to `--audit-level=critical`.** Baseline has 13 high-severity transitive advisories that need coordinated upstream bumps (typeorm, multer, path-to-regexp). Ratchet to `high` after the next dep-bump round.
 
-All four are documented in the relevant story Dev Notes; this list is for ops awareness.
+> Resolved in Hardening Pass 2: the `cancel()` (6.4) and `assign()` (7.4) row-lock gaps that used to live here. Both ship a `pessimistic_write` lock today, plus the `uq_active_membership_per_customer` unique partial index as defense in depth.
+
+All items above are documented in the relevant story Dev Notes; this list is for ops awareness.

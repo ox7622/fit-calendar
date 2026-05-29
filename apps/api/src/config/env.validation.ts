@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, MinLength, validateSync } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength, validateSync } from 'class-validator';
 
 // Substring tokens that mark a JWT_SECRET as a placeholder. Refused in production
 // so a copy-pasted .env.example value can't accidentally ship.
@@ -99,6 +99,15 @@ export class EnvironmentVariables {
     @IsString()
     @IsOptional()
     CLOUDINARY_API_SECRET?: string;
+
+    // Swagger gating. Defaults to "true" for dev ergonomics; set "false" in
+    // production so the API schema isn't publicly discoverable. Parsed at the
+    // call site (see `main.ts`) — kept as a string here because class-transformer's
+    // implicit boolean coercion treats "false" as truthy.
+    @IsString()
+    @IsOptional()
+    @IsIn(['true', 'false'])
+    SWAGGER_ENABLED?: string = 'true';
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

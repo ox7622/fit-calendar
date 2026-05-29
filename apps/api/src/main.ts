@@ -5,6 +5,7 @@ import './instrument';
 import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
 
@@ -13,10 +14,19 @@ import { HttpExceptionFilter } from './common/filters';
 import { setupSwagger } from './config/swagger';
 
 async function bootstrap() {
-    const app = await NestFactory.create(ApiModule, { bufferLogs: true });
+    const app = await NestFactory.create<NestExpressApplication>(ApiModule, {
+        bufferLogs: true,
+        bodyParser: false,
+    });
 
     // Use Pino logger
     app.useLogger(app.get(PinoLogger));
+
+    // Graceful shutdown: triggers onModuleDestroy / onApplicationShutdown hooks
+    // on SIGTERM so the reminder dispatcher tick + in-flight DB transactions
+    // can finish before the process exits. Without this, a SIGTERM kills the
+    // event loop mid-work and leaves transactions to be rolled back by Postgres.
+    app.enableShutdownHooks();
 
     // подключение конфига
     const configService = app.get(ConfigService);
@@ -38,6 +48,15 @@ async function bootstrap() {
             crossOriginEmbedderPolicy: false,
         }),
     );
+
+    // Cap JSON + urlencoded bodies at 1 MB. File uploads (coach photo, club
+    // logo, customer CSV) all use `FileInterceptor` with their own per-route
+    // `fileSize` limits, so this cap doesn't touch them. The default Express
+    // limit is 100 KB which is fine but undocumented; setting it explicitly
+    // makes the DoS surface obvious. Nest's own bodyParser is disabled above
+    // via `bodyParser: false` so these registrations are authoritative.
+    app.useBodyParser('json', { limit: '1mb' });
+    app.useBodyParser('urlencoded', { extended: true, limit: '1mb' });
 
     // Global exception filter
     app.useGlobalFilters(new HttpExceptionFilter());
@@ -74,8 +93,11 @@ async function bootstrap() {
         }),
     );
 
-    // Настройка Swagger
-    setupSwagger(app, configService);
+    // Swagger is gated by SWAGGER_ENABLED (default "true"). Set "false" in
+    // production so the schema + every endpoint shape isn't publicly discoverable.
+    if (configService.get<string>('SWAGGER_ENABLED') !== 'false') {
+        setupSwagger(app, configService);
+    }
 
     // Настройка префикса API сервиса
     const apiPrefix = configService.getOrThrow<string>('NX_BE_API_FITCALENDAR_SERVICE_PREFIX');

@@ -173,5 +173,21 @@ describe('Environment Validation', () => {
 
             expect(() => validate(placeholderInDev)).not.toThrow();
         });
+
+        describe('SWAGGER_ENABLED', () => {
+            it('defaults to "true" when the var is absent', () => {
+                expect(validate(validConfig).SWAGGER_ENABLED).toBe('true');
+            });
+
+            it('accepts "true" and "false"', () => {
+                expect(validate({ ...validConfig, SWAGGER_ENABLED: 'true' }).SWAGGER_ENABLED).toBe('true');
+                expect(validate({ ...validConfig, SWAGGER_ENABLED: 'false' }).SWAGGER_ENABLED).toBe('false');
+            });
+
+            it('rejects anything other than "true"/"false"', () => {
+                expect(() => validate({ ...validConfig, SWAGGER_ENABLED: 'yes' })).toThrow('SWAGGER_ENABLED');
+                expect(() => validate({ ...validConfig, SWAGGER_ENABLED: '1' })).toThrow('SWAGGER_ENABLED');
+            });
+        });
     });
 });

@@ -1,11 +1,11 @@
-import { AdminAuditAction, AdminAuditLog } from '@fitcalendar/db';
+import { TAdminAuditAction, AdminAuditLog } from '@fitcalendar/db';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 export interface IRecordAuditInput {
     adminUserId: string | null;
-    action: AdminAuditAction;
+    action: TAdminAuditAction;
     resourceType: string;
     resourceId: string;
     metadata?: Record<string, unknown> | null;

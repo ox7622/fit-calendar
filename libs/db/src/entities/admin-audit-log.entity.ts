@@ -11,7 +11,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
  * lose history. `metadata` carries an opaque JSON snapshot of the deleted
  * resource for forensics.
  */
-export type AdminAuditAction =
+export type TAdminAuditAction =
     | 'delete_customer'
     | 'delete_plan'
     | 'cancel_schedule_entry'
@@ -32,7 +32,7 @@ export class AdminAuditLog {
     adminUserId: string | null;
 
     @Column({ type: 'text' })
-    action: AdminAuditAction;
+    action: TAdminAuditAction;
 
     @Column({ type: 'text' })
     resourceType: string;

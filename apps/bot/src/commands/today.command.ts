@@ -1,6 +1,6 @@
 import type { Bot, Context } from 'grammy';
 
-interface ClassEntry {
+interface IClassEntry {
     id: string;
     name: string;
     startTime: string;
@@ -38,13 +38,13 @@ function formatTime(isoString: string): string {
 /**
  * Fetch today's schedule from the API
  */
-async function fetchTodaySchedule(apiUrl: string): Promise<ClassEntry[]> {
+async function fetchTodaySchedule(apiUrl: string): Promise<IClassEntry[]> {
     const url = `${apiUrl}/api/v1/schedule/today`;
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`API responded with ${response.status}`);
     }
-    return response.json() as Promise<ClassEntry[]>;
+    return response.json() as Promise<IClassEntry[]>;
 }
 
 /**

@@ -92,17 +92,39 @@ export class BotService implements OnModuleInit {
 
         this.logger.log(`Bot @${this.bot.botInfo.username} initialized`);
 
-        // Register webhook if we have the secret and API URL
+        // Register webhook if we have the secret and API URL.
+        // BOT_MODE=polling means the standalone bot owns updates (local dev via
+        // the tunnel script). Registering a webhook here would make Telegram
+        // reject the polling getUpdates with a 409 conflict, so skip it — the
+        // two modes are mutually exclusive by design.
+        const botMode = this.configService.get<string>('BOT_MODE');
         const apiUrl = this.configService.get<string>('API_URL');
-        if (apiUrl && webhookSecret) {
-            await this.registerWebhook(apiUrl, webhookSecret);
+        if (botMode === 'polling') {
+            this.logger.log('BOT_MODE=polling — standalone bot owns updates; skipping webhook registration');
+        } else if (apiUrl && webhookSecret) {
+            // `API_URL` is the bare public origin (e.g. https://api.fitcalendar.ru).
+            // The webhook controller lives behind the global API prefix
+            // (NX_BE_API_FITCALENDAR_SERVICE_PREFIX, default "api"), so the
+            // registered URL must include it or Telegram POSTs to a 404.
+            const apiPrefix = this.configService.get<string>('NX_BE_API_FITCALENDAR_SERVICE_PREFIX') ?? 'api';
+            await this.registerWebhook(BotService.buildWebhookUrl(apiUrl, apiPrefix), webhookSecret);
         }
     }
 
-    private async registerWebhook(apiUrl: string, secret: string): Promise<void> {
-        if (!this.bot) return;
+    /**
+     * Builds the public webhook URL Telegram will POST to. Kept static + pure so
+     * the prefix-handling (the part that previously 404'd) is unit-testable
+     * without standing up onModuleInit. Trims stray slashes so both
+     * `https://host` and `https://host/` produce one clean URL.
+     */
+    static buildWebhookUrl(apiUrl: string, apiPrefix: string): string {
+        const origin = apiUrl.replace(/\/+$/, '');
+        const prefix = apiPrefix.replace(/^\/+|\/+$/g, '');
+        return prefix ? `${origin}/${prefix}/bot/webhook` : `${origin}/bot/webhook`;
+    }
 
-        const webhookUrl = `${apiUrl}/bot/webhook`;
+    private async registerWebhook(webhookUrl: string, secret: string): Promise<void> {
+        if (!this.bot) return;
 
         try {
             await this.bot.api.setWebhook(webhookUrl, {

@@ -51,6 +51,26 @@ describe('BotService.sendNotification', () => {
     });
 });
 
+describe('BotService.buildWebhookUrl', () => {
+    it('includes the global API prefix so Telegram hits the real controller route', () => {
+        expect(BotService.buildWebhookUrl('https://api.fitcalendar.ru', 'api')).toBe(
+            'https://api.fitcalendar.ru/api/bot/webhook',
+        );
+    });
+
+    it('tolerates a trailing slash on the origin and stray slashes on the prefix', () => {
+        expect(BotService.buildWebhookUrl('https://api.fitcalendar.ru/', '/api/')).toBe(
+            'https://api.fitcalendar.ru/api/bot/webhook',
+        );
+    });
+
+    it('omits the prefix segment when the prefix is empty', () => {
+        expect(BotService.buildWebhookUrl('https://api.fitcalendar.ru', '')).toBe(
+            'https://api.fitcalendar.ru/bot/webhook',
+        );
+    });
+});
+
 describe('BotService.isPermanentSendError', () => {
     function makeGrammyError(errorCode: number): GrammyError {
         const err = Object.create(GrammyError.prototype) as GrammyError;

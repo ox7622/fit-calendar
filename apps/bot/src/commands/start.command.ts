@@ -1,14 +1,14 @@
 import type { Bot, Context } from 'grammy';
 
+const WELCOME_MESSAGE =
+    'Добро пожаловать в FitCalendar! 🏋️\n\n' + 'Я помогу вам следить за расписанием занятий и напомню о тренировках.';
+
+const OPEN_APP_HINT = '\n\nОткройте приложение, чтобы посмотреть расписание:';
+
 export function registerStartCommand(bot: Bot<Context>, miniAppUrl?: string): void {
     bot.command('start', async (ctx) => {
-        const welcomeMessage =
-            'Добро пожаловать в FitCalendar! 🏋️\n\n' +
-            'Я помогу вам следить за расписанием занятий и напомню о тренировках.\n\n' +
-            'Откройте приложение, чтобы посмотреть расписание:';
-
         if (miniAppUrl) {
-            await ctx.reply(welcomeMessage, {
+            await ctx.reply(WELCOME_MESSAGE + OPEN_APP_HINT, {
                 reply_markup: {
                     inline_keyboard: [
                         [
@@ -21,10 +21,7 @@ export function registerStartCommand(bot: Bot<Context>, miniAppUrl?: string): vo
                 },
             });
         } else {
-            await ctx.reply(
-                'Добро пожаловать в FitCalendar! 🏋️\n\n' +
-                    'Я помогу вам следить за расписанием занятий и напомню о тренировках.',
-            );
+            await ctx.reply(WELCOME_MESSAGE);
         }
     });
 }

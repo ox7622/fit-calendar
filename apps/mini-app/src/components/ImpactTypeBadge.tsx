@@ -1,15 +1,14 @@
+import type { TImpactType } from '@fitcalendar/shared';
 import { Activity, Dumbbell, Flame, Scale } from 'lucide-react';
 import type { JSX } from 'react';
 
-type ImpactType = 'cardio' | 'strength' | 'flexibility' | 'balance';
-
 interface ImpactTypeBadgeProps {
-    type: ImpactType;
+    type: TImpactType;
     size?: 'sm' | 'md';
 }
 
 const impactConfig: Record<
-    ImpactType,
+    TImpactType,
     { label: string; colorClass: string; Icon: React.ComponentType<{ size?: number; className?: string }> }
 > = {
     cardio: {

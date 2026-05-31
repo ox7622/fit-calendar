@@ -1,3 +1,4 @@
+import { DIFFICULTY_LEVEL_LABELS, IMPACT_TYPES, type TDifficultyLevel, type TImpactType } from '@fitcalendar/shared';
 import { X } from 'lucide-react';
 import type { JSX } from 'react';
 
@@ -13,16 +14,9 @@ interface FilterSheetProps {
     coaches: CoachOption[];
 }
 
-type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
-type ImpactType = 'cardio' | 'strength' | 'flexibility' | 'balance';
-
-const difficultyOptions: { value: DifficultyLevel; label: string }[] = [
-    { value: 'beginner', label: 'Начальный' },
-    { value: 'intermediate', label: 'Средний' },
-    { value: 'advanced', label: 'Продвинутый' },
-];
-
-const impactTypeOptions: ImpactType[] = ['cardio', 'strength', 'flexibility', 'balance'];
+const difficultyOptions: { value: TDifficultyLevel; label: string }[] = (
+    ['beginner', 'intermediate', 'advanced'] as const
+).map((value) => ({ value, label: DIFFICULTY_LEVEL_LABELS[value] }));
 
 function countActiveFilters(filters: ScheduleFilters): number {
     let count = 0;
@@ -36,14 +30,14 @@ function countActiveFilters(filters: ScheduleFilters): number {
 export function FilterSheet({ filters, onChange, onClose, trainingTypes, coaches }: FilterSheetProps): JSX.Element {
     const activeCount = countActiveFilters(filters);
 
-    function toggleDifficulty(level: DifficultyLevel): void {
+    function toggleDifficulty(level: TDifficultyLevel): void {
         onChange({
             ...filters,
             difficultyLevel: filters.difficultyLevel === level ? undefined : level,
         });
     }
 
-    function toggleImpactType(type: ImpactType): void {
+    function toggleImpactType(type: TImpactType): void {
         const current = filters.impactType ?? [];
         const updated = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
         onChange({ ...filters, impactType: updated.length > 0 ? updated : undefined });
@@ -125,7 +119,7 @@ export function FilterSheet({ filters, onChange, onClose, trainingTypes, coaches
                             Тип нагрузки
                         </h3>
                         <div className="flex gap-2 flex-wrap">
-                            {impactTypeOptions.map((type) => {
+                            {IMPACT_TYPES.map((type) => {
                                 const isSelected = (filters.impactType ?? []).includes(type);
                                 return (
                                     <button

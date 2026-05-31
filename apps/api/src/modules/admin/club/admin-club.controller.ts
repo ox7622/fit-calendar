@@ -14,14 +14,15 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { MAX_UPLOAD_BYTES } from '@fitcalendar/shared';
+
+import { UPLOAD_ERRORS } from '../../../common/constants';
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 import { detectImageFormat } from '../../../common/utils/image-magic-bytes';
 
 import { AdminClubService } from './admin-club.service';
 import { AdminClubInfoDto } from './dto/club-info.dto';
 import { UpdateClubInfoDto } from './dto/update-club-info.dto';
-
-const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('Admin Club')
 @ApiBearerAuth()
@@ -55,12 +56,12 @@ export class AdminClubController {
     @ApiResponse({ status: 400, description: 'Missing/invalid file or non-image MIME' })
     @ApiResponse({ status: 413, description: 'File exceeds 5 MB' })
     @ApiResponse({ status: 503, description: 'Cloudinary not configured' })
-    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_LOGO_BYTES } }))
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
     async uploadLogo(@UploadedFile() file: Express.Multer.File): Promise<{ logoUrl: string }> {
-        if (!file) throw new BadRequestException('Файл не загружен');
+        if (!file) throw new BadRequestException(UPLOAD_ERRORS.FILE_REQUIRED);
         // Magic-byte sniff — see common/utils/image-magic-bytes.ts.
         if (!detectImageFormat(file.buffer)) {
-            throw new BadRequestException('Поддерживаются только изображения JPEG / PNG / WebP / GIF');
+            throw new BadRequestException(UPLOAD_ERRORS.UNSUPPORTED_IMAGE_TYPE);
         }
         return this.clubService.setLogo(file.buffer);
     }

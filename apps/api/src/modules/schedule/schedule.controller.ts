@@ -1,7 +1,5 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-
-import { TelegramAuthGuard } from '../../common/guards/telegram-auth.guard';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { LabelValueDto } from './dto/label-value.dto';
 import { ScheduleFilterDto } from './dto/schedule-filter.dto';
@@ -15,7 +13,7 @@ import { ScheduleService } from './schedule.service';
 export class ScheduleController {
     constructor(private readonly scheduleService: ScheduleService) {}
 
-    // ─── Metadata endpoints (no auth) ───────────────────────────────────────────
+    // ─── Metadata endpoints ───────────────────────────────────────────
 
     @Get('metadata/training-types')
     @ApiOperation({ summary: 'Get all active training types' })
@@ -38,15 +36,9 @@ export class ScheduleController {
         return this.scheduleService.getImpactTypes();
     }
 
-    // ─── Authenticated schedule endpoints ───────────────────────────────────────
+    // ─── Schedule endpoints (public catalog) ──────────────────────────
 
     @Get('today')
-    @UseGuards(TelegramAuthGuard)
-    @ApiHeader({
-        name: 'X-Telegram-Init-Data',
-        description: 'Telegram Mini App initData for authentication',
-        required: true,
-    })
     @ApiOperation({ summary: "Get today's schedule" })
     @ApiQuery({ name: 'difficultyLevel', required: false, enum: ['beginner', 'intermediate', 'advanced'] })
     @ApiQuery({ name: 'coachId', required: false, type: String })
@@ -64,18 +56,11 @@ export class ScheduleController {
         description: 'Include cancelled classes (default: false)',
     })
     @ApiResponse({ status: 200, description: "Today's schedule", type: [ClassResponseDto] })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async getToday(@Query() filter: ScheduleFilterDto): Promise<ClassResponseDto[]> {
         return this.scheduleService.getToday(filter);
     }
 
     @Get('week')
-    @UseGuards(TelegramAuthGuard)
-    @ApiHeader({
-        name: 'X-Telegram-Init-Data',
-        description: 'Telegram Mini App initData for authentication',
-        required: true,
-    })
     @ApiOperation({ summary: 'Get weekly schedule (7 days from today)' })
     @ApiQuery({ name: 'difficultyLevel', required: false, enum: ['beginner', 'intermediate', 'advanced'] })
     @ApiQuery({ name: 'coachId', required: false, type: String })
@@ -93,18 +78,11 @@ export class ScheduleController {
         description: 'Include cancelled classes (default: false)',
     })
     @ApiResponse({ status: 200, description: 'Weekly schedule', type: WeekScheduleDto })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async getWeek(@Query() filter: ScheduleFilterDto): Promise<WeekScheduleDto> {
         return this.scheduleService.getWeek(filter);
     }
 
     @Get(':id')
-    @UseGuards(TelegramAuthGuard)
-    @ApiHeader({
-        name: 'X-Telegram-Init-Data',
-        description: 'Telegram Mini App initData for authentication',
-        required: true,
-    })
     @ApiOperation({ summary: 'Get a single schedule entry by id or date' })
     @ApiParam({
         name: 'id',
@@ -127,7 +105,6 @@ export class ScheduleController {
         description: 'Include cancelled classes (default: false)',
     })
     @ApiResponse({ status: 200, description: 'Schedule entry or list for date', type: ClassResponseDto })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
     @ApiResponse({ status: 404, description: 'Not found' })
     async getByIdOrDate(
         @Param('id') id: string,

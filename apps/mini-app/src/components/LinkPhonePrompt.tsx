@@ -1,10 +1,11 @@
+import { VALIDATION_MESSAGES } from '@fitcalendar/shared';
 import { FormEvent, useState } from 'react';
 
 import { ApiError, meApi } from '@/shared/api';
 import { useCustomerStore } from '@/shared/stores';
 
 const ERROR_MESSAGES_RU: Record<string, string> = {
-    INVALID_PHONE_FORMAT: 'Неверный формат номера. Пример: +7 999 555 12 34.',
+    INVALID_PHONE_FORMAT: VALIDATION_MESSAGES.INVALID_PHONE_FORMAT,
     PHONE_NOT_FOUND: 'Этот номер не зарегистрирован. Обратитесь на ресепшн.',
     PHONE_ALREADY_LINKED_TO_OTHER: 'Этот номер уже привязан к другому аккаунту. Свяжитесь с админом.',
 };

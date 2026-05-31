@@ -5,6 +5,7 @@
     "main": "index.js",
     "scripts": {
         "dev:commit": "./node_modules/cz-customizable/standalone.js",
+        "dev:tunnel": "./scripts/dev-tunnel.sh",
         "all:watch": "pnpm nx run-many -t serve --parallel=10",
         "all:build": "pnpm nx run-many -t build --parallel=10",
         "all:lint": "pnpm nx run-many -t lint --parallel=10",

@@ -4,10 +4,9 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, addMonths, addWeeks, subDays } from 'date-fns';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 
+import { PG_UNIQUE_VIOLATION } from '../../common/constants';
 import { AdminAuditService } from '../admin/audit';
 import type { IAuditContext } from '../admin/audit/audit-context';
-
-const PG_UNIQUE_VIOLATION = '23505';
 
 export type TAssignResult =
     | { status: 'created'; membership: CustomerMembership }

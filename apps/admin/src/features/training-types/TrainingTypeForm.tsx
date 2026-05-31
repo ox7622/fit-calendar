@@ -1,3 +1,4 @@
+import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
 import { useState, type FormEvent } from 'react';
 
 import { DIFFICULTY_LEVELS, IMPACT_TYPES, type TDifficulty, type TImpactType } from '@/shared/api';
@@ -29,11 +30,7 @@ const EMPTY_VALUES: ITrainingTypeFormValues = {
     isActive: true,
 };
 
-const DIFFICULTY_LABELS: Record<TDifficulty, string> = {
-    beginner: 'Начинающий',
-    intermediate: 'Средний',
-    advanced: 'Продвинутый',
-};
+const DIFFICULTY_LABELS: Record<TDifficulty, string> = DIFFICULTY_LEVEL_LABELS;
 
 export function TrainingTypeForm({ initial, submitLabel, onSubmit, onCancel }: ITrainingTypeFormProps) {
     const [values, setValues] = useState<ITrainingTypeFormValues>({ ...EMPTY_VALUES, ...initial });

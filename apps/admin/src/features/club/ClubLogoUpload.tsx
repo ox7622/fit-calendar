@@ -1,8 +1,6 @@
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-
+import { MAX_UPLOAD_BYTES } from '@fitcalendar/shared';
 import { ImageIcon } from 'lucide-react';
-
-const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 
 interface IClubLogoUploadProps {
     currentUrl: string | null;
@@ -25,7 +23,7 @@ export function ClubLogoUpload({ currentUrl, onUpload, disabled }: IClubLogoUplo
 
     const validate = (file: File): string | null => {
         if (!file.type.startsWith('image/')) return 'Поддерживаются только изображения';
-        if (file.size > MAX_LOGO_BYTES) return 'Файл больше 5 МБ';
+        if (file.size > MAX_UPLOAD_BYTES) return 'Файл больше 5 МБ';
         return null;
     };
 

@@ -1,3 +1,4 @@
+import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
 import { useEffect, useState } from 'react';
 
 import { adminTrainingTypesApi, type IAdminTrainingType, type TDifficulty } from '@/shared/api';
@@ -5,11 +6,7 @@ import { ImpactTypeBadge } from '@/shared/components/ImpactTypeBadge';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const DIFFICULTY_LABEL: Record<TDifficulty, string> = {
-    beginner: 'Начинающий',
-    intermediate: 'Средний',
-    advanced: 'Продвинутый',
-};
+const DIFFICULTY_LABEL: Record<TDifficulty, string> = DIFFICULTY_LEVEL_LABELS;
 
 const DIFFICULTY_COLOR: Record<TDifficulty, string> = {
     beginner: 'bg-green-500/15 text-green-500',

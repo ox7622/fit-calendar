@@ -1,10 +1,16 @@
+import { IMPACT_TYPES as SHARED_IMPACT_TYPES, type TImpactType as TSharedImpactType } from '@fitcalendar/shared';
+
 import { adminApiClient } from './client';
 
 export type TDifficulty = 'beginner' | 'intermediate' | 'advanced';
-export type TImpactType = 'cardio' | 'strength' | 'flexibility' | 'balance';
+export type TImpactType = TSharedImpactType;
 
 export const DIFFICULTY_LEVELS: TDifficulty[] = ['beginner', 'intermediate', 'advanced'];
-export const IMPACT_TYPES: TImpactType[] = ['cardio', 'strength', 'flexibility', 'balance'];
+// Re-exported as a mutable array for consumers that expect `TImpactType[]`
+// (admin form code does `IMPACT_TYPES.map(...)`). The `as const` tuple from
+// `@fitcalendar/shared` is read-only and would force `.map((t) => ...)` to
+// widen, so we copy into a plain array here.
+export const IMPACT_TYPES: TImpactType[] = [...SHARED_IMPACT_TYPES];
 
 export interface IAdminTrainingType {
     id: string;

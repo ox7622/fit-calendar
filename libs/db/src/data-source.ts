@@ -8,6 +8,7 @@ import {
     Coach,
     Customer,
     MembershipPlan,
+    NotificationOutbox,
     Reminder,
     ScheduleEntry,
     TrainingType,
@@ -23,6 +24,7 @@ export const entities = [
     AdminUser,
     MembershipPlan,
     AdminAuditLog,
+    NotificationOutbox,
 ];
 
 export const dataSourceOptions: DataSourceOptions = {

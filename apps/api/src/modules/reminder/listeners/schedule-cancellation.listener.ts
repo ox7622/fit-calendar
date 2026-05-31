@@ -5,15 +5,17 @@ import { ru } from 'date-fns/locale';
 
 import type { IScheduleCancelledPayload } from '../../admin/schedule/schedule.events';
 import { SCHEDULE_CANCELLED_EVENT } from '../../admin/schedule/schedule.events';
-import { BotService } from '../../bot/bot.service';
 import { CustomerService } from '../../customer/customer.service';
-import { DEFAULT_NOTIFICATION_BACKOFF_MS, withRetry } from '../utils/retry';
+import { NotificationOutboxService } from '../notification-outbox.service';
 
 @Injectable()
 export class ScheduleCancellationListener {
     private readonly logger = new Logger(ScheduleCancellationListener.name);
 
-    constructor(private readonly customerService: CustomerService, private readonly botService: BotService) {}
+    constructor(
+        private readonly customerService: CustomerService,
+        private readonly outboxService: NotificationOutboxService,
+    ) {}
 
     /**
      * Story 5.5 — reacts to SCHEDULE_CANCELLED_EVENT from Story 6.4's admin
@@ -21,9 +23,9 @@ export class ScheduleCancellationListener {
      * message (className, startTime, coachName) so there's no DB roundtrip
      * for class details — `affectedCustomerIds` is the only thing we look up.
      *
-     * Out-of-band, same shape as Story 5.4: failures here do NOT touch
-     * `Reminder.status` (6.4 already deleted the pending reminders inside
-     * its transaction).
+     * Enqueues per-recipient outbox rows; the outbox dispatcher handles
+     * delivery + retries. Out-of-band relative to the Reminder lifecycle —
+     * 6.4 already deleted the pending reminders inside its transaction.
      */
     @OnEvent(SCHEDULE_CANCELLED_EVENT)
     async handleScheduleCancelled(payload: IScheduleCancelledPayload): Promise<void> {
@@ -36,28 +38,33 @@ export class ScheduleCancellationListener {
             return;
         }
 
-        const message = this.buildMessage(payload);
+        const text = this.buildMessage(payload);
 
         await Promise.all(
             recipients.map((recipient) =>
-                this.sendOne(recipient.telegramId, message, payload.scheduleEntryId).catch((err) => {
-                    this.logger.error(
-                        {
-                            event: 'schedule.cancelled.notify_failed',
-                            scheduleEntryId: payload.scheduleEntryId,
+                this.outboxService
+                    .enqueue({
+                        customerId: recipient.id,
+                        type: 'schedule_cancelled',
+                        payload: {
                             telegramId: recipient.telegramId,
-                            error: err instanceof Error ? err.message : String(err),
+                            text,
+                            scheduleEntryId: payload.scheduleEntryId,
                         },
-                        'Cancellation notification failed after retries',
-                    );
-                }),
+                    })
+                    .catch((err) => {
+                        this.logger.error(
+                            {
+                                event: 'schedule.cancelled.enqueue_failed',
+                                scheduleEntryId: payload.scheduleEntryId,
+                                telegramId: recipient.telegramId,
+                                error: err instanceof Error ? err.message : String(err),
+                            },
+                            'Failed to enqueue cancellation notification',
+                        );
+                    }),
             ),
         );
-    }
-
-    private async sendOne(telegramId: number, text: string, scheduleEntryId: string): Promise<void> {
-        await withRetry(() => this.botService.sendNotification(telegramId, text), DEFAULT_NOTIFICATION_BACKOFF_MS);
-        this.logger.log({ scheduleEntryId, telegramId }, 'Cancellation notification sent');
     }
 
     private buildMessage(payload: IScheduleCancelledPayload): string {

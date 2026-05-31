@@ -23,6 +23,14 @@ export type TMembershipStatus = 'active' | 'expired' | 'cancelled';
 @Entity('customer_memberships')
 @Index('idx_membership_customer', ['customerId'])
 @Index('idx_membership_status', ['status'])
+// Hardens Story 7.4 AC4 ("at most one active membership per customer") at
+// the DB level. Mirrors migration 1779623108000-AddActiveMembershipUniqueIndex;
+// keeping the decorator in sync prevents `mig:gen` from generating a spurious
+// DROP INDEX in every future schema diff.
+@Index('uq_active_membership_per_customer', ['customerId'], {
+    unique: true,
+    where: `"status" = 'active'`,
+})
 export class CustomerMembership {
     @PrimaryGeneratedColumn('uuid')
     id: string;

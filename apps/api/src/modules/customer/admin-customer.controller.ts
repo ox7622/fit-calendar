@@ -23,6 +23,9 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiResponse, ApiTag
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
+import { MAX_UPLOAD_BYTES, VALIDATION_MESSAGES } from '@fitcalendar/shared';
+
+import { PG_UNIQUE_VIOLATION, UPLOAD_ERRORS } from '../../common/constants';
 import { AdminUser } from '../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
@@ -39,8 +42,6 @@ export class CustomerListResponseDto {
     page: number;
     pageSize: number;
 }
-
-const MAX_CSV_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('Admin Customers')
 @ApiBearerAuth()
@@ -184,12 +185,12 @@ export class AdminCustomerController {
     @ApiResponse({ status: 201, type: ImportResultDto, description: 'commit applied' })
     @ApiResponse({ status: 400, description: 'Missing/invalid file, > 5000 rows, or unparseable CSV' })
     @ApiResponse({ status: 413, description: 'File exceeds 5MB' })
-    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_CSV_BYTES } }))
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
     async importCsv(
         @UploadedFile() file: Express.Multer.File,
         @Query('commit') commit?: string,
     ): Promise<ImportPreviewDto | ImportResultDto> {
-        if (!file) throw new BadRequestException('Файл не загружен');
+        if (!file) throw new BadRequestException(UPLOAD_ERRORS.FILE_REQUIRED);
         if (file.size === 0) throw new BadRequestException('Файл пустой');
 
         const plan = await this.customerImportService.parseAndValidate(file.buffer);
@@ -229,7 +230,7 @@ function mapServiceError(err: unknown): Error {
             statusCode: 400,
             error: 'Bad Request',
             code: 'INVALID_PHONE_FORMAT',
-            message: 'Неверный формат номера. Пример: +7 999 555 12 34.',
+            message: VALIDATION_MESSAGES.INVALID_PHONE_FORMAT,
         });
     }
     if (isUniqueViolation(err)) {
@@ -243,5 +244,10 @@ function mapServiceError(err: unknown): Error {
 }
 
 function isUniqueViolation(err: unknown): boolean {
-    return typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505';
+    return (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === PG_UNIQUE_VIOLATION
+    );
 }

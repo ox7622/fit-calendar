@@ -4,10 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { subMinutes } from 'date-fns';
 import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 
+import { PG_UNIQUE_VIOLATION } from '../../common/constants';
+
 import { ReminderListItemDto, toReminderListItem } from './dto/reminder-list-item.dto';
 import { ReminderResponseDto, toReminderResponse } from './dto/reminder-response.dto';
-
-const PG_UNIQUE_VIOLATION = '23505';
 
 /**
  * Total send attempts per reminder before giving up (Story 5.3 AC7).
@@ -220,18 +220,24 @@ export class ReminderService {
      */
     async findPendingByClassWithCustomer(
         scheduleEntryId: string,
-    ): Promise<{ reminderId: string; telegramId: number; firstName: string }[]> {
+    ): Promise<{ reminderId: string; customerId: string; telegramId: number; firstName: string }[]> {
         const rows = await this.reminderRepo
             .createQueryBuilder('r')
             .innerJoin('r.customer', 'c')
-            .select(['r.id AS "reminderId"', 'c.telegramId AS "telegramId"', 'c.firstName AS "firstName"'])
+            .select([
+                'r.id AS "reminderId"',
+                'c.id AS "customerId"',
+                'c.telegramId AS "telegramId"',
+                'c.firstName AS "firstName"',
+            ])
             .where('r.scheduleEntryId = :scheduleEntryId', { scheduleEntryId })
             .andWhere("r.status = 'pending'")
             .andWhere('c.telegramId IS NOT NULL')
-            .getRawMany<{ reminderId: string; telegramId: string; firstName: string }>();
+            .getRawMany<{ reminderId: string; customerId: string; telegramId: string; firstName: string }>();
 
         return rows.map((row) => ({
             reminderId: row.reminderId,
+            customerId: row.customerId,
             telegramId: Number(row.telegramId),
             firstName: row.firstName,
         }));

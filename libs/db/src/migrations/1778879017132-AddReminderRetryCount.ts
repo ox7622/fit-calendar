@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddReminderRetryCount1778879017132 implements MigrationInterface {
     name = 'AddReminderRetryCount1778879017132';

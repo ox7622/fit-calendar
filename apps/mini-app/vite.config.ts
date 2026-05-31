@@ -12,10 +12,17 @@ export default defineConfig(() => ({
     server: {
         port: 4200,
         host: 'localhost',
+        allowedHosts: ['.trycloudflare.com'],
     },
     preview: {
-        port: 4300,
+        port: 4200,
         host: 'localhost',
+        // `true` disables Vite's Host-header check entirely. The trycloudflare
+        // hostname rotates every wrapper cycle and Vite 6's wildcard syntax
+        // (`'.trycloudflare.com'`) isn't honoured by `preview.allowedHosts`.
+        // Safe locally because the preview server binds to 127.0.0.1 — only
+        // the cloudflared tunnel reaches it.
+        allowedHosts: true,
     },
     plugins: [react(), tailwindcss(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
     resolve: {

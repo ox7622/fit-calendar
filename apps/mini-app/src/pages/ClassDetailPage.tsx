@@ -1,3 +1,4 @@
+import { DIFFICULTY_LEVEL_LABELS, IMPACT_TYPES, type TDifficultyLevel, type TImpactType } from '@fitcalendar/shared';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ArrowLeft, Bell, BellOff, Clock, Dumbbell as DumbbellIcon } from 'lucide-react';
@@ -9,25 +10,16 @@ import { ApiError, remindersApi, scheduleApi, type ReminderListItem } from '@/sh
 import { useCustomerStore, useRemindersStore } from '@/shared/stores';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
 
-type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
-type ImpactType = 'cardio' | 'strength' | 'flexibility' | 'balance';
-
-const difficultyBadgeClass: Record<DifficultyLevel, string> = {
+const difficultyBadgeClass: Record<TDifficultyLevel, string> = {
     beginner: 'bg-success/20 text-success',
     intermediate: 'bg-warning/20 text-warning',
     advanced: 'bg-error/20 text-error',
 };
 
-const difficultyLabel: Record<DifficultyLevel, string> = {
-    beginner: 'Начальный',
-    intermediate: 'Средний',
-    advanced: 'Продвинутый',
-};
+const difficultyLabel = DIFFICULTY_LEVEL_LABELS;
 
-const knownImpactTypes: ImpactType[] = ['cardio', 'strength', 'flexibility', 'balance'];
-
-function isKnownImpactType(value: string): value is ImpactType {
-    return (knownImpactTypes as string[]).includes(value);
+function isKnownImpactType(value: string): value is TImpactType {
+    return (IMPACT_TYPES as readonly string[]).includes(value);
 }
 
 function extractErrorMessage(body: unknown): string | null {

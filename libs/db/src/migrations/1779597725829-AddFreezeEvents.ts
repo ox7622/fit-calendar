@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddFreezeEvents1779597725829 implements MigrationInterface {
     name = 'AddFreezeEvents1779597725829';

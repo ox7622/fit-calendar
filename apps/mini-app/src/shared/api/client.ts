@@ -1,7 +1,7 @@
 import { getInitData } from '../telegram';
 import { ApiError, NetworkError } from './errors';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

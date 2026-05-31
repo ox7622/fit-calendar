@@ -11,7 +11,7 @@ import {
     SchedulePage,
 } from '@/pages';
 import { ToastViewport } from '@/components';
-import { AppShell } from './components';
+import { AppShell, RequireLinkedCustomer } from './components';
 
 /**
  * App Router with all route definitions
@@ -40,7 +40,9 @@ export function AppRouter(): JSX.Element {
                     path="/reminders"
                     element={
                         <AppShell>
-                            <RemindersPage />
+                            <RequireLinkedCustomer linkPrompt="Привяжите профиль, чтобы получать напоминания.">
+                                <RemindersPage />
+                            </RequireLinkedCustomer>
                         </AppShell>
                     }
                 />
@@ -64,7 +66,9 @@ export function AppRouter(): JSX.Element {
                     path="/me"
                     element={
                         <AppShell>
-                            <MePage />
+                            <RequireLinkedCustomer linkPrompt="Введите номер, указанный при регистрации в клубе.">
+                                <MePage />
+                            </RequireLinkedCustomer>
                         </AppShell>
                     }
                 />

@@ -1,103 +1,88 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 
-import { LinkPhonePrompt } from '@/components';
 import { ApiError, meApi } from '@/shared/api';
 import { useCustomerStore, useRemindersStore } from '@/shared/stores';
 import { isInTelegram } from '@/shared/telegram';
+
+/**
+ * Four-state auth flow (Story 7.7 — anonymous browsing).
+ *
+ *   loading     → initial probe to /me hasn't resolved yet
+ *   anonymous   → opened outside Telegram (no initData); only public catalog
+ *                 endpoints are usable. Private pages render LinkPhonePrompt.
+ *   unlinked    → valid Telegram identity but no matching customer; public
+ *                 catalog still browsable, private pages prompt for phone.
+ *   linked      → fully authenticated customer.
+ *
+ * AuthProvider no longer gates the route tree — it always renders `children`.
+ * Per-route gating lives in `<RequireLinkedCustomer>`.
+ */
+export type AuthStatus = 'loading' | 'anonymous' | 'unlinked' | 'linked';
+
+interface AuthContextValue {
+    status: AuthStatus;
+    isInTelegram: boolean;
+    retry: () => void;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function useAuth(): AuthContextValue {
+    const ctx = useContext(AuthContext);
+    if (!ctx) {
+        throw new Error('useAuth must be used within <AuthProvider>');
+    }
+    return ctx;
+}
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
-function LoadingScreen(): JSX.Element {
-    return (
-        <div className="flex flex-col items-center justify-center h-screen bg-background">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-    );
-}
-
-function ErrorScreen({ message, onRetry }: { message: string; onRetry: () => void }): JSX.Element {
-    return (
-        <div className="flex flex-col items-center justify-center h-screen bg-background px-4">
-            <div className="text-error text-6xl mb-4">!</div>
-            <h1 className="heading-2 mb-2 text-center">Authentication Failed</h1>
-            <p className="text-body-secondary text-center mb-6">{message}</p>
-            <button
-                onClick={onRetry}
-                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-            >
-                Try Again
-            </button>
-        </div>
-    );
-}
-
-function NotInTelegramScreen(): JSX.Element {
-    return (
-        <div className="flex flex-col items-center justify-center h-screen bg-background px-4">
-            <span role="img" aria-label="Mobile phone" className="text-6xl mb-4">
-                📱
-            </span>
-            <h1 className="heading-2 mb-2 text-center">Open in Telegram</h1>
-            <p className="text-body-secondary text-center">This app must be opened from the Telegram bot menu.</p>
-        </div>
-    );
-}
-
-/**
- * Story 7.2 — three-state auth flow.
- *
- *   anonymous (not in Telegram)  → NotInTelegramScreen
- *   Telegram-only (unlinked)     → LinkPhonePrompt (renders children when linked)
- *   linked customer              → children
- *
- * Anonymous browsing across the public catalog (schedule, coaches, club info,
- * plans) was deferred: the existing brief still requires Telegram for entry,
- * and there's no anonymous flow for "open the app in a regular browser" yet.
- * The linked/unlinked split here is the seed for that future flow.
- */
 export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
-    const { linked, isLoading, error, setLinked, setUnlinked, setLoading, setError } = useCustomerStore();
+    const { setLinked, setUnlinked, setLoading, setError, reset } = useCustomerStore();
     const loadReminders = useRemindersStore((s) => s.loadReminders);
     const remindersHasLoaded = useRemindersStore((s) => s.hasLoaded);
+    const [status, setStatus] = useState<AuthStatus>('loading');
+    const inTg = isInTelegram();
 
     const authenticate = async (): Promise<void> => {
-        if (!isInTelegram()) {
+        // Outside Telegram: serve the public catalog. Skip /me entirely
+        // because TelegramAuthGuard would 401 without initData anyway.
+        if (!inTg) {
+            reset();
             setLoading(false);
-            setError('Not running inside Telegram');
+            setStatus('anonymous');
             return;
         }
 
         setLoading(true);
         setError(null);
+        setStatus('loading');
 
         try {
             const me = await meApi.get();
             if (me.linked) {
                 setLinked(me.customer);
-                // Bootstrap the reminder store once per session right after we know
-                // the caller is a linked customer. RemindersPage + ClassDetailPage
-                // both read from this store; preloading avoids a second fetch when
-                // the user navigates to either page.
+                setStatus('linked');
                 if (!remindersHasLoaded) {
                     loadReminders().catch(() => {
-                        // Errors are surfaced via the store; don't crash the auth flow.
+                        // Surfaced via store; don't crash auth.
                     });
                 }
             } else {
                 setUnlinked(me.telegramIdentity);
+                setStatus('unlinked');
             }
         } catch (err) {
+            // Any failure on /me falls back to anonymous so the public catalog
+            // still works. Auth-required pages will show LinkPhonePrompt via
+            // <RequireLinkedCustomer>, where the user can retry the link.
+            reset();
+            setLoading(false);
+            setStatus('anonymous');
             if (err instanceof ApiError) {
-                if (err.isAuthError()) {
-                    setError('Authentication failed. Please reopen the app from Telegram.');
-                } else if (err.isServerError()) {
-                    setError('Server error. Please try again later.');
-                } else {
-                    setError('Unable to authenticate. Please try again.');
-                }
+                setError(err.isAuthError() ? 'Telegram authentication failed.' : 'Authentication unavailable.');
             } else {
                 setError('Network error. Please check your connection.');
             }
@@ -109,25 +94,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    if (!isInTelegram() && !isLoading && error) {
-        return <NotInTelegramScreen />;
-    }
-
-    if (isLoading) {
-        return <LoadingScreen />;
-    }
-
-    if (error) {
-        return <ErrorScreen message={error} onRetry={authenticate} />;
-    }
-
-    if (linked === false) {
-        return <LinkPhonePrompt subtitle="Введите номер, указанный при регистрации в клубе." />;
-    }
-
-    if (linked === true) {
-        return children as JSX.Element;
-    }
-
-    return <LoadingScreen />;
+    return (
+        <AuthContext.Provider value={{ status, isInTelegram: inTg, retry: authenticate }}>
+            {children}
+        </AuthContext.Provider>
+    );
 }

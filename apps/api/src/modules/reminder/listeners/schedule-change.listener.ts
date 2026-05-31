@@ -5,14 +5,12 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { format, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { InlineKeyboard } from 'grammy';
 import { Repository } from 'typeorm';
 
 import type { IScheduleChangedPayload } from '../../admin/schedule/schedule.events';
 import { SCHEDULE_CHANGED_EVENT } from '../../admin/schedule/schedule.events';
-import { BotService } from '../../bot/bot.service';
+import { NotificationOutboxService } from '../notification-outbox.service';
 import { ReminderService } from '../reminder.service';
-import { DEFAULT_NOTIFICATION_BACKOFF_MS, withRetry } from '../utils/retry';
 
 @Injectable()
 export class ScheduleChangeNotificationListener {
@@ -23,7 +21,7 @@ export class ScheduleChangeNotificationListener {
         @InjectRepository(ScheduleEntry)
         private readonly scheduleRepo: Repository<ScheduleEntry>,
         private readonly reminderService: ReminderService,
-        private readonly botService: BotService,
+        private readonly outboxService: NotificationOutboxService,
         configService: ConfigService,
     ) {
         this.miniAppUrl = configService.get<string>('MINI_APP_URL');
@@ -31,8 +29,9 @@ export class ScheduleChangeNotificationListener {
 
     /**
      * Story 5.4 — reacts to SCHEDULE_CHANGED_EVENT (emitted by Story 6.3's
-     * admin update flow when startTime or durationMinutes changes). Sends
-     * each subscriber a "this class moved" message with old/new times.
+     * admin update flow when startTime or durationMinutes changes). Enqueues
+     * a "this class moved" notification per subscriber into the persisted
+     * outbox; the outbox dispatcher delivers + retries with backoff.
      *
      * Out-of-band relative to the Reminder lifecycle: failures here do NOT
      * touch `Reminder.status` (which tracks the *original* reminder send,
@@ -48,7 +47,7 @@ export class ScheduleChangeNotificationListener {
         if (!entry) {
             this.logger.warn(
                 { scheduleEntryId: payload.scheduleEntryId },
-                'Schedule entry vanished before change notification could be sent',
+                'Schedule entry vanished before change notification could be enqueued',
             );
             return;
         }
@@ -57,7 +56,7 @@ export class ScheduleChangeNotificationListener {
             // Story 5.5's cancellation listener will fire next; nothing to do here.
             this.logger.log(
                 { scheduleEntryId: payload.scheduleEntryId },
-                'Class cancelled after edit; skipping change notification (5.5 will notify)',
+                'Class cancelled after edit; skipping change notification (5.5 will enqueue)',
             );
             return;
         }
@@ -67,42 +66,40 @@ export class ScheduleChangeNotificationListener {
             return;
         }
 
-        const message = this.buildMessage({
+        const text = this.buildMessage({
             className: entry.trainingType?.name ?? 'Занятие',
             coachName: entry.coach?.name ?? '—',
             oldStartTime: payload.oldStartTime,
             newStartTime: payload.newStartTime,
         });
-        const keyboard = this.buildKeyboard(payload.scheduleEntryId);
+        const webAppUrl = this.miniAppUrl ? `${this.miniAppUrl}/schedule/${payload.scheduleEntryId}` : undefined;
 
         await Promise.all(
             subscribers.map((sub) =>
-                this.sendOne(sub.telegramId, message, keyboard, payload.scheduleEntryId).catch((err) => {
-                    this.logger.error(
-                        {
-                            event: 'schedule.changed.notify_failed',
-                            scheduleEntryId: payload.scheduleEntryId,
+                this.outboxService
+                    .enqueue({
+                        customerId: sub.customerId,
+                        type: 'schedule_changed',
+                        payload: {
                             telegramId: sub.telegramId,
-                            error: err instanceof Error ? err.message : String(err),
+                            text,
+                            webAppUrl,
+                            scheduleEntryId: payload.scheduleEntryId,
                         },
-                        'Schedule-change notification failed after retries',
-                    );
-                }),
+                    })
+                    .catch((err) => {
+                        this.logger.error(
+                            {
+                                event: 'schedule.changed.enqueue_failed',
+                                scheduleEntryId: payload.scheduleEntryId,
+                                telegramId: sub.telegramId,
+                                error: err instanceof Error ? err.message : String(err),
+                            },
+                            'Failed to enqueue schedule-change notification',
+                        );
+                    }),
             ),
         );
-    }
-
-    private async sendOne(
-        telegramId: number,
-        text: string,
-        keyboard: InlineKeyboard | undefined,
-        scheduleEntryId: string,
-    ): Promise<void> {
-        await withRetry(
-            () => this.botService.sendNotification(telegramId, text, { replyMarkup: keyboard }),
-            DEFAULT_NOTIFICATION_BACKOFF_MS,
-        );
-        this.logger.log({ scheduleEntryId, telegramId }, 'Schedule-change notification sent');
     }
 
     private buildMessage(input: {
@@ -132,11 +129,6 @@ export class ScheduleChangeNotificationListener {
         if (sameDay) return `Сегодня в ${hhmm}`;
         if (isTomorrow) return `Завтра в ${hhmm}`;
         return `${format(startTime, 'd MMMM', { locale: ru })} в ${hhmm}`;
-    }
-
-    private buildKeyboard(scheduleEntryId: string): InlineKeyboard | undefined {
-        if (!this.miniAppUrl) return undefined;
-        return new InlineKeyboard().webApp('📅 Открыть', `${this.miniAppUrl}/schedule/${scheduleEntryId}`);
     }
 }
 

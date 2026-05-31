@@ -1,4 +1,5 @@
 import type { Customer as CustomerEntity } from '@fitcalendar/db';
+import { VALIDATION_MESSAGES } from '@fitcalendar/shared';
 import {
     BadRequestException,
     Body,
@@ -98,7 +99,7 @@ export class MeController {
                     statusCode: 400,
                     error: 'Bad Request',
                     code: 'INVALID_PHONE_FORMAT',
-                    message: 'Неверный формат номера. Пример: +7 999 555 12 34.',
+                    message: VALIDATION_MESSAGES.INVALID_PHONE_FORMAT,
                 });
             case 'phone_not_found':
                 throw new NotFoundException({

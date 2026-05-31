@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import 'tailwindcss';
 
 @layer base {
@@ -16,6 +16,16 @@
         --success: 142 71% 45%;
         --warning: 43 100% 50%;
         --error: 0 84% 60%;
+
+        /* Impact-type colors — fixed (identical in both themes) */
+        --cardio: 27 96% 61%;
+        --strength: 0 84% 67%;
+        --flex: 142 69% 58%;
+        --balance: 213 94% 68%;
+
+        /* Hero membership-card gradient (dark) */
+        --hero-from: 172 64% 30%;
+        --hero-to: 192 45% 18%;
 
         --background: var(--bg-primary);
         --foreground: var(--text-primary);
@@ -41,18 +51,28 @@
 
     /* Unified Light Theme - #BCDDE6, #FFFFFF, #9BC5D1 */
     .light {
-        --bg-primary: 193 47% 82%;
+        --bg-primary: 198 30% 92%;
         --bg-card: 0 0% 100%;
-        --bg-sidebar: 193 38% 75%;
-        --text-primary: 192 30% 13%;
-        --text-secondary: 192 25% 35%;
-        --divider: 193 38% 71%;
+        --bg-sidebar: 197 26% 88%;
+        --text-primary: 195 32% 14%;
+        --text-secondary: 196 14% 42%;
+        --divider: 196 22% 88%;
         --accent-primary: 172 64% 37%;
-        --accent-active: 172 65% 29%;
+        --accent-active: 172 65% 30%;
 
-        --success: 142 71% 40%;
-        --warning: 43 100% 45%;
-        --error: 0 84% 55%;
+        --success: 142 64% 36%;
+        --warning: 38 92% 42%;
+        --error: 0 72% 50%;
+
+        /* Impact-type colors — fixed (identical in both themes) */
+        --cardio: 27 96% 61%;
+        --strength: 0 84% 67%;
+        --flex: 142 69% 58%;
+        --balance: 213 94% 68%;
+
+        /* Hero membership-card gradient (light) */
+        --hero-from: 172 64% 38%;
+        --hero-to: 188 62% 30%;
 
         --background: var(--bg-primary);
         --foreground: var(--text-primary);
@@ -64,7 +84,7 @@
         --primary-foreground: 0 0% 100%;
         --secondary: var(--bg-card);
         --secondary-foreground: var(--text-primary);
-        --muted: 193 40% 88%;
+        --muted: 197 28% 90%;
         --muted-foreground: var(--text-secondary);
         --accent: var(--accent-primary);
         --accent-foreground: 0 0% 100%;
@@ -169,8 +189,13 @@
     --color-success: hsl(var(--success));
     --color-warning: hsl(var(--warning));
     --color-error: hsl(var(--error));
+    --color-cardio: hsl(var(--cardio));
+    --color-strength: hsl(var(--strength));
+    --color-flex: hsl(var(--flex));
+    --color-balance: hsl(var(--balance));
 
     --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
     --radius-sm: 4px;
     --radius-md: 8px;

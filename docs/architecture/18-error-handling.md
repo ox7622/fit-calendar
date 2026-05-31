@@ -18,7 +18,7 @@ interface ApiError {
   "message": "Schedule entry not found",
   "error": "Not Found",
   "timestamp": "2026-01-09T10:00:00.000Z",
-  "path": "/api/v1/schedule/123"
+  "path": "/api/schedule/123"
 }
 ```
 

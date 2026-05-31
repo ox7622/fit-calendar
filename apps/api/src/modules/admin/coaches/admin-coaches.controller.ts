@@ -18,6 +18,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { MAX_UPLOAD_BYTES } from '@fitcalendar/shared';
+
+import { UPLOAD_ERRORS } from '../../../common/constants';
 import { AdminUser } from '../../../common/decorators/admin-user.decorator';
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 import { detectImageFormat } from '../../../common/utils/image-magic-bytes';
@@ -26,8 +29,6 @@ import { AdminCoachesService } from './admin-coaches.service';
 import { CoachDto, CoachOptionDto } from './dto/coach.dto';
 import { CreateCoachDto } from './dto/create-coach.dto';
 import { UpdateCoachDto } from './dto/update-coach.dto';
-
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('Admin Coaches')
 @ApiBearerAuth()
@@ -107,18 +108,18 @@ export class AdminCoachesController {
     @ApiResponse({ status: 400, description: 'Missing/invalid file or non-image MIME' })
     @ApiResponse({ status: 413, description: 'File exceeds 5 MB' })
     @ApiResponse({ status: 503, description: 'Cloudinary not configured' })
-    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_PHOTO_BYTES } }))
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
     async uploadPhoto(
         @Param('id', new ParseUUIDPipe()) id: string,
         @UploadedFile() file: Express.Multer.File,
     ): Promise<{ photoUrl: string }> {
         if (!file) {
-            throw new BadRequestException('Файл не загружен');
+            throw new BadRequestException(UPLOAD_ERRORS.FILE_REQUIRED);
         }
         // MIME is client-set and trivially spoofable; magic-byte sniffing
         // catches a renamed .html posted as image/jpeg.
         if (!detectImageFormat(file.buffer)) {
-            throw new BadRequestException('Поддерживаются только изображения JPEG / PNG / WebP / GIF');
+            throw new BadRequestException(UPLOAD_ERRORS.UNSUPPORTED_IMAGE_TYPE);
         }
         return this.coachesService.setPhoto(id, file.buffer);
     }

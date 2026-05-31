@@ -2,7 +2,7 @@
 
 ## 5.1 Overview
 
-**Base URL:** `/api/v1`
+**Base URL:** `/api`
 **Documentation:** Swagger UI at `/api/docs`
 
 **Authentication:**

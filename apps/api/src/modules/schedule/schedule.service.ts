@@ -1,4 +1,5 @@
 import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { DIFFICULTY_LEVEL_LABELS, type TDifficultyLevel } from '@fitcalendar/shared';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, format, startOfDay } from 'date-fns';
@@ -135,14 +136,12 @@ export class ScheduleService {
     }
 
     /**
-     * Get difficulty levels (hardcoded metadata)
+     * Get difficulty levels (labels sourced from @fitcalendar/shared so the
+     * mini-app filter chips render identical copy without an extra fetch).
      */
     getDifficultyLevels(): LabelValueDto[] {
-        return [
-            { value: 'beginner', label: 'Начальный' },
-            { value: 'intermediate', label: 'Средний' },
-            { value: 'advanced', label: 'Продвинутый' },
-        ];
+        const order: TDifficultyLevel[] = ['beginner', 'intermediate', 'advanced'];
+        return order.map((value) => ({ value, label: DIFFICULTY_LEVEL_LABELS[value] }));
     }
 
     /**

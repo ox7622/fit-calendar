@@ -1,3 +1,4 @@
+import { MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 
 import type { ClassResponseDto } from '../../schedule/dto/schedule-response.dto';
@@ -40,7 +41,7 @@ function classLine(cls: ClassResponseDto): string {
 
 function miniAppKeyboard(miniAppUrl?: string) {
     return miniAppUrl
-        ? { inline_keyboard: [[{ text: '📅 Открыть расписание', web_app: { url: miniAppUrl } }]] }
+        ? { inline_keyboard: [[{ text: MINI_APP_BUTTON_TEXT, web_app: { url: miniAppUrl } }]] }
         : undefined;
 }
 

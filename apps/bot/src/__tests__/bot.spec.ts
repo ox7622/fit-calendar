@@ -1,3 +1,4 @@
+import { MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { BotError, Context } from 'grammy';
 import { Bot } from 'grammy';
 import type { Logger } from 'pino';
@@ -118,7 +119,7 @@ describe('registerStartCommand', () => {
                     inline_keyboard: expect.arrayContaining([
                         expect.arrayContaining([
                             expect.objectContaining({
-                                text: '📅 Открыть расписание',
+                                text: MINI_APP_BUTTON_TEXT,
                                 web_app: { url: 'https://app.example.com' },
                             }),
                         ]),

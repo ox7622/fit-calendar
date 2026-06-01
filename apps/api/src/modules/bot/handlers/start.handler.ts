@@ -1,3 +1,4 @@
+import { MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 
 import type { ClubService } from '../../club/club.service';
@@ -25,7 +26,7 @@ export function registerStartCommand(bot: Bot<Context>, clubService: ClubService
             parse_mode: 'HTML',
             reply_markup: miniAppUrl
                 ? {
-                      inline_keyboard: [[{ text: '📅 Открыть расписание', web_app: { url: miniAppUrl } }]],
+                      inline_keyboard: [[{ text: MINI_APP_BUTTON_TEXT, web_app: { url: miniAppUrl } }]],
                   }
                 : undefined,
         });

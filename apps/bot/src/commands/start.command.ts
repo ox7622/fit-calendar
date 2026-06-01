@@ -1,3 +1,4 @@
+import { MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 
 /** Builds the /start greeting, naming the club when we know it. */
@@ -32,7 +33,7 @@ export function registerStartCommand(bot: Bot<Context>, miniAppUrl?: string): vo
             parse_mode: 'HTML',
             reply_markup: miniAppUrl
                 ? {
-                      inline_keyboard: [[{ text: '📅 Открыть расписание', web_app: { url: miniAppUrl } }]],
+                      inline_keyboard: [[{ text: MINI_APP_BUTTON_TEXT, web_app: { url: miniAppUrl } }]],
                   }
                 : undefined,
         });

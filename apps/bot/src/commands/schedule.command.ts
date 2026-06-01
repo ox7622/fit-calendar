@@ -1,3 +1,4 @@
+import { MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 
 interface IClassEntry {
@@ -49,7 +50,7 @@ function classLine(cls: IClassEntry): string {
 
 function miniAppKeyboard(miniAppUrl?: string) {
     return miniAppUrl
-        ? { inline_keyboard: [[{ text: '📅 Открыть расписание', web_app: { url: miniAppUrl } }]] }
+        ? { inline_keyboard: [[{ text: MINI_APP_BUTTON_TEXT, web_app: { url: miniAppUrl } }]] }
         : undefined;
 }
 

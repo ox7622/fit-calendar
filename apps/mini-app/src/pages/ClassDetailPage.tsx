@@ -228,9 +228,10 @@ export function ClassDetailPage(): JSX.Element {
                         </div>
                         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                             <Clock size={15} className="text-primary" />
-                            {format(new Date(cls.startTime), 'HH:mm', { locale: ru })}
-                            {' – '}
-                            {format(new Date(cls.endTime), 'HH:mm', { locale: ru })}
+                            <span className="font-mono">
+                                {format(new Date(cls.startTime), 'HH:mm', { locale: ru })}–
+                                {format(new Date(cls.endTime), 'HH:mm', { locale: ru })}
+                            </span>
                         </div>
 
                         {/* Duration badge */}

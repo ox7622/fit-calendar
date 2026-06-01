@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Calendar, Users, Bell, Home } from 'lucide-react';
+import { Calendar, Home, User, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
-export type TabId = 'schedule' | 'coaches' | 'reminders' | 'club';
+export type TabId = 'schedule' | 'coaches' | 'me' | 'club';
 
 interface Tab {
     id: TabId;
@@ -12,10 +12,10 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-    { id: 'schedule', path: '/', icon: Calendar, label: 'Schedule' },
-    { id: 'coaches', path: '/coaches', icon: Users, label: 'Coaches' },
-    { id: 'reminders', path: '/reminders', icon: Bell, label: 'Reminders' },
-    { id: 'club', path: '/club', icon: Home, label: 'Club' },
+    { id: 'schedule', path: '/', icon: Calendar, label: 'Расписание' },
+    { id: 'coaches', path: '/coaches', icon: Users, label: 'Тренеры' },
+    { id: 'me', path: '/me', icon: User, label: 'Профиль' },
+    { id: 'club', path: '/club', icon: Home, label: 'Клуб' },
 ];
 
 function cn(...classes: (string | boolean | undefined)[]): string {
@@ -26,7 +26,10 @@ export function BottomNav(): JSX.Element {
     const location = useLocation();
 
     const getActiveTab = (): TabId => {
-        const tab = tabs.find((t) => t.path === location.pathname);
+        const path = location.pathname;
+        // Reminders now live inside the profile section — keep the Профиль tab lit.
+        if (path.startsWith('/me') || path.startsWith('/reminders')) return 'me';
+        const tab = tabs.find((t) => t.path === path);
         return tab?.id ?? 'schedule';
     };
 

@@ -1,6 +1,7 @@
 import type { IAdminScheduleItem } from '@/shared/api';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { SquarePen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface IDayGroup {
@@ -56,10 +57,11 @@ export function ScheduleList({ items }: IScheduleListProps): JSX.Element {
                         <table className="w-full text-sm">
                             <thead className="bg-muted text-left text-xs text-muted-foreground">
                                 <tr>
-                                    <th className="px-4 py-2 w-20">Время</th>
-                                    <th className="px-4 py-2">Занятие</th>
-                                    <th className="px-4 py-2">Тренер</th>
-                                    <th className="px-4 py-2 w-32">Статус</th>
+                                    <th className="px-4 py-2 w-28 uppercase tracking-wide">Время</th>
+                                    <th className="px-4 py-2 uppercase tracking-wide">Занятие</th>
+                                    <th className="px-4 py-2 uppercase tracking-wide">Тренер</th>
+                                    <th className="px-4 py-2 w-32 uppercase tracking-wide">Статус</th>
+                                    <th className="px-4 py-2 w-12"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -96,10 +98,16 @@ export function ScheduleList({ items }: IScheduleListProps): JSX.Element {
                                                         Отменено
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center text-xs font-medium rounded-md bg-primary/10 text-primary px-2 py-0.5">
+                                                    <span className="inline-flex items-center text-xs font-medium rounded-md bg-success/15 text-success px-2 py-0.5">
                                                         Активно
                                                     </span>
                                                 )}
+                                            </td>
+                                            <td className="px-4 py-2 text-right">
+                                                <SquarePen
+                                                    size={16}
+                                                    className="inline text-muted-foreground transition-colors hover:text-foreground"
+                                                />
                                             </td>
                                         </tr>
                                     );

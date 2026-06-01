@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { getColorScheme, onThemeChanged, offThemeChanged, isInTelegram, ColorScheme } from '@/shared/telegram';
 
 interface ThemeContextType {
     theme: ColorScheme;
+    toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -29,9 +30,18 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
         return 'dark';
     });
 
+    // Once the user flips the theme manually, stop letting Telegram's / the
+    // system's colorScheme override their choice for the rest of the session.
+    const manualOverride = useRef(false);
+
     const handleThemeChange = useCallback((): void => {
-        const newTheme = getColorScheme();
-        setTheme(newTheme);
+        if (manualOverride.current) return;
+        setTheme(getColorScheme());
+    }, []);
+
+    const toggleTheme = useCallback((): void => {
+        manualOverride.current = true;
+        setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
     }, []);
 
     // Apply theme class to document
@@ -63,6 +73,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
             // Listen to system preference changes when not in Telegram
             const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
             const handleSystemChange = (e: MediaQueryListEvent): void => {
+                if (manualOverride.current) return;
                 setTheme(e.matches ? 'light' : 'dark');
             };
             mediaQuery.addEventListener('change', handleSystemChange);
@@ -79,7 +90,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
         };
     }, [handleThemeChange]);
 
-    return <ThemeContext.Provider value={{ theme }}>{children}</ThemeContext.Provider>;
+    return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { formatDuration, formatPriceRub } from '@fitcalendar/shared';
+import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { membershipPlansApi, type PlanCard } from '@/shared/api';
@@ -25,15 +26,13 @@ function PlanCardView({ plan }: { plan: PlanCard }): JSX.Element {
         <article className="rounded-2xl border border-border bg-card p-4">
             <h2 className="heading-2 text-foreground">{plan.name}</h2>
             <p className="text-sm text-muted-foreground mt-1">{durationLabel}</p>
-            <p className="text-2xl font-semibold text-foreground mt-3">{priceLabel}</p>
+            <p className="text-[26px] font-extrabold leading-tight text-foreground mt-3">{priceLabel}</p>
 
             {plan.features.length > 0 && (
-                <ul className="mt-3 space-y-1 text-sm text-foreground">
+                <ul className="mt-3 space-y-1.5 text-sm text-foreground">
                     {plan.features.map((feature) => (
-                        <li key={feature} className="flex gap-2">
-                            <span aria-hidden className="text-primary">
-                                •
-                            </span>
+                        <li key={feature} className="flex items-start gap-2">
+                            <Check size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                             <span>{feature}</span>
                         </li>
                     ))}

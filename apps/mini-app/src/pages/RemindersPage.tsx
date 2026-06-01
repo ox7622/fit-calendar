@@ -1,6 +1,6 @@
 import { format, isSameDay, isTomorrow } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Bell, Settings, X } from 'lucide-react';
+import { ArrowLeft, Bell, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -115,7 +115,17 @@ export function RemindersPage(): JSX.Element {
     return (
         <div className="flex flex-col h-full">
             <div className="px-4 pt-4 pb-3 flex items-center justify-between">
-                <h1 className="heading-2">Напоминания</h1>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/me')}
+                        aria-label="Назад в профиль"
+                        className="p-1.5 -ml-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <h1 className="heading-2">Напоминания</h1>
+                </div>
                 {customer && (
                     <button
                         type="button"

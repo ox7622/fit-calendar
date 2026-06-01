@@ -1,20 +1,19 @@
 import type { IMembership } from '@/shared/api';
-import { format } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { Check, Snowflake } from 'lucide-react';
 
 interface IMembershipCardProps {
     membership: IMembership;
 }
 
-function formatExpiry(iso: string): string {
+function parseLocalDate(iso: string): Date {
     const [y, m, d] = iso.split('-').map(Number);
-    return format(new Date(y, m - 1, d), 'd MMMM yyyy', { locale: ru });
+    return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
 }
 
-function urgencyClass(days: number): string {
-    if (days <= 7) return 'bg-red-500/20 text-red-500';
-    if (days <= 30) return 'bg-yellow-500/20 text-yellow-500';
-    return 'bg-muted text-body-secondary';
+function formatDay(iso: string): string {
+    return format(parseLocalDate(iso), 'd MMM', { locale: ru });
 }
 
 function pluralDays(n: number): string {
@@ -34,56 +33,93 @@ function isFreezeActive(membership: IMembership, now: Date = new Date()): boolea
     return membership.currentFreeze.startDate <= today && today <= membership.currentFreeze.endDate;
 }
 
+const heroGradient = 'linear-gradient(135deg, hsl(var(--hero-from)), hsl(var(--hero-to)))';
+
 export function MembershipCard({ membership }: IMembershipCardProps) {
     const frozen = isFreezeActive(membership);
+    const { plan } = membership;
+    const hasCounters = plan.guestVisitsAllowed > 0 || plan.freezeDaysAllowed > 0;
+
+    // Progress ring: share of the membership window still remaining.
+    const totalDays = Math.max(
+        1,
+        differenceInCalendarDays(parseLocalDate(membership.endDate), parseLocalDate(membership.startDate)),
+    );
+    const remainingPct = Math.max(0, Math.min(100, Math.round((membership.daysRemaining / totalDays) * 100)));
 
     return (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div
+            className="relative overflow-hidden rounded-[18px] p-5 text-white shadow-lg"
+            style={{ background: heroGradient }}
+        >
             {frozen && membership.currentFreeze && (
-                <div className="-mt-2 mb-3 -mx-2 rounded-md bg-yellow-500/20 px-3 py-1.5 text-sm text-yellow-500">
-                    ❄️ Заморожен до {formatExpiry(membership.currentFreeze.endDate)}
+                <div className="-mx-5 -mt-5 mb-4 flex items-center gap-1.5 bg-warning px-5 py-2 text-sm font-medium text-black">
+                    <Snowflake size={14} />
+                    Заморожен до {formatDay(membership.currentFreeze.endDate)}
                 </div>
             )}
-            <h2 className="heading-2">{membership.plan.name}</h2>
-            <p className="text-body-secondary mt-1">Действует до {formatExpiry(membership.endDate)}</p>
 
-            <span
-                className={`mt-2 inline-block rounded-md px-2 py-0.5 text-sm ${urgencyClass(membership.daysRemaining)}`}
-            >
-                Осталось {pluralDays(membership.daysRemaining)}
-            </span>
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <h2 className="text-xl font-bold leading-tight">{plan.name}</h2>
+                    <p className="mt-1 text-sm text-white/70">
+                        Действует до <span className="font-mono">{formatDay(membership.endDate)}</span>
+                    </p>
+                </div>
 
-            {membership.plan.features.length > 0 && (
-                <ul className="mt-4 space-y-1 text-body-secondary">
-                    {membership.plan.features.map((f) => (
-                        <li key={f} className="flex gap-2">
-                            <span>•</span>
-                            <span>{f}</span>
-                        </li>
+                {/* Progress ring */}
+                <div
+                    className="relative flex h-[68px] w-[68px] flex-shrink-0 items-center justify-center rounded-full"
+                    style={{ background: `conic-gradient(#fff ${remainingPct}%, rgba(255,255,255,0.22) 0)` }}
+                >
+                    <div
+                        className="absolute inset-[5px] flex flex-col items-center justify-center rounded-full"
+                        style={{ background: 'hsl(var(--hero-to))' }}
+                    >
+                        <span className="text-lg font-bold leading-none">{membership.daysRemaining}</span>
+                        <span className="text-[10px] text-white/70">дн.</span>
+                    </div>
+                </div>
+            </div>
+
+            {plan.features.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                    {plan.features.map((f) => (
+                        <span
+                            key={f}
+                            className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-xs"
+                        >
+                            <Check size={11} />
+                            {f}
+                        </span>
                     ))}
-                </ul>
+                </div>
             )}
 
-            {(membership.plan.guestVisitsAllowed > 0 || membership.plan.freezeDaysAllowed > 0) && (
+            {hasCounters && (
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                    {membership.plan.guestVisitsAllowed > 0 && (
-                        <div className="rounded border border-border p-3">
-                            <div className="text-2xl font-semibold">{membership.guestVisitsRemaining}</div>
-                            <div className="text-xs text-body-secondary">
-                                из {membership.plan.guestVisitsAllowed} гостевых
+                    {plan.guestVisitsAllowed > 0 && (
+                        <div className="rounded-xl bg-white/10 p-3">
+                            <div className="text-2xl font-bold leading-none">
+                                {membership.guestVisitsRemaining}
+                                <span className="text-sm font-medium text-white/60"> / {plan.guestVisitsAllowed}</span>
                             </div>
+                            <div className="mt-1 text-xs text-white/70">гостевых</div>
                         </div>
                     )}
-                    {membership.plan.freezeDaysAllowed > 0 && (
-                        <div className="rounded border border-border p-3">
-                            <div className="text-2xl font-semibold">{membership.freezeDaysRemaining}</div>
-                            <div className="text-xs text-body-secondary">
-                                из {membership.plan.freezeDaysAllowed} дней заморозки
+                    {plan.freezeDaysAllowed > 0 && (
+                        <div className="rounded-xl bg-white/10 p-3">
+                            <div className="text-2xl font-bold leading-none">
+                                {membership.freezeDaysRemaining}
+                                <span className="text-sm font-medium text-white/60"> / {plan.freezeDaysAllowed}</span>
                             </div>
+                            <div className="mt-1 text-xs text-white/70">дн. заморозки</div>
                         </div>
                     )}
                 </div>
             )}
+
+            <p className="mt-4 text-xs text-white/50">Осталось {pluralDays(membership.daysRemaining)}</p>
         </div>
     );
 }

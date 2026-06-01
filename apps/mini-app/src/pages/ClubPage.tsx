@@ -96,7 +96,7 @@ export function ClubPage(): JSX.Element {
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className="px-4 pt-4 pb-3">
-                <h1 className="heading-2">{club ? club.name : 'Информация о клубе'}</h1>
+                <h1 className="heading-1">{club ? club.name : 'Информация о клубе'}</h1>
             </div>
 
             {error || !club ? (
@@ -130,7 +130,7 @@ export function ClubPage(): JSX.Element {
                     {club.phone && (
                         <div className="flex items-center gap-2">
                             <Phone size={18} className="text-primary flex-shrink-0" />
-                            <a href={`tel:${club.phone}`} className="text-sm text-primary underline">
+                            <a href={`tel:${club.phone}`} className="font-mono text-sm text-primary">
                                 {club.phone}
                             </a>
                         </div>
@@ -148,8 +148,8 @@ export function ClubPage(): JSX.Element {
                                         <div key={day} className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground w-7">{label}</span>
                                             {isWorkingHoursEntry(hours) ? (
-                                                <span className="text-foreground">
-                                                    {hours.open} – {hours.close}
+                                                <span className="font-mono text-foreground">
+                                                    {hours.open}–{hours.close}
                                                 </span>
                                             ) : (
                                                 <span className="text-muted-foreground/60">Выходной</span>

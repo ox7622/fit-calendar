@@ -1,8 +1,9 @@
 import { useAdminStore } from '@/shared/stores/adminStore';
+import { LogOut, Zap } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 const NAV_ITEMS: Array<{ to: string; label: string }> = [
-    { to: '/dashboard', label: 'Дашборд' },
+    { to: '/dashboard', label: 'Расписание' },
     { to: '/customers', label: 'Клиенты' },
     { to: '/plans', label: 'Абонементы' },
     { to: '/coaches', label: 'Тренеры' },
@@ -28,16 +29,21 @@ export function AdminShell() {
         <div className="min-h-screen bg-background text-foreground flex flex-col">
             <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
                 <div className="flex items-center gap-6">
-                    <h1 className="heading-3">Админ-панель</h1>
-                    <nav className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                            <Zap size={18} />
+                        </span>
+                        <h1 className="heading-3">Админ-панель</h1>
+                    </div>
+                    <nav className="flex items-center gap-1">
                         {NAV_ITEMS.map((item) => (
                             <NavLink
                                 key={item.to}
                                 to={item.to}
                                 className={({ isActive }) =>
-                                    `rounded-md px-3 py-1.5 text-sm transition-colors ${
+                                    `rounded-lg px-3 py-1.5 text-sm transition-colors ${
                                         isActive
-                                            ? 'bg-primary/10 text-primary font-medium'
+                                            ? 'bg-primary/15 text-primary font-medium'
                                             : 'text-body-secondary hover:bg-muted'
                                     }`
                                 }
@@ -48,12 +54,17 @@ export function AdminShell() {
                     </nav>
                 </div>
                 <div className="flex items-center gap-3">
-                    {admin && <span className="text-body-secondary">{admin.name}</span>}
+                    {admin && (
+                        <span className="text-sm text-body-secondary">
+                            {admin.name} <span className="text-muted-foreground/70">· Администратор</span>
+                        </span>
+                    )}
                     <button
                         type="button"
                         onClick={onLogout}
-                        className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
+                        className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted"
                     >
+                        <LogOut size={15} />
                         Выйти
                     </button>
                 </div>

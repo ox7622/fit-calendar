@@ -1,6 +1,7 @@
+import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+
 import { MAX_UPLOAD_BYTES } from '@fitcalendar/shared';
 import { Camera } from 'lucide-react';
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 
 interface ICoachPhotoUploadProps {
     currentUrl: string | null;

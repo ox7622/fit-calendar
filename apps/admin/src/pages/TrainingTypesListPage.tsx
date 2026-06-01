@@ -1,8 +1,8 @@
-import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
 import { useEffect, useState } from 'react';
 
 import { adminTrainingTypesApi, type IAdminTrainingType, type TDifficulty } from '@/shared/api';
 import { ImpactTypeBadge } from '@/shared/components/ImpactTypeBadge';
+import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

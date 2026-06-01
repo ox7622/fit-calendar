@@ -1,9 +1,9 @@
-import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
 import { useState, type FormEvent } from 'react';
 
 import { DIFFICULTY_LEVELS, IMPACT_TYPES, type TDifficulty, type TImpactType } from '@/shared/api';
 import { ChipInput } from '@/shared/components/ChipInput';
 import { ImpactTypeBadge } from '@/shared/components/ImpactTypeBadge';
+import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
 
 export interface ITrainingTypeFormValues {
     name: string;

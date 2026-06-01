@@ -1,3 +1,4 @@
+import { MAX_UPLOAD_BYTES, VALIDATION_MESSAGES } from '@fitcalendar/shared';
 import {
     BadRequestException,
     Body,
@@ -22,8 +23,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-
-import { MAX_UPLOAD_BYTES, VALIDATION_MESSAGES } from '@fitcalendar/shared';
 
 import { PG_UNIQUE_VIOLATION, UPLOAD_ERRORS } from '../../common/constants';
 import { AdminUser } from '../../common/decorators/admin-user.decorator';

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import {
     adminCustomersApi,
     adminMembershipsApi,
@@ -6,7 +8,6 @@ import {
     type IAdminMembership,
 } from '@/shared/api';
 import { Pencil } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { AssignMembershipModal } from './AssignMembershipModal';

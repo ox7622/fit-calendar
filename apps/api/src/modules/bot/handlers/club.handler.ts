@@ -1,7 +1,7 @@
 import type { Bot, Context } from 'grammy';
 
-import type { ClubInfoDto, IWorkingHoursEntryDto } from '../../club/dto/club-info.dto';
 import type { ClubService } from '../../club/club.service';
+import type { ClubInfoDto, IWorkingHoursEntryDto } from '../../club/dto/club-info.dto';
 
 // Working-hours keys are stored lowercase (monday…) but the no-record stub uses
 // short capitalised forms (Mon…) — accept both per day.

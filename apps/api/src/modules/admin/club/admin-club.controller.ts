@@ -1,3 +1,4 @@
+import { MAX_UPLOAD_BYTES } from '@fitcalendar/shared';
 import {
     BadRequestException,
     Body,
@@ -13,8 +14,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-
-import { MAX_UPLOAD_BYTES } from '@fitcalendar/shared';
 
 import { UPLOAD_ERRORS } from '../../../common/constants';
 import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';

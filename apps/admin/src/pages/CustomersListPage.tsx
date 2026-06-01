@@ -1,9 +1,9 @@
-import { Plus, Search, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { CustomerDetailPanel } from '@/features/customers/CustomerDetailPanel';
 import { ImportDialog } from '@/features/customers/ImportDialog';
 import { adminCustomersApi, type IAdminCustomer, type ICustomerListQuery } from '@/shared/api';
+import { Plus, Search, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PAGE_SIZE = 50;

@@ -13,6 +13,7 @@ function buildService(stubBot: { api: { sendMessage: jest.Mock } } | null): BotS
     const service = new BotService(
         { get: () => undefined } as unknown as ConstructorParameters<typeof BotService>[0],
         {} as unknown as ConstructorParameters<typeof BotService>[1],
+        {} as unknown as ConstructorParameters<typeof BotService>[2],
     );
     Object.assign(service, { bot: stubBot });
     return service;

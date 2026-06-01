@@ -110,9 +110,9 @@ describe('registerStartCommand', () => {
         // Execute handler
         await handler(mockCtx);
 
-        // Verify Russian welcome message
+        // Verify Russian welcome message (no API_URL in test env → generic club name)
         expect(mockReply).toHaveBeenCalledWith(
-            expect.stringContaining('Добро пожаловать в FitCalendar!'),
+            expect.stringContaining('Привет!'),
             expect.objectContaining({
                 reply_markup: expect.objectContaining({
                     inline_keyboard: expect.arrayContaining([
@@ -147,11 +147,11 @@ describe('registerStartCommand', () => {
         // Execute handler
         await handler(mockCtx);
 
-        // Verify Russian welcome message without inline keyboard
-        expect(mockReply).toHaveBeenCalledWith(expect.stringContaining('Добро пожаловать в FitCalendar!'));
-        // Should be called with just the message, no reply_markup
-        expect(mockReply).toHaveBeenCalledWith(expect.any(String));
-        expect(mockReply.mock.calls[0].length).toBe(1);
+        // Verify Russian welcome message without an inline keyboard
+        expect(mockReply).toHaveBeenCalledWith(
+            expect.stringContaining('Привет!'),
+            expect.objectContaining({ reply_markup: undefined }),
+        );
     });
 });
 

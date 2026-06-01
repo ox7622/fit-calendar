@@ -4,6 +4,7 @@ import type { BotError, Context, InlineKeyboard } from 'grammy';
 import { Bot, GrammyError } from 'grammy';
 import type { Update } from 'grammy/types';
 
+import { ClubService } from '../club/club.service';
 import { ScheduleService } from '../schedule/schedule.service';
 
 export class BotNotInitializedError extends Error {
@@ -17,8 +18,9 @@ export interface ISendNotificationOptions {
     replyMarkup?: InlineKeyboard;
 }
 
+import { registerClubCommand } from './handlers/club.handler';
+import { BOT_COMMANDS, registerScheduleCommands } from './handlers/schedule.handler';
 import { registerStartCommand } from './handlers/start.handler';
-import { registerTodayCommand } from './handlers/today.handler';
 
 export interface IWebhookUpdate {
     update_id: number;
@@ -52,7 +54,11 @@ export class BotService implements OnModuleInit {
     private bot: Bot<Context> | null = null;
     private readonly logger = new Logger(BotService.name);
 
-    constructor(private readonly configService: ConfigService, private readonly scheduleService: ScheduleService) {}
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly scheduleService: ScheduleService,
+        private readonly clubService: ClubService,
+    ) {}
 
     async onModuleInit(): Promise<void> {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
@@ -84,11 +90,19 @@ export class BotService implements OnModuleInit {
         });
 
         // Register commands
-        registerStartCommand(this.bot, miniAppUrl);
-        registerTodayCommand(this.bot, this.scheduleService, miniAppUrl);
+        registerStartCommand(this.bot, this.clubService, miniAppUrl);
+        registerScheduleCommands(this.bot, this.scheduleService, miniAppUrl);
+        registerClubCommand(this.bot, this.clubService);
 
         // Initialize the bot (but don't start polling)
         await this.bot.init();
+
+        // Populate the "/" command menu so users pick commands instead of typing.
+        try {
+            await this.bot.api.setMyCommands(BOT_COMMANDS);
+        } catch (error) {
+            this.logger.warn('Failed to set bot command menu', error);
+        }
 
         this.logger.log(`Bot @${this.bot.botInfo.username} initialized`);
 

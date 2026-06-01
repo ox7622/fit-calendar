@@ -1,4 +1,5 @@
 import { createBot, logger } from './bot';
+import { BOT_COMMANDS } from './commands/schedule.command';
 
 async function bootstrap(): Promise<void> {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -17,6 +18,12 @@ async function bootstrap(): Promise<void> {
     // In production, webhooks are set up via API
     if (process.env.BOT_MODE === 'polling') {
         logger.info('Starting bot in polling mode...');
+        // Populate the "/" command menu so users pick commands instead of typing.
+        try {
+            await bot.api.setMyCommands(BOT_COMMANDS);
+        } catch (error) {
+            logger.warn({ error }, 'Failed to set bot command menu');
+        }
         await bot.start({
             onStart: (botInfo) => {
                 logger.info(`Bot @${botInfo.username} started in polling mode`);

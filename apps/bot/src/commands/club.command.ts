@@ -26,37 +26,35 @@ const DAY_DEFS: Array<{ label: string; keys: string[] }> = [
     { label: 'Вс', keys: ['sunday', 'Sun'] },
 ];
 
+// Condenses the week into ranges of identical days, e.g. "Пн–Пт: 07:00–23:00".
 function formatWorkingHours(hours: Record<string, IWorkingHoursEntry | null> | undefined): string {
-    return DAY_DEFS.map(({ label, keys }) => {
+    const perDay = DAY_DEFS.map(({ label, keys }) => {
         const key = keys.find((k) => hours?.[k] !== undefined);
         const entry = key ? hours?.[key] : undefined;
-        return `${label}: ${entry ? `${entry.open}–${entry.close}` : 'выходной'}`;
-    }).join('\n');
+        return { label, value: entry ? `${entry.open}–${entry.close}` : 'выходной' };
+    });
+
+    const groups: Array<{ from: string; to: string; value: string }> = [];
+    for (const day of perDay) {
+        const last = groups[groups.length - 1];
+        if (last && last.value === day.value) last.to = day.label;
+        else groups.push({ from: day.label, to: day.label, value: day.value });
+    }
+
+    return groups.map((g) => `${g.from === g.to ? g.from : `${g.from}–${g.to}`}: ${g.value}`).join('\n');
 }
 
-/** Map buttons — let the user pick their maps app (links open the native app if installed). */
-function mapButtons(club: IClubInfo): Array<Array<{ text: string; url: string }>> {
-    const hasCoords = club.latitude !== null && club.longitude !== null;
-    const q = encodeURIComponent(club.address);
-    const yandex = hasCoords
-        ? `https://yandex.ru/maps/?pt=${club.longitude},${club.latitude}&z=17&l=map`
-        : `https://yandex.ru/maps/?text=${q}`;
-    const google = hasCoords
-        ? `https://maps.google.com/?q=${club.latitude},${club.longitude}`
-        : `https://maps.google.com/?q=${q}`;
-    const dgis = hasCoords ? `https://2gis.ru/geo/${club.longitude},${club.latitude}` : `https://2gis.ru/search/${q}`;
-    return [
-        [
-            { text: '🗺 Яндекс Карты', url: yandex },
-            { text: '🗺 Google Maps', url: google },
-        ],
-        [{ text: '🗺 2ГИС', url: dgis }],
-    ];
+function escapeHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// HTML — the phone is a tel: link so a tap places a call.
 function buildClubMessage(club: IClubInfo): string {
-    const lines = [`🏛 ${club.name}`, '', `📍 ${club.address}`];
-    if (club.phone) lines.push(`📞 ${club.phone}`);
+    const lines = [`🏛 <b>${escapeHtml(club.name)}</b>`, '', `📍 ${escapeHtml(club.address)}`];
+    if (club.phone) {
+        const tel = club.phone.replace(/[^\d+]/g, '');
+        lines.push(`📞 <a href="tel:${tel}">${escapeHtml(club.phone)}</a>`);
+    }
     lines.push('', '🕐 Часы работы:', formatWorkingHours(club.workingHours));
     return lines.join('\n');
 }
@@ -73,13 +71,10 @@ export function registerClubCommand(bot: Bot<Context>): void {
             const response = await fetch(`${apiUrl}/api/club-info`);
             if (!response.ok) throw new Error(`API responded with ${response.status}`);
             const club = (await response.json()) as IClubInfo;
-            await ctx.reply(buildClubMessage(club), {
-                reply_markup: { inline_keyboard: mapButtons(club) },
-            });
+            await ctx.reply(buildClubMessage(club), { parse_mode: 'HTML' });
 
             // A native location pin: tapping it offers "Open in…" with every maps
-            // app installed on the device (Organic Maps, Apple Maps, 2ГИС, …) —
-            // covering apps that have no coordinate https link for a button.
+            // app installed on the device (Organic Maps, Apple Maps, Яндекс, 2ГИС, …).
             if (club.latitude !== null && club.longitude !== null) {
                 await ctx.replyWithVenue(club.latitude, club.longitude, club.name, club.address);
             }

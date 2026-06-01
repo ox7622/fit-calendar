@@ -19,7 +19,7 @@ cd "$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE=".env.local"
 API_PORT=3020
 MINI_PORT=4200
-MENU_BUTTON_TEXT="📅 Расписание"
+MENU_BUTTON_TEXT="Меню"
 HEALTH_INTERVAL=30
 
 API_LOG=$(mktemp -t dev-tunnel-api)

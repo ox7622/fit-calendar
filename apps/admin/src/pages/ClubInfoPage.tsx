@@ -28,6 +28,7 @@ export function ClubInfoPage() {
     const [form, setForm] = useState<IFormState>(EMPTY_FORM);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [geocoding, setGeocoding] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
@@ -89,6 +90,29 @@ export function ClubInfoPage() {
             }
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleGeocode = async (): Promise<void> => {
+        const address = form.address.trim();
+        if (!address) {
+            setError('Сначала укажите адрес');
+            return;
+        }
+        setError(null);
+        setGeocoding(true);
+        try {
+            const { latitude, longitude } = await adminClubApi.geocode(address);
+            setForm((f) => ({ ...f, latitude, longitude }));
+        } catch (err) {
+            if (err instanceof ApiError) {
+                const body = err.data as { message?: string } | null;
+                setError(body?.message ?? 'Не удалось определить координаты');
+            } else {
+                setError('Не удалось определить координаты');
+            }
+        } finally {
+            setGeocoding(false);
         }
     };
 
@@ -181,8 +205,16 @@ export function ClubInfoPage() {
                             latitude={form.latitude}
                             longitude={form.longitude}
                             onChange={(lat, lon) => setForm((f) => ({ ...f, latitude: lat, longitude: lon }))}
-                            disabled={submitting}
+                            disabled={submitting || geocoding}
                         />
+                        <button
+                            type="button"
+                            onClick={handleGeocode}
+                            disabled={submitting || geocoding || !form.address.trim()}
+                            className="rounded border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
+                        >
+                            {geocoding ? 'Определяем…' : '📍 Определить по адресу'}
+                        </button>
                     </section>
 
                     {error && <p className="text-destructive">{error}</p>}

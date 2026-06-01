@@ -9,9 +9,10 @@ async function bootstrap(): Promise<void> {
         process.exit(1);
     }
 
+    const miniAppUrl = process.env.MINI_APP_URL;
     const bot = createBot({
         token,
-        miniAppUrl: process.env.MINI_APP_URL,
+        miniAppUrl,
     });
 
     // In development, can use polling mode
@@ -23,6 +24,16 @@ async function bootstrap(): Promise<void> {
             await bot.api.setMyCommands(BOT_COMMANDS);
         } catch (error) {
             logger.warn({ error }, 'Failed to set bot command menu');
+        }
+        // The menu button (left of the input) launches the Mini App, labelled "Меню".
+        if (miniAppUrl) {
+            try {
+                await bot.api.setChatMenuButton({
+                    menu_button: { type: 'web_app', text: 'Меню', web_app: { url: miniAppUrl } },
+                });
+            } catch (error) {
+                logger.warn({ error }, 'Failed to set chat menu button');
+            }
         }
         await bot.start({
             onStart: (botInfo) => {

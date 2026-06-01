@@ -104,6 +104,17 @@ export class BotService implements OnModuleInit {
             this.logger.warn('Failed to set bot command menu', error);
         }
 
+        // The menu button (left of the input) launches the Mini App, labelled "Меню".
+        if (miniAppUrl) {
+            try {
+                await this.bot.api.setChatMenuButton({
+                    menu_button: { type: 'web_app', text: 'Меню', web_app: { url: miniAppUrl } },
+                });
+            } catch (error) {
+                this.logger.warn('Failed to set chat menu button', error);
+            }
+        }
+
         this.logger.log(`Bot @${this.bot.botInfo.username} initialized`);
 
         // Register webhook if we have the secret and API URL.

@@ -22,14 +22,16 @@ import { detectImageFormat } from '../../../common/utils/image-magic-bytes';
 
 import { AdminClubService } from './admin-club.service';
 import { AdminClubInfoDto } from './dto/club-info.dto';
+import { GeocodeAddressDto } from './dto/geocode-address.dto';
 import { UpdateClubInfoDto } from './dto/update-club-info.dto';
+import { GeocodingService, type IGeocodeResult } from './geocoding.service';
 
 @ApiTags('Admin Club')
 @ApiBearerAuth()
 @Controller('admin/club-info')
 @UseGuards(AdminAuthGuard)
 export class AdminClubController {
-    constructor(private readonly clubService: AdminClubService) {}
+    constructor(private readonly clubService: AdminClubService, private readonly geocodingService: GeocodingService) {}
 
     @Get()
     @ApiOperation({
@@ -46,6 +48,19 @@ export class AdminClubController {
     @ApiResponse({ status: 400, description: 'Validation failure (e.g. lat without lon)' })
     update(@Body() dto: UpdateClubInfoDto): Promise<AdminClubInfoDto> {
         return this.clubService.update(dto);
+    }
+
+    @Post('geocode')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Geocode an address into coordinates (Yandex Geocoder)' })
+    @ApiResponse({
+        status: 200,
+        schema: { properties: { latitude: { type: 'number' }, longitude: { type: 'number' } } },
+    })
+    @ApiResponse({ status: 400, description: 'Address could not be geocoded' })
+    @ApiResponse({ status: 503, description: 'Geocoder not configured or upstream error' })
+    geocode(@Body() dto: GeocodeAddressDto): Promise<IGeocodeResult> {
+        return this.geocodingService.geocode(dto.address);
     }
 
     @Post('logo')

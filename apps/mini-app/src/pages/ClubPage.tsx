@@ -5,20 +5,38 @@ import { Link } from 'react-router-dom';
 import { clubApi } from '@/shared/api/club.api';
 import type { ClubInfo, WorkingHoursEntry } from '@/shared/api/club.api';
 
-const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-
-const DAY_LABELS: Record<string, string> = {
-    Mon: 'Пн',
-    Tue: 'Вт',
-    Wed: 'Ср',
-    Thu: 'Чт',
-    Fri: 'Пт',
-    Sat: 'Сб',
-    Sun: 'Вс',
-};
+// Day keys are stored lowercase (monday…); the no-record stub uses short
+// capitalised forms (Mon…) — accept both per day.
+const DAY_DEFS: Array<{ label: string; keys: string[] }> = [
+    { label: 'Пн', keys: ['monday', 'Mon'] },
+    { label: 'Вт', keys: ['tuesday', 'Tue'] },
+    { label: 'Ср', keys: ['wednesday', 'Wed'] },
+    { label: 'Чт', keys: ['thursday', 'Thu'] },
+    { label: 'Пт', keys: ['friday', 'Fri'] },
+    { label: 'Сб', keys: ['saturday', 'Sat'] },
+    { label: 'Вс', keys: ['sunday', 'Sun'] },
+];
 
 function isWorkingHoursEntry(value: WorkingHoursEntry | null | undefined): value is WorkingHoursEntry {
     return value !== null && value !== undefined && typeof value === 'object';
+}
+
+/** Condenses the week into ranges of identical days, e.g. "Пн–Пт" → "07:00–23:00". */
+function getWorkingHoursRows(hours: Record<string, WorkingHoursEntry | null>): Array<{ label: string; value: string }> {
+    const perDay = DAY_DEFS.map(({ label, keys }) => {
+        const key = keys.find((k) => hours[k] !== undefined);
+        const entry = key ? hours[key] : undefined;
+        return { label, value: isWorkingHoursEntry(entry) ? `${entry.open}–${entry.close}` : 'Выходной' };
+    });
+
+    const groups: Array<{ from: string; to: string; value: string }> = [];
+    for (const day of perDay) {
+        const last = groups[groups.length - 1];
+        if (last && last.value === day.value) last.to = day.label;
+        else groups.push({ from: day.label, to: day.label, value: day.value });
+    }
+
+    return groups.map((g) => ({ label: g.from === g.to ? g.from : `${g.from}–${g.to}`, value: g.value }));
 }
 
 function openMap(club: ClubInfo): void {
@@ -141,22 +159,16 @@ export function ClubPage(): JSX.Element {
                         <div>
                             <p className="text-sm font-semibold text-muted-foreground mb-2">Часы работы</p>
                             <div className="bg-card rounded-xl p-4 space-y-2">
-                                {DAY_ORDER.map((day) => {
-                                    const hours = club.workingHours[day];
-                                    const label = DAY_LABELS[day] ?? day;
-                                    return (
-                                        <div key={day} className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground w-7">{label}</span>
-                                            {isWorkingHoursEntry(hours) ? (
-                                                <span className="font-mono text-foreground">
-                                                    {hours.open}–{hours.close}
-                                                </span>
-                                            ) : (
-                                                <span className="text-muted-foreground/60">Выходной</span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                {getWorkingHoursRows(club.workingHours).map((row) => (
+                                    <div key={row.label} className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">{row.label}</span>
+                                        {row.value === 'Выходной' ? (
+                                            <span className="text-muted-foreground/60">Выходной</span>
+                                        ) : (
+                                            <span className="font-mono text-foreground">{row.value}</span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

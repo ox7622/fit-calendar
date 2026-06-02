@@ -2,7 +2,13 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "outDir": "../../dist/out-tsc",
-        "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"]
+        },
+        "types": ["node"]
     },
     "exclude": [
         "src/**/*.spec.ts",

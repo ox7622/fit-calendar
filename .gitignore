@@ -47,3 +47,6 @@ vitest.config.*.timestamp*
 
 # GitHub generated
 .github/instructions/nx.instructions.md
+
+# Lovable reference design (local only, not part of the monorepo)
+fitcalendar-flow-main/

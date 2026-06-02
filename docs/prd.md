@@ -18,9 +18,11 @@ This application addresses these pain points by creating a Telegram-native solut
 
 ### 1.3 Change Log
 
-| Date       | Version | Description          | Author    |
-| ---------- | ------- | -------------------- | --------- |
-| 2026-01-08 | 1.0     | Initial PRD creation | PM (John) |
+| Date       | Version | Description                                                                                                 | Author    |
+| ---------- | ------- | ----------------------------------------------------------------------------------------------------------- | --------- |
+| 2026-01-08 | 1.0     | Initial PRD creation                                                                                        | PM (John) |
+| 2026-05-02 | 1.1     | Defer NFR12 (audit logging) and NFR14 (offline) to Phase 2; epic 6.6 (Training Types Mgmt) confirmed in MVP | PM (John) |
+| 2026-05-02 | 1.2     | Add Epic 7 (Memberships & Plans, 6 stories); add FR24-FR30; renumber post-epics sections                    | PM (John) |
 
 ---
 
@@ -28,51 +30,58 @@ This application addresses these pain points by creating a Telegram-native solut
 
 ### 2.1 Functional Requirements
 
-| ID   | Requirement                                                                              |
-| ---- | ---------------------------------------------------------------------------------------- |
-| FR1  | The system shall display the fitness class schedule for today and upcoming days          |
-| FR2  | The system shall show class details including name, time, duration, and assigned coach   |
-| FR3  | The system shall provide both daily and weekly calendar views of the schedule            |
-| FR4  | The system shall display training difficulty levels (beginner, intermediate, advanced)   |
-| FR5  | The system shall show training impact types (cardio, strength, flexibility, balance)     |
-| FR6  | The system shall display equipment requirements for each training class                  |
-| FR7  | The system shall allow filtering schedule by training type                               |
-| FR8  | The system shall allow filtering schedule by difficulty level                            |
-| FR9  | The system shall allow filtering schedule by coach                                       |
-| FR10 | The system shall support multiple simultaneous filters                                   |
-| FR11 | The system shall display coach profiles with photos, specializations, and certifications |
-| FR12 | The system shall show a coach's upcoming class schedule from their profile               |
-| FR13 | The system shall display club information including address, working hours, and contacts |
-| FR14 | The system shall provide a link to open club location in a map application               |
-| FR15 | The system shall allow users to subscribe to reminders for specific classes              |
-| FR16 | The system shall send reminder notifications N minutes before subscribed classes         |
-| FR17 | The system shall notify subscribed users when a class time changes                       |
-| FR18 | The system shall notify subscribed users when a class is cancelled                       |
-| FR19 | The system shall allow users to configure their reminder time preference                 |
-| FR20 | The system shall provide an admin panel for managing the schedule                        |
-| FR21 | The system shall allow admins to add, edit, and delete training sessions                 |
-| FR22 | The system shall allow admins to manage coach profiles                                   |
-| FR23 | The system shall allow admins to update club information                                 |
+| ID   | Requirement                                                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR1  | The system shall display the fitness class schedule for today and upcoming days                                                                 |
+| FR2  | The system shall show class details including name, time, duration, and assigned coach                                                          |
+| FR3  | The system shall provide both daily and weekly calendar views of the schedule                                                                   |
+| FR4  | The system shall display training difficulty levels (beginner, intermediate, advanced)                                                          |
+| FR5  | The system shall show training impact types (cardio, strength, flexibility, balance)                                                            |
+| FR6  | The system shall display equipment requirements for each training class                                                                         |
+| FR7  | The system shall allow filtering schedule by training type                                                                                      |
+| FR8  | The system shall allow filtering schedule by difficulty level                                                                                   |
+| FR9  | The system shall allow filtering schedule by coach                                                                                              |
+| FR10 | The system shall support multiple simultaneous filters                                                                                          |
+| FR11 | The system shall display coach profiles with photos, specializations, and certifications                                                        |
+| FR12 | The system shall show a coach's upcoming class schedule from their profile                                                                      |
+| FR13 | The system shall display club information including address, working hours, and contacts                                                        |
+| FR14 | The system shall provide a link to open club location in a map application                                                                      |
+| FR15 | The system shall allow users to subscribe to reminders for specific classes                                                                     |
+| FR16 | The system shall send reminder notifications N minutes before subscribed classes                                                                |
+| FR17 | The system shall notify subscribed users when a class time changes                                                                              |
+| FR18 | The system shall notify subscribed users when a class is cancelled                                                                              |
+| FR19 | The system shall allow users to configure their reminder time preference                                                                        |
+| FR20 | The system shall provide an admin panel for managing the schedule                                                                               |
+| FR21 | The system shall allow admins to add, edit, and delete training sessions                                                                        |
+| FR22 | The system shall allow admins to manage coach profiles                                                                                          |
+| FR23 | The system shall allow admins to update club information                                                                                        |
+| FR24 | The system shall display the catalog of available membership plans to Mini App users                                                            |
+| FR25 | The system shall track each customer's current membership plan, start date, expiration date, and remaining counters (guest visits, freeze days) |
+| FR26 | The system shall allow admins to create, edit, deactivate, and (with constraints) delete membership plans                                       |
+| FR27 | The system shall allow admins to manage customer records independently of Telegram identity, including bulk-import from CSV                     |
+| FR28 | The system shall allow Mini App users to link their Telegram identity to an existing customer record by phone number                            |
+| FR29 | The system shall allow admins to assign a customer to a plan, with the system computing the expiration date automatically                       |
+| FR30 | The system shall allow admins to log guest visits and freezes against a customer's membership, with audit history and atomic counter updates    |
 
 ### 2.2 Non-Functional Requirements
 
-| ID    | Requirement                                                                                 |
-| ----- | ------------------------------------------------------------------------------------------- |
-| NFR1  | The Mini App shall load initial content within 2 seconds on 3G connection                   |
-| NFR2  | The Bot shall respond to commands within 1 second                                           |
-| NFR3  | The system shall support at least 500 concurrent users                                      |
-| NFR4  | The Mini App shall work on iOS and Android Telegram clients                                 |
-| NFR5  | The interface shall be in Russian language                                                  |
-| NFR6  | The system shall use Telegram's native authentication (no separate login)                   |
-| NFR7  | All API endpoints shall be secured with HTTPS                                               |
-| NFR8  | Admin panel shall require email/password authentication                                     |
-| NFR9  | The system shall handle Telegram API rate limits gracefully                                 |
-| NFR10 | The system shall continue functioning if notification delivery fails (graceful degradation) |
-| NFR11 | The database shall be backed up daily                                                       |
-| NFR12 | The system shall log all admin actions for audit purposes                                   |
-| NFR13 | Images shall be optimized for mobile viewing (max 500KB)                                    |
-| NFR14 | The Mini App shall work offline for previously loaded schedule data                         |
-| NFR15 | The system shall be deployable via Docker containers                                        |
+| ID        | Requirement                                                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NFR1      | The Mini App shall load initial content within 2 seconds on 3G connection                                                                                     |
+| NFR2      | The Bot shall respond to commands within 1 second                                                                                                             |
+| NFR3      | The system shall support at least 500 concurrent users                                                                                                        |
+| NFR4      | The Mini App shall work on iOS and Android Telegram clients                                                                                                   |
+| NFR5      | The interface shall be in Russian language                                                                                                                    |
+| NFR6      | The system shall use Telegram's native authentication (no separate login)                                                                                     |
+| NFR7      | All API endpoints shall be secured with HTTPS                                                                                                                 |
+| NFR8      | Admin panel shall require email/password authentication                                                                                                       |
+| NFR9      | The system shall handle Telegram API rate limits gracefully                                                                                                   |
+| NFR10     | The system shall continue functioning if notification delivery fails (graceful degradation)                                                                   |
+| NFR11     | The database shall be backed up daily                                                                                                                         |
+| ~~NFR12~~ | ~~Audit logging~~ — **deferred to Phase 2 (2026-05-02)**                                                                                                      |
+| NFR13     | Images shall be optimized for mobile viewing (max 500KB)                                                                                                      |
+| ~~NFR14~~ | ~~Offline schedule data~~ — **deferred to Phase 2 (2026-05-02). Telegram WebView requires connectivity; offline support adds complexity for marginal value.** |
+| NFR15     | The system shall be deployable via Docker containers                                                                                                          |
 
 ---
 
@@ -184,6 +193,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 | 4    | Coach Profiles & Club Info   | Display coach profiles and club information to build trust and help members find trainers           |
 | 5    | Reminders & Notifications    | Allow members to subscribe to class reminders and receive schedule change notifications             |
 | 6    | Admin Panel                  | Provide administrators with tools to manage schedule, coaches, and club information                 |
+| 7    | Memberships & Plans          | Manage the club's plan catalog and track each customer's membership, expiration, and usage          |
 
 ---
 
@@ -833,7 +843,135 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 
 ---
 
-## 12. Checklist Results Report
+## 12. Epic 7: Memberships & Plans
+
+**Goal:** Establish a customer-membership system where the club's reception is the source of truth for who is a member and what plan they have. Customers are managed entirely by admins (via panel or CSV import), independent of who has opened the Mini App. Telegram identity is linked to a customer record by phone match. Members see their current plan, expiration, and remaining benefits in the Mini App; admins manage the catalog and log guest visits / freezes against memberships.
+
+**Architectural note:** This epic refactors the auth model from Story 1.5 (auto-upsert User on Telegram open) to a customer-lookup model. The `User` entity is renamed to `Customer`, populated only by admin actions or CSV import. Anonymous browsing (schedule, coaches, club, plans) stays open to any Telegram user; profile and reminders gated behind a linked customer record.
+
+### Story 7.1: Membership Plan Catalog
+
+**As a** club administrator,
+**I want** to define the club's membership plans (12-month, 6-month, drop-in, etc.) with their durations, prices, and included features,
+**so that** customers can be assigned to plans and members can browse the catalog.
+
+**Acceptance Criteria:**
+
+1. New `MembershipPlan` entity with: name, durationValue, durationUnit (day/week/month), priceRub, features (free-form list), guestVisitsAllowed, freezeDaysAllowed, isActive
+2. Public `GET /membership-plans` endpoint returns active plans for the Mini App catalog
+3. Admin CRUD endpoints under `/admin/membership-plans` with deactivate-vs-delete semantics
+4. Plans cannot be hard-deleted while customer memberships reference them (use deactivation)
+5. Mini App `/plans` page renders cards with name, duration label, price, features, badges for guest visits / freeze days
+6. Admin UI provides list, create, edit, deactivate
+7. Russian pluralization helper handles duration labels ("12 месяцев", "1 неделя", etc.)
+
+---
+
+### Story 7.2: Customer CRUD + Telegram Phone Linking
+
+**As a** club administrator,
+**I want** to manage the club's customer records directly in the admin panel,
+**so that** the system has a complete and authoritative member list regardless of who has used the Mini App.
+
+**As a** Mini App user,
+**I want** to link my Telegram account to my customer record by entering my phone number once,
+**so that** I see my personal membership without anyone re-registering me.
+
+**Acceptance Criteria:**
+
+1. `Customer` entity replaces `User` with: firstName, lastName, phone (unique, normalized), email, telegramId (nullable), telegramUsername, isActive, notes
+2. `TelegramAuthGuard` no longer auto-creates records; looks up customer by telegramId and attaches null when not linked
+3. Customer-required endpoints (reminders, profile, settings) reject unlinked requests with 403 + code `CUSTOMER_NOT_LINKED`
+4. `POST /me/link-phone` looks up customer by normalized phone and links the calling Telegram identity
+5. Phone normalizer accepts common Russian formats and returns canonical `+7XXXXXXXXXX`
+6. Linking errors distinguish: phone not found (404), phone linked to other (409), invalid format (400)
+7. Admin CRUD endpoints with search, filters, pagination
+8. Admin can unlink a customer's Telegram identity for re-linking from a different account
+9. Reminder entity's `userId` column renames to `customerId`; existing migration test fixtures updated
+
+---
+
+### Story 7.3: Customer CSV Bulk Import
+
+**As a** club administrator,
+**I want** to bulk-import the club's existing customer list from a CSV file,
+**so that** I don't have to type 200 members one-by-one when launching the system.
+
+**Acceptance Criteria:**
+
+1. `POST /admin/customers/import` accepts a CSV upload; dry-run is the default (no DB writes)
+2. Required columns: firstName, phone. Optional: lastName, email, telegramUsername, notes
+3. Phone normalized via the same helper as Story 7.2
+4. Upsert key is normalized phone — existing customers are updated, new ones created
+5. Within a CSV, duplicate phones are reported as errors and skipped (first occurrence kept)
+6. Per-row error report with row number, column, message — all in Russian
+7. Admin reviews preview, then submits with `?commit=true` to apply
+8. Maximum: 5MB file, 5000 rows; larger rejected with clear error
+9. Commit happens atomically in a transaction
+
+---
+
+### Story 7.4: Membership Assignment + Mini App Profile
+
+**As a** club administrator,
+**I want** to assign a customer to a plan with a start date and have the system compute their expiration automatically,
+**so that** I don't do calendar math at the front desk and the customer's state is reliable.
+
+**As a** club member,
+**I want** to see my current plan, included features, remaining guest visits, and expiration date,
+**so that** I can plan my visits and renewals without asking reception.
+
+**Acceptance Criteria:**
+
+1. New `CustomerMembership` entity joins Customer ↔ MembershipPlan with snapshot fields (endDate, guestVisitsRemaining, freezeDaysRemaining, status)
+2. `endDate` and counters are computed/snapshotted at assignment time; plan edits do not propagate to existing memberships
+3. A customer may have at most one `active` membership; assigning over an existing active returns 409 + `ACTIVE_MEMBERSHIP_EXISTS` for explicit cancel-then-create flow
+4. `GET /me/membership` returns the caller's active membership with embedded plan + computed `daysRemaining`
+5. Mini App profile page (`/me`) accessible via a profile icon in the AppShell header
+6. Profile renders membership card: plan name, "Действует до", countdown badge with urgency colors, features, remaining counters
+7. Daily cron job flips memberships from `active` to `expired` based on `endDate`
+8. Admin UI on customer edit page shows current membership + history; assign / cancel / edit-endDate actions
+
+---
+
+### Story 7.5: Guest Visit Logging
+
+**As a** club administrator,
+**I want** to record when a member brings a guest, decrementing their remaining count,
+**so that** members can't exceed their plan's allowance and we have an audit trail.
+
+**Acceptance Criteria:**
+
+1. New `GuestVisit` entity: customerMembershipId, visitedAt, notes, recordedByAdminId
+2. `POST /admin/memberships/:id/guest-visits` decrements `guestVisitsRemaining` atomically (transaction + row lock)
+3. Reject with 400 + code `NO_GUEST_VISITS_REMAINING` when counter is 0
+4. Reject with 400 + code `MEMBERSHIP_NOT_ACTIVE` when membership isn't active
+5. `DELETE /admin/guest-visits/:id` reverses a visit (increments counter back) for fat-finger correction
+6. Admin UI on the active membership card shows "+1 visit" button (disabled at 0) + history list
+7. Mini App `MembershipCard` reflects the decremented counter on next fetch
+
+---
+
+### Story 7.6: Membership Freeze Workflow
+
+**As a** club administrator,
+**I want** to freeze a member's membership for a defined period, shifting their expiration forward,
+**so that** members feel fairly treated and the system tracks freeze entitlements accurately.
+
+**Acceptance Criteria:**
+
+1. New `FreezeEvent` entity: customerMembershipId, startDate, endDate, durationDays, notes, recordedByAdminId
+2. `POST /admin/memberships/:id/freezes` records a freeze: shifts membership endDate forward by `durationDays`, decrements `freezeDaysRemaining`, atomically
+3. Single contiguous freeze for MVP: a membership can have at most one freeze; second attempt → 400 + code `FREEZE_ALREADY_USED`
+4. Reject with 400 + code `INSUFFICIENT_FREEZE_DAYS` when `durationDays > freezeDaysRemaining`
+5. Reject with 400 + code `MEMBERSHIP_NOT_ACTIVE` when status isn't active
+6. `DELETE /admin/freezes/:id` reverses a freeze (shifts endDate back, increments counter back)
+7. Admin UI on the active membership card shows "Freeze" button + freeze details after recorded
+8. Mini App `MembershipCard` shows yellow "Заморожен до DD MMM" banner when today is within an active freeze period
+
+---
+
+## 13. Checklist Results Report
 
 ### Executive Summary
 
@@ -846,17 +984,17 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 
 ### Category Analysis
 
-| Category                         | Status      | Critical Issues                |
-| -------------------------------- | ----------- | ------------------------------ |
-| 1. Problem Definition & Context  | **PASS**    | None                           |
-| 2. MVP Scope Definition          | **PASS**    | None                           |
-| 3. User Experience Requirements  | **PASS**    | Minor - diagrams would enhance |
-| 4. Functional Requirements       | **PASS**    | None - 23 FRs cover MVP        |
-| 5. Non-Functional Requirements   | **PASS**    | None - 15 NFRs complete        |
-| 6. Epic & Story Structure        | **PASS**    | None - 6 epics, 34 stories     |
-| 7. Technical Guidance            | **PASS**    | None - stack defined           |
-| 8. Cross-Functional Requirements | **PASS**    | None                           |
-| 9. Clarity & Communication       | **PARTIAL** | Visual diagrams recommended    |
+| Category                         | Status      | Critical Issues                                    |
+| -------------------------------- | ----------- | -------------------------------------------------- |
+| 1. Problem Definition & Context  | **PASS**    | None                                               |
+| 2. MVP Scope Definition          | **PASS**    | None                                               |
+| 3. User Experience Requirements  | **PASS**    | Minor - diagrams would enhance                     |
+| 4. Functional Requirements       | **PASS**    | None - 30 FRs cover MVP                            |
+| 5. Non-Functional Requirements   | **PASS**    | None - 13 NFRs (NFR12 + NFR14 deferred to Phase 2) |
+| 6. Epic & Story Structure        | **PASS**    | None - 7 epics, 40 stories                         |
+| 7. Technical Guidance            | **PASS**    | None - stack defined                               |
+| 8. Cross-Functional Requirements | **PASS**    | None                                               |
+| 9. Clarity & Communication       | **PARTIAL** | Visual diagrams recommended                        |
 
 ### Final Decision
 
@@ -864,7 +1002,7 @@ Monolith API serving all clients (Bot, Mini App, Admin) with potential for futur
 
 ---
 
-## 13. Next Steps
+## 14. Next Steps
 
 ### 13.1 UX Expert Prompt
 

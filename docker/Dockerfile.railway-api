@@ -1,0 +1,23 @@
+# Railway image for the FitCalendar API — the Telegram webhook bot runs
+# in-process here, so this single service covers the whole backend.
+#
+# Single stage on purpose: DB migrations run from source via ts-node at boot
+# (pnpm db:migrate:prod), so the full repo (libs/db migrations, libs/nest-shared)
+# must stay in the image. devDependencies are kept for `nx build` + ts-node.
+FROM node:22-slim
+
+WORKDIR /app
+
+# Pin pnpm to the repo's packageManager via corepack.
+RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
+
+# Install all workspace deps, then build the API bundle to dist/apps/api.
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm nx build api
+
+ENV NODE_ENV=production
+
+# Apply pending migrations, then start the API. Railway listens on $PORT, which
+# main.ts binds to (0.0.0.0). railway.json's startCommand mirrors this CMD.
+CMD ["sh", "-c", "pnpm db:migrate:prod && node dist/apps/api/main.js"]

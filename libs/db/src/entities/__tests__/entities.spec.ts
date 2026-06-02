@@ -1,36 +1,50 @@
-import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser } from '../index';
+import { Customer, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser, MembershipPlan } from '../index';
 
-describe('User Entity', () => {
-    it('should create a user instance', () => {
-        const user = new User();
-        expect(user).toBeInstanceOf(User);
+describe('Customer Entity', () => {
+    it('should create a customer instance', () => {
+        const customer = new Customer();
+        expect(customer).toBeInstanceOf(Customer);
     });
 
-    it('should allow setting reminderMinutes with default value behavior', () => {
-        const user = new User();
-        // Default value (30) is applied at DB level via @Column decorator
-        // When set explicitly, the value should persist
-        user.reminderMinutes = 30;
-        expect(user.reminderMinutes).toBe(30);
+    it('should allow setting reminderMinutes', () => {
+        const customer = new Customer();
+        customer.reminderMinutes = 30;
+        expect(customer.reminderMinutes).toBe(30);
 
-        user.reminderMinutes = 60;
-        expect(user.reminderMinutes).toBe(60);
+        customer.reminderMinutes = 60;
+        expect(customer.reminderMinutes).toBe(60);
     });
 
-    it('should allow setting all properties', () => {
-        const user = new User();
-        user.id = '123e4567-e89b-12d3-a456-426614174000';
-        user.telegramId = 123456789;
-        user.firstName = 'John';
-        user.lastName = 'Doe';
-        user.username = 'johndoe';
-        user.reminderMinutes = 60;
+    it('should allow setting all properties including admin-managed fields', () => {
+        const customer = new Customer();
+        customer.id = '123e4567-e89b-12d3-a456-426614174000';
+        customer.firstName = 'John';
+        customer.lastName = 'Doe';
+        customer.phone = '+74951234567';
+        customer.email = 'john@example.com';
+        customer.telegramId = 123456789;
+        customer.telegramUsername = 'johndoe';
+        customer.isActive = true;
+        customer.notes = 'VIP member';
+        customer.reminderMinutes = 60;
 
-        expect(user.telegramId).toBe(123456789);
-        expect(user.firstName).toBe('John');
-        expect(user.lastName).toBe('Doe');
-        expect(user.username).toBe('johndoe');
-        expect(user.reminderMinutes).toBe(60);
+        expect(customer.firstName).toBe('John');
+        expect(customer.lastName).toBe('Doe');
+        expect(customer.phone).toBe('+74951234567');
+        expect(customer.email).toBe('john@example.com');
+        expect(customer.telegramId).toBe(123456789);
+        expect(customer.telegramUsername).toBe('johndoe');
+        expect(customer.isActive).toBe(true);
+        expect(customer.notes).toBe('VIP member');
+        expect(customer.reminderMinutes).toBe(60);
+    });
+
+    it('should allow telegramId to be null (unlinked customer)', () => {
+        const customer = new Customer();
+        customer.telegramId = null;
+        customer.telegramUsername = null;
+        expect(customer.telegramId).toBeNull();
+        expect(customer.telegramUsername).toBeNull();
     });
 });
 
@@ -147,6 +161,15 @@ describe('Reminder Entity', () => {
 
         expect(reminder.notifyAt).toEqual(notifyAt);
     });
+
+    it('should track retryCount for delivery attempts (Story 5.3)', () => {
+        const reminder = new Reminder();
+        reminder.retryCount = 0;
+        expect(reminder.retryCount).toBe(0);
+
+        reminder.retryCount = 2;
+        expect(reminder.retryCount).toBe(2);
+    });
 });
 
 describe('ClubInfo Entity', () => {
@@ -202,5 +225,45 @@ describe('AdminUser Entity', () => {
 
         admin.lastLoginAt = new Date('2026-01-15T10:00:00Z');
         expect(admin.lastLoginAt).toBeInstanceOf(Date);
+    });
+});
+
+describe('MembershipPlan Entity', () => {
+    it('should create a membership plan instance', () => {
+        const plan = new MembershipPlan();
+        expect(plan).toBeInstanceOf(MembershipPlan);
+    });
+
+    it('should allow setting all properties', () => {
+        const plan = new MembershipPlan();
+        plan.name = '12-месячный';
+        plan.durationValue = 12;
+        plan.durationUnit = 'month';
+        plan.priceRub = 30000;
+        plan.features = ['2 гостевых визита', '1 месяц заморозки'];
+        plan.guestVisitsAllowed = 2;
+        plan.freezeDaysAllowed = 30;
+        plan.isActive = true;
+
+        expect(plan.name).toBe('12-месячный');
+        expect(plan.durationValue).toBe(12);
+        expect(plan.durationUnit).toBe('month');
+        expect(plan.priceRub).toBe(30000);
+        expect(plan.features).toEqual(['2 гостевых визита', '1 месяц заморозки']);
+        expect(plan.guestVisitsAllowed).toBe(2);
+        expect(plan.freezeDaysAllowed).toBe(30);
+        expect(plan.isActive).toBe(true);
+    });
+
+    it('should accept all valid duration units', () => {
+        const plan = new MembershipPlan();
+        plan.durationUnit = 'day';
+        expect(plan.durationUnit).toBe('day');
+
+        plan.durationUnit = 'week';
+        expect(plan.durationUnit).toBe('week');
+
+        plan.durationUnit = 'month';
+        expect(plan.durationUnit).toBe('month');
     });
 });

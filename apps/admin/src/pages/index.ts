@@ -1,0 +1,17 @@
+export { LoginPage } from './LoginPage';
+export { DashboardPage } from './DashboardPage';
+export { PlansListPage } from './PlansListPage';
+export { PlanNewPage } from './PlanNewPage';
+export { PlanEditPage } from './PlanEditPage';
+export { CustomersListPage } from './CustomersListPage';
+export { CustomerNewPage } from './CustomerNewPage';
+export { CustomerEditPage } from './CustomerEditPage';
+export { ScheduleNewPage } from './ScheduleNewPage';
+export { ScheduleEditPage } from './ScheduleEditPage';
+export { CoachesListPage } from './CoachesListPage';
+export { CoachNewPage } from './CoachNewPage';
+export { CoachEditPage } from './CoachEditPage';
+export { TrainingTypesListPage } from './TrainingTypesListPage';
+export { TrainingTypeNewPage } from './TrainingTypeNewPage';
+export { TrainingTypeEditPage } from './TrainingTypeEditPage';
+export { ClubInfoPage } from './ClubInfoPage';

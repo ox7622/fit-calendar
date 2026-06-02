@@ -1,0 +1,46 @@
+# Dependabot config for fit-calendar.
+#
+# Goals:
+# - Keep transitive vulns under control without drowning the team in PRs.
+# - Group minor + patch updates so reviews are coherent.
+# - Block major bumps from auto-PR'ing — those should be a conscious decision
+#   (test coverage, migration risk, etc.).
+#
+# When the next pnpm major lands, revisit `versioning-strategy`.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      all-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      all-actions:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"

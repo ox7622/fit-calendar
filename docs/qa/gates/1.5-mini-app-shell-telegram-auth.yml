@@ -1,0 +1,135 @@
+# Quality Gate: Story 1.5 - Mini App Shell & Telegram Auth
+schema: 1
+story: "1.5"
+story_title: "Mini App Shell & Telegram Auth"
+gate: PASS
+status_reason: "All 8 acceptance criteria met. HMAC-SHA256 initData validation matches Telegram spec. 16 unit tests cover the auth path (7 guard + 9 user service); full API suite (61 tests across 7 suites) passes. Three low-severity findings logged for follow-up; none block release."
+reviewer: "John (PM)"
+review_type: "security-focused acceptance review (no dedicated QA pass available)"
+updated: "2026-04-28T20:50:00Z"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "SEC-001"
+    severity: low
+    finding: "Hash comparison uses string equality (=== ) instead of crypto.timingSafeEqual()."
+    location: "apps/api/src/common/guards/telegram-auth.guard.ts:143"
+    impact: "Theoretical timing side-channel on HMAC verification. Practical exploitability is very low against a remote endpoint with network jitter, and Telegram's docs do not require constant-time comparison. Still, it's a Node.js idiom for HMAC checks."
+    suggested_action: "Replace `hash === calculatedHash` with `crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(calculatedHash, 'hex'))`. Wrap in length check first to avoid throw."
+
+  - id: "TEST-001"
+    severity: low
+    finding: "No frontend tests for AuthProvider despite security-sensitive flow."
+    location: "apps/mini-app/src/app/providers/AuthProvider.tsx"
+    impact: "Story marked frontend tests 'optional for MVP'. Behaviors that benefit from coverage: loading→error→retry transitions, the dual isInTelegram() check (once in authenticate(), again in render), error classification (auth vs server vs network)."
+    suggested_action: "Add Vitest tests for AuthProvider before adding more auth-dependent flows in Epic 5 (reminder subscription is gated by the same auth)."
+
+  - id: "ARCH-001"
+    severity: low
+    finding: "parseInitData() runs before validateInitData() — untrusted JSON is parsed before signature is verified."
+    location: "apps/api/src/common/guards/telegram-auth.guard.ts:62-68"
+    impact: "Functionally safe (JSON.parse throws are caught and converted to 401), but conceptually inverted: validate signature first, then parse. Current ordering means malformed but unsigned input goes through JSON.parse before being rejected for bad hash."
+    suggested_action: "Swap order: validate hash first, return 401 on failure, then parse. Reduces attack surface against any future parser bugs."
+
+quality_score: 85
+expires: "2026-05-12T00:00:00Z"
+
+evidence:
+  tests_reviewed: 16
+  tests_in_full_suite: 61
+  full_suite_status: "PASS (7 suites, 61 tests, 1.02s)"
+  risks_identified: 3
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_gaps: []
+    ac_details:
+      AC1_react_vite_builds:
+        status: PASS
+        evidence: "apps/mini-app project structure with vite.config.ts, main.tsx, app/App.tsx all present. main.tsx wires AuthProvider + AppRouter."
+        notes: "Build/serve targets exist in project.json. Not re-executed during this review (Node 25.2.1 vs required 22.13.1 mismatch in current shell — does not block since CI uses correct Node)."
+      AC2_telegram_webapp_sdk:
+        status: PASS
+        evidence: "@twa-dev/sdk integrated via apps/mini-app/src/shared/telegram/telegram.ts. WebApp.ready(), expand(), initData accessor, colorScheme detection all present."
+        notes: "ThemeProvider syncs with WebApp.colorScheme and listens for themeChanged event."
+      AC3_initdata_validated_backend:
+        status: PASS
+        evidence: "TelegramAuthGuard implements HMAC-SHA256 per Telegram spec. validateInitData() at lines 120-144: sorts params, builds data-check-string, derives secret key with 'WebAppData', computes HMAC, compares."
+        notes: "Validation algorithm matches https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app exactly. See SEC-001 for hardening recommendation."
+      AC4_user_upsert:
+        status: PASS
+        evidence: "UserService.upsert() at user.service.ts:35-59. Looks up by telegramId, updates if present, creates with reminderMinutes:30 default if not. /users/me endpoint calls upsert on every request."
+        notes: "9 unit tests cover create/update/null-optional-fields paths. Behavior is correct: telegramId is the stable key, not username."
+      AC5_loading_state:
+        status: PASS
+        evidence: "AuthProvider renders <LoadingScreen /> while isLoading. LoadingScreen uses animated spinner."
+      AC6_error_state:
+        status: PASS
+        evidence: "AuthProvider renders <ErrorScreen /> with retry button on auth failure. ApiError classified into auth/server/network/generic categories with distinct messages. Separate <NotInTelegramScreen /> for non-Telegram environment."
+      AC7_navigation_shell:
+        status: PASS
+        evidence: "AppRouter (Router.tsx) defines /, /coaches, /reminders, /club routes. Placeholder pages exist for each. AppShell + BottomNav provide layout."
+      AC8_bot_menu_button:
+        status: PASS
+        evidence: "Story 1.4 already configured Mini App launch via /start command. MINI_APP_URL env var exists in env.validation. Visual verification in Telegram client not performed in this review."
+        notes: "Recommend a manual smoke test from the Telegram bot before Epic 5 reminder flows depend on this."
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: "HMAC-SHA256 algorithm is correct; auth_date max-age (24h) prevents stale-signature replay; bot token validated at construction time (fail-fast). However: SEC-001 (non-constant-time compare) and ARCH-001 (parse-before-validate ordering) are real if low-severity. No frontend tests on the auth path (TEST-001) is a gap given how much downstream code trusts this guard."
+  performance:
+    status: PASS
+    notes: "Single HMAC computation per request, ~microseconds. No observable hot path concern. No caching needed at this layer."
+  reliability:
+    status: PASS
+    notes: "Errors caught and converted to UnauthorizedException with structured logging. Frontend retries on user action. AuthProvider re-runs auth on retry click."
+  maintainability:
+    status: PASS
+    notes: "Clean separation: guard, decorator, service, controller. Interfaces (ITelegramUserData, ITelegramInitData) follow project I-prefix convention. Module exports are explicit via index.ts barrels."
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 3 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "SEC-001: timing-safe hash comparison — fix in next maintenance pass"
+      - "TEST-001: add AuthProvider Vitest coverage before Epic 5 reminder flows"
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Replace string-equality hash check with crypto.timingSafeEqual()"
+      refs: ["apps/api/src/common/guards/telegram-auth.guard.ts:143"]
+      issue: "SEC-001"
+    - action: "Reorder validateInitData() before parseInitData() in canActivate()"
+      refs: ["apps/api/src/common/guards/telegram-auth.guard.ts:62-68"]
+      issue: "ARCH-001"
+    - action: "Add Vitest coverage for AuthProvider (loading→error→retry flow, error classification)"
+      refs: ["apps/mini-app/src/app/providers/AuthProvider.tsx"]
+      issue: "TEST-001"
+    - action: "Add an integration test that exercises /users/me end-to-end with a real signed initData fixture"
+      refs: ["apps/api/src/modules/user/__tests__"]
+    - action: "Manual smoke test: open Mini App from real Telegram client to confirm AC8 in production-like environment"
+      refs: ["AC8"]
+
+trace_references:
+  story: "docs/stories/1.5.story.md"
+  prd_section: "Section 6 - Epic 1 - Story 1.5"
+  architecture_sections:
+    - "Section 7.2 - Telegram WebApp SDK"
+    - "Section 10.1-10.3 - Mini App Structure, State, API Client"
+    - "Section 11.2 - TelegramAuthGuard"
+
+notes: |
+  Story 1.5 implementation is complete and meets all 8 acceptance criteria. The HMAC-SHA256 initData
+  validation correctly implements Telegram's documented algorithm. Auth path is covered by 16 dedicated
+  unit tests (all passing) inside a 61-test suite that runs in ~1 second.
+
+  Three low-severity findings are logged. None block release, but SEC-001 and TEST-001 should be
+  addressed before Epic 5 ships, since reminder subscription depends on this guard for every request.
+
+  Reviewer note: This gate was generated by John (PM) acting in a security-focused acceptance role,
+  not by a dedicated Test Architect. The findings are direct reads of the source; the gate format
+  matches stories 1.1, 1.2, and 1.4. Treat the security recommendations as advisory rather than as
+  a substitute for an independent security audit.

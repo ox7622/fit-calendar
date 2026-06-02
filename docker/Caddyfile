@@ -1,0 +1,28 @@
+# FitCalendar reverse proxy + static hosting. Caddy auto-provisions and renews
+# Let's Encrypt certs for all three subdomains — DNS for each must point at this
+# VPS and ports 80/443 must be open. {$DOMAIN} / {$ACME_EMAIL} come from the env.
+{
+	email {$ACME_EMAIL}
+}
+
+# ── API (Telegram webhook + mini-app/admin XHR) ──────────────────────────────
+api.{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:3000
+}
+
+# ── Mini App (opened inside Telegram) ────────────────────────────────────────
+app.{$DOMAIN} {
+	encode zstd gzip
+	root * /srv/mini-app
+	try_files {path} /index.html
+	file_server
+}
+
+# ── Admin panel ──────────────────────────────────────────────────────────────
+admin.{$DOMAIN} {
+	encode zstd gzip
+	root * /srv/admin
+	try_files {path} /index.html
+	file_server
+}

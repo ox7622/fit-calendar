@@ -1,0 +1,69 @@
+# Single-VPS production stack: Postgres + API (Telegram webhook bot in-process)
+# + Caddy (auto-HTTPS reverse proxy that also serves the mini-app & admin SPAs).
+#
+# Run from the repo root:
+#   docker compose --env-file .env.prod -f docker/docker-compose.prod.yml up -d --build
+# Requires a .env.prod at the repo root (see .env.prod.example) and DNS for
+# api./app./admin.<DOMAIN> pointing at this server (ports 80/443 open).
+services:
+    postgres:
+        image: postgres:16-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: ${NX_DB_NAME}
+            POSTGRES_USER: ${NX_DB_USER}
+            POSTGRES_PASSWORD: ${NX_DB_PASS}
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${NX_DB_USER} -d ${NX_DB_NAME}']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    api:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.prod-api
+        restart: unless-stopped
+        env_file:
+            - ../.env.prod
+        environment:
+            NODE_ENV: production
+            NX_DB_HOST: postgres
+            NX_DB_PORT: '5432'
+            NX_DB_SSL: 'false' # internal docker network, no TLS needed
+            NX_BE_API_FITCALENDAR_SERVICE_PORT: '3000'
+            NX_BE_API_FITCALENDAR_SERVICE_PREFIX: api
+            SWAGGER_ENABLED: 'false'
+            API_URL: https://api.${DOMAIN}
+            MINI_APP_URL: https://app.${DOMAIN}
+            CORS_ORIGIN_MINI_APP: https://app.${DOMAIN}
+            CORS_ORIGIN_ADMIN: https://admin.${DOMAIN}
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    caddy:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.frontends
+            args:
+                VITE_API_URL: https://api.${DOMAIN}/api
+        restart: unless-stopped
+        environment:
+            DOMAIN: ${DOMAIN}
+            ACME_EMAIL: ${ACME_EMAIL}
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - caddy_data:/data
+            - caddy_config:/config
+        depends_on:
+            - api
+
+volumes:
+    pgdata:
+    caddy_data:
+    caddy_config:

@@ -103,11 +103,14 @@ async function bootstrap() {
     const apiPrefix = configService.getOrThrow<string>('NX_BE_API_FITCALENDAR_SERVICE_PREFIX');
     app.setGlobalPrefix(apiPrefix);
 
-    const port = configService.getOrThrow<string>('NX_BE_API_FITCALENDAR_SERVICE_PORT');
+    // Bind to the platform-provided PORT when present (Railway/Render/etc.),
+    // falling back to the configured service port for local dev. Always bind
+    // 0.0.0.0 so the container is reachable from outside.
+    const port = process.env.PORT ?? configService.getOrThrow<string>('NX_BE_API_FITCALENDAR_SERVICE_PORT');
 
-    await app.listen(port);
+    await app.listen(port, '0.0.0.0');
 
-    Logger.log(`🌎🚀 API is running on: http://localhost:${port}/${apiPrefix}`);
+    Logger.log(`🌎🚀 API is running on port ${port} (prefix /${apiPrefix})`);
 }
 
 bootstrap();

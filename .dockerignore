@@ -1,0 +1,22 @@
+# Keep the Docker build context lean and free of host artifacts/secrets.
+node_modules
+**/node_modules
+dist
+tmp
+coverage
+.nx/cache
+.git
+.github
+.husky
+.vscode
+.idea
+
+# Never bake local env/secrets into the image — Railway injects env at runtime.
+.env
+.env.local
+.env.*.local
+
+# Frontends are deployed separately (Cloudflare Pages); not needed in the API image.
+# (kept in the repo so migrations/build still resolve workspace deps)
+*.log
+.DS_Store

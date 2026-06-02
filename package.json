@@ -27,6 +27,7 @@
         "mig:show": "pnpm run typeorm migration:show -d libs/nest-shared/src/db/data-source.ts",
         "mig:up": "env-cmd -f .env.local ts-node -r tsconfig-paths/register libs/nest-shared/src/db/mig-up.ts",
         "mig:up:cd": "env-cmd -f .env.local ts-node -r tsconfig-paths/register libs/nest-shared/src/db/mig-up.ts -f",
+        "db:migrate:prod": "ts-node -r tsconfig-paths/register libs/nest-shared/src/db/mig-up.ts -f",
         "db:seed": "env-cmd -f .env.local ts-node -r tsconfig-paths/register libs/db/src/seeds/seed.ts",
         "typeorm": "env-cmd -f .env.local ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
         "test": "echo \"Error: no test specified\" && exit 1",

@@ -24,6 +24,10 @@ export const baseDbConfig = (): PostgresConnectionOptions => ({
     host: process.env.NX_DB_HOST,
     port: Number(process.env.NX_DB_PORT),
     schema: process.env.NX_DB_SCHEMA ?? 'public',
+    // Managed Postgres reached over the public internet (Neon, Render, etc.)
+    // requires TLS. Enable with NX_DB_SSL=true. Left off for local/private-network
+    // Postgres (Docker, Railway's internal network) where TLS isn't needed.
+    ssl: process.env.NX_DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
     logging: prepareLogging(process.env.NX_DB_LOGGING),
     maxQueryExecutionTime: 2000,
     // Pool + per-statement safety nets. Defaults sized for a single-instance

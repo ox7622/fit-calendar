@@ -40,6 +40,9 @@ async function seed(): Promise<void> {
         }
 
         // 2. Seed AdminUser (default admin)
+        // Self-heals an existing row whose passwordHash or isActive drifted from the
+        // canonical seed values — earlier seed revisions wrote a placeholder hash that
+        // blocked login, and a plain insert-if-missing guard couldn't recover from it.
         const adminRepo = queryRunner.manager.getRepository(AdminUser);
         const existingAdmin = await adminRepo.findOne({ where: { email: 'admin@fitcalendar.ru' } });
         if (!existingAdmin) {
@@ -51,6 +54,11 @@ async function seed(): Promise<void> {
             });
             await adminRepo.save(admin);
             console.log('AdminUser seeded');
+        } else if (existingAdmin.passwordHash !== ADMIN_PASSWORD_HASH || !existingAdmin.isActive) {
+            existingAdmin.passwordHash = ADMIN_PASSWORD_HASH;
+            existingAdmin.isActive = true;
+            await adminRepo.save(existingAdmin);
+            console.log('AdminUser password/activation reset to seed defaults');
         }
 
         // 3. Seed Coaches

@@ -51,3 +51,6 @@ vitest.config.*.timestamp*
 
 # Lovable reference design (local only, not part of the monorepo)
 fitcalendar-flow-main/
+
+# Personal deploy notes (local only — the committed runbook is docs/deploy/vps-runbook.md)
+docs/deploy/deploy-steps.md

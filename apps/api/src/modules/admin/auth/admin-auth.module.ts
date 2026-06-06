@@ -1,4 +1,4 @@
-import { AdminUser } from '@fitcalendar/db';
+import { AdminInviteToken, AdminUser } from '@fitcalendar/db';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -11,7 +11,7 @@ import { AdminAuthService } from './admin-auth.service';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([AdminUser]),
+        TypeOrmModule.forFeature([AdminUser, AdminInviteToken]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

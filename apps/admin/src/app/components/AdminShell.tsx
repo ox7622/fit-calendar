@@ -9,6 +9,7 @@ const NAV_ITEMS: Array<{ to: string; label: string }> = [
     { to: '/coaches', label: 'Тренеры' },
     { to: '/training-types', label: 'Типы' },
     { to: '/club', label: 'Клуб' },
+    { to: '/admins', label: 'Админы' },
 ];
 
 export function AdminShell() {

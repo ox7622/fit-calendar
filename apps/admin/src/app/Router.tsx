@@ -1,4 +1,6 @@
 import {
+    AdminInvitePage,
+    AdminsListPage,
     ClubInfoPage,
     CoachEditPage,
     CoachesListPage,
@@ -16,6 +18,7 @@ import {
     PlansListPage,
     ScheduleEditPage,
     ScheduleNewPage,
+    SetPasswordPage,
 } from '@/pages';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
@@ -26,6 +29,7 @@ export function AppRouter() {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/set-password" element={<SetPasswordPage />} />
 
             {/* Protected routes — RequireAuth gates them, AdminShell wraps with the top bar. */}
             <Route element={<RequireAuth />}>
@@ -46,6 +50,8 @@ export function AppRouter() {
                     <Route path="/training-types/new" element={<TrainingTypeNewPage />} />
                     <Route path="/training-types/:id" element={<TrainingTypeEditPage />} />
                     <Route path="/club" element={<ClubInfoPage />} />
+                    <Route path="/admins" element={<AdminsListPage />} />
+                    <Route path="/admins/invite" element={<AdminInvitePage />} />
                 </Route>
             </Route>
 

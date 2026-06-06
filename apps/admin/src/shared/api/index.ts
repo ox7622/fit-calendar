@@ -1,6 +1,13 @@
 export { adminApiClient, ApiError, NetworkError } from './client';
 export { adminAuthApi } from './auth.api';
 export type { ILoginRequest, ILoginResponse } from './auth.api';
+export { adminUsersApi, adminPasswordSetupApi } from './admin-users.api';
+export type {
+    IAdminUserListItem,
+    IInviteAdminPayload,
+    IIssuedTokenResponse,
+    IInviteTokenInfo,
+} from './admin-users.api';
 export { adminPlansApi } from './membership-plans.api';
 export type { IAdminPlan, IPlanFormPayload, IPlanOption, TDurationUnit } from './membership-plans.api';
 export { adminCustomersApi } from './customers.api';

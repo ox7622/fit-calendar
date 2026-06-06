@@ -19,6 +19,7 @@ import { AdminClubModule } from './modules/admin/club';
 import { AdminCoachesModule } from './modules/admin/coaches';
 import { AdminScheduleModule } from './modules/admin/schedule';
 import { AdminTrainingTypesModule } from './modules/admin/training-types';
+import { AdminUsersModule } from './modules/admin/users';
 import { BotModule } from './modules/bot';
 import { ClubModule } from './modules/club';
 import { CoachesModule } from './modules/coaches';
@@ -125,6 +126,11 @@ import { AppService } from './services/app.service';
          * Admin Club Module (Story 6.7)
          */
         AdminClubModule,
+        /**
+         * Admin Users Module. Public set-password + token-info routes
+         * live on AdminAuthModule so they aren't behind AdminAuthGuard.
+         */
+        AdminUsersModule,
         /**
          * Membership Module (Story 7.4) — customer↔plan assignment,
          * /me/membership, daily expiration cron.

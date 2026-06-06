@@ -15,3 +15,6 @@ export { TrainingTypesListPage } from './TrainingTypesListPage';
 export { TrainingTypeNewPage } from './TrainingTypeNewPage';
 export { TrainingTypeEditPage } from './TrainingTypeEditPage';
 export { ClubInfoPage } from './ClubInfoPage';
+export { AdminsListPage } from './AdminsListPage';
+export { AdminInvitePage } from './AdminInvitePage';
+export { SetPasswordPage } from './SetPasswordPage';

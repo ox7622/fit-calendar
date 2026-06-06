@@ -10,4 +10,5 @@ export * from './customer-membership.entity';
 export * from './guest-visit.entity';
 export * from './freeze-event.entity';
 export * from './admin-audit-log.entity';
+export * from './admin-invite-token.entity';
 export * from './notification-outbox.entity';

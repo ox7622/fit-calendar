@@ -178,6 +178,6 @@
         "zustand": "^5.0.11"
     },
     "lint-staged": {
-        "*.{js,ts,tsx,jsx,json}": "nx format:write --uncommitted"
+        "*.{js,ts,tsx,jsx,json}": "prettier --write --ignore-unknown"
     }
 }

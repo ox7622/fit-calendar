@@ -3,8 +3,9 @@
 #
 # Spawns two `cloudflared tunnel --url` processes (API on :3020, mini-app on :4200),
 # writes the resulting URLs into .env.local (VITE_API_URL / CORS_ORIGIN_MINI_APP /
-# MINI_APP_URL), restarts the API + Vite dev server so they pick up the new env,
-# and calls Telegram's setChatMenuButton so the bot's menu URL is always current.
+# MINI_APP_URL), and restarts the API + Vite dev server so they pick up the new env.
+# The bot's chat menu button is owned by the bot itself (set to type:'commands' on
+# startup) — it no longer holds a URL, so no per-cycle resync needed here.
 #
 # Cloudflare quick tunnels get reaped after periods of inactivity ("Unauthorized:
 # Tunnel not found"). This loop watches each tunnel log; when one dies, the whole
@@ -19,7 +20,6 @@ cd "$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE=".env.local"
 API_PORT=3020
 MINI_PORT=4200
-MENU_BUTTON_TEXT="Меню"
 HEALTH_INTERVAL=30
 
 API_LOG=$(mktemp -t dev-tunnel-api)
@@ -113,30 +113,6 @@ restart_apps() {
         >/tmp/dev-tunnel-mini.log 2>&1 &
 }
 
-# ─── Telegram Bot API: menu button ──────────────────────────────────────────
-push_menu_button() {
-    local url=$1
-    local token
-    token=$(get_env TELEGRAM_BOT_TOKEN)
-    if [ -z "$token" ]; then
-        log "WARN: TELEGRAM_BOT_TOKEN missing in $ENV_FILE — skipping bot menu sync"
-        return
-    fi
-    local payload
-    payload=$(printf '{"menu_button":{"type":"web_app","text":"%s","web_app":{"url":"%s"}}}' \
-        "$MENU_BUTTON_TEXT" "$url")
-    local response
-    response=$(/usr/bin/curl -sS --max-time 10 \
-        "https://api.telegram.org/bot${token}/setChatMenuButton" \
-        -H "Content-Type: application/json" \
-        -d "$payload" 2>/dev/null || echo '{"ok":false,"description":"curl failed"}')
-    if echo "$response" | grep -q '"ok":true'; then
-        log "✓ bot menu_button → $url"
-    else
-        log "WARN: setChatMenuButton failed: $response"
-    fi
-}
-
 # ─── cleanup on exit ────────────────────────────────────────────────────────
 cleanup() {
     log "shutting down"
@@ -175,8 +151,6 @@ while true; do
     set_env MINI_APP_URL "$MINI_URL"
 
     restart_apps
-    sleep 10  # let Nest boot before the first Telegram menu callback
-    push_menu_button "$MINI_URL"
 
     log "ready. open the mini-app in Telegram. monitoring tunnels every ${HEALTH_INTERVAL}s"
 

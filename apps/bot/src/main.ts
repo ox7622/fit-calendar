@@ -25,15 +25,12 @@ async function bootstrap(): Promise<void> {
         } catch (error) {
             logger.warn({ error }, 'Failed to set bot command menu');
         }
-        // The menu button (left of the input) launches the Mini App, labelled "Меню".
-        if (miniAppUrl) {
-            try {
-                await bot.api.setChatMenuButton({
-                    menu_button: { type: 'web_app', text: 'Меню', web_app: { url: miniAppUrl } },
-                });
-            } catch (error) {
-                logger.warn({ error }, 'Failed to set chat menu button');
-            }
+        // The menu button (left of the input) expands the slash-command list
+        // populated above, so users can pick /today, /tomorrow, /week, etc.
+        try {
+            await bot.api.setChatMenuButton({ menu_button: { type: 'commands' } });
+        } catch (error) {
+            logger.warn({ error }, 'Failed to set chat menu button');
         }
         await bot.start({
             onStart: (botInfo) => {

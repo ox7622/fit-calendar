@@ -3,6 +3,7 @@
 import './instrument';
 
 import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
+import type { ValidationError } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -80,15 +81,20 @@ async function bootstrap() {
             whitelist: true,
             forbidNonWhitelisted: true,
             exceptionFactory: (errors) => {
-                const errorMessages = errors.map((error) => {
-                    // Проверяем, существует ли error.constraints
+                // Recurse into nested `children` (e.g. @ValidateNested) so the real
+                // constraint message surfaces instead of a generic fallback.
+                const collect = (error: ValidationError, parentPath = ''): string[] => {
+                    const path = parentPath ? `${parentPath}.${error.property}` : error.property;
                     if (error.constraints) {
-                        return `${error.property} - ${Object.values(error.constraints).join(', ')}`;
+                        return [`${path} - ${Object.values(error.constraints).join(', ')}`];
                     }
-                    // Если constraints нет, возвращаем общее сообщение
-                    return `${error.property} имеет некорректное значение`;
-                });
-                return new BadRequestException(errorMessages);
+                    if (error.children?.length) {
+                        return error.children.flatMap((child) => collect(child, path));
+                    }
+                    // No constraints and no children to explain the failure.
+                    return [`${path} имеет некорректное значение`];
+                };
+                return new BadRequestException(errors.flatMap((error) => collect(error)));
             },
         }),
     );

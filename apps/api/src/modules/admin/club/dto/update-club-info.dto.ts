@@ -1,17 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-    IsLatitude,
-    IsLongitude,
-    IsObject,
-    IsOptional,
-    IsString,
-    MaxLength,
-    MinLength,
-    ValidateNested,
-} from 'class-validator';
+import { IsLatitude, IsLongitude, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 import { DayHoursDto } from './working-hours.dto';
+import { IsWorkingHours } from './working-hours.validator';
 
 export class UpdateClubInfoDto {
     @ApiProperty({ minLength: 1, maxLength: 255 })
@@ -35,9 +26,7 @@ export class UpdateClubInfoDto {
         description: 'Per-day working hours map. Keys: monday..sunday. Null means closed that day.',
         example: { monday: { open: '09:00', close: '22:00' }, sunday: null },
     })
-    @IsObject()
-    @ValidateNested({ each: true })
-    @Type(() => DayHoursDto)
+    @IsWorkingHours()
     workingHours: Record<string, DayHoursDto | null>;
 
     @ApiPropertyOptional()

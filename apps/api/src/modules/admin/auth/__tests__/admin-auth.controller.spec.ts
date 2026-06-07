@@ -1,5 +1,5 @@
 import type { AdminUser } from '@fitcalendar/db';
-import { UnauthorizedException } from '@nestjs/common';
+import { GoneException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
@@ -32,6 +32,8 @@ describe('AdminAuthController', () => {
             validateCredentials: jest.fn(),
             signToken: jest.fn(),
             recordLogin: jest.fn(),
+            getInviteTokenInfo: jest.fn(),
+            setPasswordWithToken: jest.fn(),
         } as unknown as jest.Mocked<AdminAuthService>;
 
         const module: TestingModule = await Test.createTestingModule({
@@ -87,6 +89,79 @@ describe('AdminAuthController', () => {
         // and the project doesn't ship supertest, so a true integration test would need a new dep).
         it('login route is rate-limited via @Throttle: 5 attempts per 15 minutes (AC11)', () => {
             const target = Object.getPrototypeOf(controller).login;
+            const limit = Reflect.getMetadata(THROTTLER_LIMIT_DEFAULT_KEY, target);
+            const ttl = Reflect.getMetadata(THROTTLER_TTL_DEFAULT_KEY, target);
+
+            expect(limit).toBe(5);
+            expect(ttl).toBe(900_000);
+        });
+    });
+
+    describe('GET /admin/auth/invite-token/:token', () => {
+        it('delegates to AdminAuthService.getInviteTokenInfo and returns its payload', async () => {
+            mockAuthService.getInviteTokenInfo.mockResolvedValue({
+                email: 'test2@fitcalendar.ru',
+                name: 'Test Two',
+                purpose: 'invite',
+            });
+
+            const result = await controller.getInviteTokenInfo('plaintext-token');
+
+            expect(result).toEqual({ email: 'test2@fitcalendar.ru', name: 'Test Two', purpose: 'invite' });
+            expect(mockAuthService.getInviteTokenInfo).toHaveBeenCalledWith('plaintext-token');
+        });
+
+        it('propagates NotFoundException for unknown/expired/consumed tokens (no enumeration)', async () => {
+            mockAuthService.getInviteTokenInfo.mockRejectedValue(
+                new NotFoundException('Ссылка недействительна или истекла'),
+            );
+
+            await expect(controller.getInviteTokenInfo('whatever')).rejects.toBeInstanceOf(NotFoundException);
+        });
+
+        it('route is rate-limited 5 per 15 min', () => {
+            const target = Object.getPrototypeOf(controller).getInviteTokenInfo;
+            const limit = Reflect.getMetadata(THROTTLER_LIMIT_DEFAULT_KEY, target);
+            const ttl = Reflect.getMetadata(THROTTLER_TTL_DEFAULT_KEY, target);
+
+            expect(limit).toBe(5);
+            expect(ttl).toBe(900_000);
+        });
+    });
+
+    describe('POST /admin/auth/set-password', () => {
+        it('delegates to AdminAuthService.setPasswordWithToken and resolves void on success', async () => {
+            mockAuthService.setPasswordWithToken.mockResolvedValue(undefined);
+
+            const result = await controller.setPassword({
+                token: 'plaintext-token',
+                password: 'newPass123',
+            });
+
+            expect(result).toBeUndefined();
+            expect(mockAuthService.setPasswordWithToken).toHaveBeenCalledWith('plaintext-token', 'newPass123');
+        });
+
+        it('propagates GoneException on consumed/expired tokens (controller surfaces as 410)', async () => {
+            mockAuthService.setPasswordWithToken.mockRejectedValue(
+                new GoneException('Ссылка уже использована или истекла'),
+            );
+
+            await expect(
+                controller.setPassword({ token: 'used-token', password: 'newPass123' }),
+            ).rejects.toBeInstanceOf(GoneException);
+        });
+
+        it('propagates NotFoundException on unknown tokens (controller surfaces as 404)', async () => {
+            mockAuthService.setPasswordWithToken.mockRejectedValue(new NotFoundException('Ссылка недействительна'));
+
+            await expect(
+                controller.setPassword({ token: 'ghost-token', password: 'newPass123' }),
+            ).rejects.toBeInstanceOf(NotFoundException);
+        });
+
+        it('route is rate-limited 5 per 15 min', () => {
+            const target = Object.getPrototypeOf(controller).setPassword;
             const limit = Reflect.getMetadata(THROTTLER_LIMIT_DEFAULT_KEY, target);
             const ttl = Reflect.getMetadata(THROTTLER_TTL_DEFAULT_KEY, target);
 

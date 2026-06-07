@@ -21,4 +21,9 @@ ENV NODE_ENV=production
 
 # Apply pending migrations, then start the API. The platform's $PORT is bound by
 # main.ts (0.0.0.0). railway.json's startCommand mirrors this CMD.
-CMD ["sh", "-c", "pnpm db:migrate:prod && node dist/apps/api/main.js"]
+#
+# The migration runner shells out to the `typeorm` npm script, which is hardcoded
+# to `env-cmd -f .env.local`. In prod there is no .env.local (config comes from the
+# container env), so we create an empty one — env-cmd then just passes through the
+# already-populated process.env (NX_DB_* etc.).
+CMD ["sh", "-c", "touch .env.local && pnpm db:migrate:prod && node dist/apps/api/main.js"]

@@ -25,14 +25,14 @@ export class AdminUsersController {
     @Post('invite')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
-        summary: 'Invite a new admin (or reactivate an inactive row with this email)',
+        summary: 'Invite a new admin (or reactivate an inactive row with this login)',
         description:
             'Returns a one-time token URL fragment. Show it to the issuer once — the plaintext is not persisted.',
     })
     @ApiResponse({ status: 201, type: IssuedTokenResponseDto })
-    @ApiResponse({ status: 409, description: 'Email already belongs to an active admin' })
+    @ApiResponse({ status: 409, description: 'Login already belongs to an active admin' })
     invite(@Body() dto: InviteAdminDto, @AdminUser('id') issuerAdminId: string): Promise<IssuedTokenResponseDto> {
-        return this.usersService.invite(issuerAdminId, dto.email, dto.name);
+        return this.usersService.invite(issuerAdminId, dto.login, dto.name);
     }
 
     @Post(':id/reset-password')

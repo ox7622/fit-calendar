@@ -208,12 +208,12 @@ describe('AdminUser Entity', () => {
 
     it('should allow setting all properties', () => {
         const admin = new AdminUser();
-        admin.email = 'admin@example.com';
+        admin.login = 'admin';
         admin.passwordHash = '$2b$10$hashedpassword';
         admin.name = 'Admin User';
         admin.isActive = true;
 
-        expect(admin.email).toBe('admin@example.com');
+        expect(admin.login).toBe('admin');
         expect(admin.passwordHash).toBe('$2b$10$hashedpassword');
         expect(admin.name).toBe('Admin User');
         expect(admin.isActive).toBe(true);

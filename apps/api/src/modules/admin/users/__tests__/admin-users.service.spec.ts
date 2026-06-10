@@ -18,7 +18,7 @@ describe('AdminUsersService', () => {
 
     const buildAdmin = (overrides: Partial<AdminUser> = {}): AdminUser => ({
         id: 'admin-1',
-        email: 'a@b.ru',
+        login: 'a',
         name: 'A',
         passwordHash: '$2b$10$abc',
         isActive: true,
@@ -70,8 +70,8 @@ describe('AdminUsersService', () => {
     describe('list', () => {
         it('returns admins ordered by createdAt with ISO timestamps', async () => {
             adminRepo.find.mockResolvedValue([
-                buildAdmin({ id: 'a', email: 'a@x.ru', lastLoginAt: new Date('2026-02-01T00:00:00Z') }),
-                buildAdmin({ id: 'b', email: 'b@x.ru', isActive: false }),
+                buildAdmin({ id: 'a', login: 'alice', lastLoginAt: new Date('2026-02-01T00:00:00Z') }),
+                buildAdmin({ id: 'b', login: 'bob', isActive: false }),
             ]);
 
             const result = await service.list();
@@ -80,7 +80,7 @@ describe('AdminUsersService', () => {
             expect(result).toHaveLength(2);
             expect(result[0]).toMatchObject({
                 id: 'a',
-                email: 'a@x.ru',
+                login: 'alice',
                 lastLoginAt: '2026-02-01T00:00:00.000Z',
             });
             expect(result[1].lastLoginAt).toBeNull();
@@ -91,10 +91,10 @@ describe('AdminUsersService', () => {
         it('inserts a new inactive row with sentinel hash + issues an invite token', async () => {
             txAdminRepo.findOne.mockResolvedValue(null);
 
-            const result = await service.invite('issuer-1', 'fresh@x.ru', 'Fresh');
+            const result = await service.invite('issuer-1', 'fresh', 'Fresh');
 
             expect(txAdminRepo.create).toHaveBeenCalledWith(
-                expect.objectContaining({ email: 'fresh@x.ru', name: 'Fresh', isActive: false }),
+                expect.objectContaining({ login: 'fresh', name: 'Fresh', isActive: false }),
             );
             const createdAdmin = txAdminRepo.create.mock.results[0].value as AdminUser;
             expect(createdAdmin.passwordHash).toMatch(/^\$2[aby]\$/);
@@ -112,17 +112,17 @@ describe('AdminUsersService', () => {
         it('reactivates an existing inactive row and updates its name', async () => {
             txAdminRepo.findOne.mockResolvedValue(buildAdmin({ isActive: false, name: 'Old Name' }));
 
-            const result = await service.invite('issuer-1', 'a@b.ru', 'New Name');
+            const result = await service.invite('issuer-1', 'a', 'New Name');
 
             expect(result.action).toBe('reactivated');
             const savedAdmin = txAdminRepo.save.mock.calls[0][0] as AdminUser;
             expect(savedAdmin.name).toBe('New Name');
         });
 
-        it('rejects when the email belongs to an active admin (use reset instead)', async () => {
+        it('rejects when the login belongs to an active admin (use reset instead)', async () => {
             txAdminRepo.findOne.mockResolvedValue(buildAdmin({ isActive: true }));
 
-            await expect(service.invite('issuer-1', 'a@b.ru', 'Whoever')).rejects.toBeInstanceOf(ConflictException);
+            await expect(service.invite('issuer-1', 'a', 'Whoever')).rejects.toBeInstanceOf(ConflictException);
             expect(txTokenRepo.save).not.toHaveBeenCalled();
         });
     });

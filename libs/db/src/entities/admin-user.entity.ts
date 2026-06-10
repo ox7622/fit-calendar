@@ -6,7 +6,7 @@ export class AdminUser {
     id: string;
 
     @Column({ type: 'varchar', length: 255, unique: true })
-    email: string;
+    login: string;
 
     @Column({ type: 'varchar', length: 255 })
     passwordHash: string;

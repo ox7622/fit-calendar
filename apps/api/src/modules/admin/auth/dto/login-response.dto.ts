@@ -4,8 +4,8 @@ export class AdminProfileDto {
     @ApiProperty({ description: 'Admin user UUID' })
     id!: string;
 
-    @ApiProperty({ description: 'Admin email' })
-    email!: string;
+    @ApiProperty({ description: 'Admin login' })
+    login!: string;
 
     @ApiProperty({ description: 'Admin display name' })
     name!: string;

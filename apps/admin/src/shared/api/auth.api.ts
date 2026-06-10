@@ -3,7 +3,7 @@ import type { IAdminProfile } from '@/shared/stores/adminStore';
 import { adminApiClient } from './client';
 
 export interface ILoginRequest {
-    email: string;
+    login: string;
     password: string;
 }
 

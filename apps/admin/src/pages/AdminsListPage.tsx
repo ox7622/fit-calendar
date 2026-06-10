@@ -5,7 +5,7 @@ import { IssuedTokenLinkCard } from '@/shared/components/IssuedTokenLinkCard';
 import { KeyRound, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-type TIssuedLink = IIssuedTokenResponse & { forEmail: string };
+type TIssuedLink = IIssuedTokenResponse & { forLogin: string };
 
 export function AdminsListPage() {
     const [admins, setAdmins] = useState<IAdminUserListItem[]>([]);
@@ -39,12 +39,12 @@ export function AdminsListPage() {
 
     const onReset = async (admin: IAdminUserListItem) => {
         if (resettingId) return;
-        const ok = window.confirm(`Сбросить пароль для ${admin.email}?`);
+        const ok = window.confirm(`Сбросить пароль для ${admin.login}?`);
         if (!ok) return;
         setResettingId(admin.id);
         try {
             const result = await adminUsersApi.resetPassword(admin.id);
-            setIssuedLink({ ...result, forEmail: admin.email });
+            setIssuedLink({ ...result, forLogin: admin.login });
         } catch {
             setError('Не удалось сбросить пароль');
         } finally {
@@ -66,7 +66,7 @@ export function AdminsListPage() {
 
             {issuedLink && (
                 <IssuedTokenLinkCard
-                    forEmail={issuedLink.forEmail}
+                    forLogin={issuedLink.forLogin}
                     token={issuedLink.token}
                     expiresAt={issuedLink.expiresAt}
                     onDismiss={() => setIssuedLink(null)}
@@ -80,7 +80,7 @@ export function AdminsListPage() {
                 <table className="w-full border-collapse rounded border border-border bg-surface">
                     <thead>
                         <tr className="border-b border-border bg-muted/30 text-left text-sm text-body-secondary">
-                            <th className="p-2">Email</th>
+                            <th className="p-2">Логин</th>
                             <th className="p-2">Имя</th>
                             <th className="w-28 p-2">Статус</th>
                             <th className="w-44 p-2">Последний вход</th>
@@ -90,7 +90,7 @@ export function AdminsListPage() {
                     <tbody>
                         {admins.map((a) => (
                             <tr key={a.id} className="border-b border-border hover:bg-muted/20">
-                                <td className="p-2">{a.email}</td>
+                                <td className="p-2">{a.login}</td>
                                 <td className="p-2">{a.name}</td>
                                 <td className="p-2">
                                     {a.isActive ? (

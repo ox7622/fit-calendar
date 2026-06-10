@@ -193,7 +193,7 @@ describe('Migration Integration Tests', () => {
             expect(constraints.length).toBe(1);
         });
 
-        it('should have unique constraint on admin_users.email', async () => {
+        it('should have unique constraint on admin_users.login', async () => {
             const constraints = await dataSource.query(`
                 SELECT constraint_name, constraint_type
                 FROM information_schema.table_constraints

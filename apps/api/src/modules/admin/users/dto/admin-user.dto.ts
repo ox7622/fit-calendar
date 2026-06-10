@@ -5,7 +5,7 @@ export class AdminUserListItemDto {
     id!: string;
 
     @ApiProperty()
-    email!: string;
+    login!: string;
 
     @ApiProperty()
     name!: string;

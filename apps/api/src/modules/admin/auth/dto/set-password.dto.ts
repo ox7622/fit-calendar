@@ -18,7 +18,7 @@ export class SetPasswordDto {
 
 export class InviteTokenInfoDto {
     @ApiProperty()
-    email!: string;
+    login!: string;
 
     @ApiProperty()
     name!: string;

@@ -2,7 +2,7 @@ import { adminApiClient } from './client';
 
 export interface IAdminUserListItem {
     id: string;
-    email: string;
+    login: string;
     name: string;
     isActive: boolean;
     lastLoginAt: string | null;
@@ -10,7 +10,7 @@ export interface IAdminUserListItem {
 }
 
 export interface IInviteAdminPayload {
-    email: string;
+    login: string;
     name: string;
 }
 
@@ -32,7 +32,7 @@ export const adminUsersApi = {
 };
 
 export interface IInviteTokenInfo {
-    email: string;
+    login: string;
     name: string;
     purpose: 'invite' | 'reset';
 }

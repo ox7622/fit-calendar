@@ -6,7 +6,7 @@ import type { Request } from 'express';
 
 export interface IAdminUserContext {
     id: string;
-    email: string;
+    login: string;
     name: string;
 }
 
@@ -22,7 +22,7 @@ declare global {
 
 interface IAdminTokenPayload {
     sub: string;
-    email: string;
+    login: string;
     name: string;
 }
 
@@ -50,7 +50,7 @@ export class AdminAuthGuard implements CanActivate {
             const payload = await this.jwtService.verifyAsync<IAdminTokenPayload>(token, {
                 secret: this.jwtSecret,
             });
-            request.admin = { id: payload.sub, email: payload.email, name: payload.name };
+            request.admin = { id: payload.sub, login: payload.login, name: payload.name };
             return true;
         } catch (err) {
             this.logger.debug(`Invalid admin token: ${(err as Error).message}`);

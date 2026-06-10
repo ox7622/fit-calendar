@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export interface IAdminProfile {
     id: string;
-    email: string;
+    login: string;
     name: string;
 }
 

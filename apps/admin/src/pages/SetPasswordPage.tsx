@@ -1,15 +1,48 @@
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
 import { adminPasswordSetupApi, ApiError, type IInviteTokenInfo } from '@/shared/api';
+import { PasswordInput } from '@/shared/components/PasswordInput';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const INVALID_LINK_MESSAGE = 'Ссылка недействительна или истекла';
-const POLICY_MESSAGE = 'Пароль должен быть не короче 8 символов и содержать букву и цифру';
+const POLICY_MESSAGE = 'Пароль должен быть от 8 до 128 символов и содержать букву и цифру';
 const MISMATCH_MESSAGE = 'Пароли не совпадают';
 
-function passwordMeetsPolicy(p: string): boolean {
-    return p.length >= 8 && /[A-Za-z]/.test(p) && /\d/.test(p);
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 128;
+
+type ConfirmStatus = 'idle' | 'match' | 'mismatch';
+
+const CONFIRM_STATUS: Record<ConfirmStatus, { cls: string; text: string }> = {
+    idle: { cls: 'text-body-secondary', text: 'Повторите пароль' },
+    match: { cls: 'text-success', text: 'Пароли совпадают' },
+    mismatch: { cls: 'text-destructive', text: MISMATCH_MESSAGE },
+};
+
+interface IPasswordChecks {
+    length: boolean;
+    letter: boolean;
+    digit: boolean;
+}
+
+function checkPassword(p: string): IPasswordChecks {
+    return {
+        length: p.length >= PASSWORD_MIN && p.length <= PASSWORD_MAX,
+        letter: /[A-Za-z]/.test(p),
+        digit: /\d/.test(p),
+    };
+}
+
+function RuleItem({ ok, children }: { ok: boolean; children: ReactNode }) {
+    return (
+        <li className={`flex items-center gap-2 text-xs ${ok ? 'text-success' : 'text-body-secondary'}`}>
+            <span aria-hidden="true" className="inline-block w-3.5 text-center">
+                {ok ? '✓' : '•'}
+            </span>
+            {children}
+        </li>
+    );
 }
 
 export function SetPasswordPage() {
@@ -25,6 +58,11 @@ export function SetPasswordPage() {
     const [confirm, setConfirm] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+
+    const checks = checkPassword(password);
+    const policyOk = checks.length && checks.letter && checks.digit;
+    const confirmStatus: ConfirmStatus = confirm.length === 0 ? 'idle' : password === confirm ? 'match' : 'mismatch';
+    const canSubmit = policyOk && confirmStatus === 'match' && !submitting;
 
     useEffect(() => {
         if (!token) {
@@ -55,11 +93,11 @@ export function SetPasswordPage() {
         if (submitting) return;
         setSubmitError(null);
 
-        if (!passwordMeetsPolicy(password)) {
+        if (!policyOk) {
             setSubmitError(POLICY_MESSAGE);
             return;
         }
-        if (password !== confirm) {
+        if (confirmStatus !== 'match') {
             setSubmitError(MISMATCH_MESSAGE);
             return;
         }
@@ -80,6 +118,8 @@ export function SetPasswordPage() {
         }
     };
 
+    const confirmView = CONFIRM_STATUS[confirmStatus];
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground px-4">
             <div className="w-full max-w-[440px] bg-card rounded-lg shadow p-6 space-y-4 border border-border">
@@ -97,42 +137,52 @@ export function SetPasswordPage() {
                     <form onSubmit={onSubmit} className="space-y-4" noValidate>
                         <p className="text-body-secondary text-sm">
                             {info.purpose === 'invite' ? 'Добро пожаловать,' : 'Сброс пароля для'}{' '}
-                            <span className="text-body">{info.name}</span> ({info.email})
+                            <span className="text-body">{info.name}</span> ({info.login})
                         </p>
 
                         <div className="space-y-1">
                             <label htmlFor="new-password" className="block text-body-secondary">
                                 Новый пароль
                             </label>
-                            <input
+                            <PasswordInput
                                 id="new-password"
-                                type="password"
                                 autoComplete="new-password"
                                 required
+                                aria-invalid={password.length > 0 && !policyOk}
+                                aria-describedby="password-rules"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                onChange={setPassword}
                                 disabled={submitting}
                             />
+                            <ul id="password-rules" className="pt-1 space-y-1">
+                                <RuleItem ok={checks.length}>От 8 до 128 символов</RuleItem>
+                                <RuleItem ok={checks.letter}>Содержит букву</RuleItem>
+                                <RuleItem ok={checks.digit}>Содержит цифру</RuleItem>
+                            </ul>
                         </div>
 
                         <div className="space-y-1">
                             <label htmlFor="confirm-password" className="block text-body-secondary">
                                 Подтверждение
                             </label>
-                            <input
+                            <PasswordInput
                                 id="confirm-password"
-                                type="password"
                                 autoComplete="new-password"
                                 required
+                                aria-invalid={confirmStatus === 'mismatch'}
+                                aria-describedby="confirm-status"
                                 value={confirm}
-                                onChange={(e) => setConfirm(e.target.value)}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                onChange={setConfirm}
                                 disabled={submitting}
                             />
+                            <p
+                                id="confirm-status"
+                                className={`text-xs ${confirmView.cls}`}
+                                role={confirmStatus === 'mismatch' ? 'alert' : undefined}
+                            >
+                                {confirmView.text}
+                            </p>
                         </div>
-
-                        <p className="text-xs text-body-secondary">{POLICY_MESSAGE}</p>
 
                         {submitError && (
                             <p role="alert" className="text-sm text-destructive">
@@ -142,7 +192,7 @@ export function SetPasswordPage() {
 
                         <button
                             type="submit"
-                            disabled={submitting || !password || !confirm}
+                            disabled={!canSubmit}
                             className="w-full rounded-md bg-primary text-primary-foreground py-2 font-medium hover:bg-accent-active disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {submitting && (

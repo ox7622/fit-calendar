@@ -43,7 +43,7 @@ describe('AdminAuthService', () => {
 
     const buildMockAdmin = (overrides: Partial<AdminUser> = {}): AdminUser => ({
         id: 'admin-uuid-1',
-        email: 'admin@fitcalendar.ru',
+        login: 'admin',
         name: 'Admin',
         passwordHash,
         isActive: true,
@@ -116,18 +116,18 @@ describe('AdminAuthService', () => {
             const admin = buildMockAdmin();
             mockRepository.findOne.mockResolvedValue(admin);
 
-            const result = await service.validateCredentials(admin.email, passwordPlain);
+            const result = await service.validateCredentials(admin.login, passwordPlain);
 
             expect(result).toEqual(admin);
             expect(mockRepository.findOne).toHaveBeenCalledWith({
-                where: { email: admin.email, isActive: true },
+                where: { login: admin.login, isActive: true },
             });
         });
 
         it('returns null when password is wrong', async () => {
             mockRepository.findOne.mockResolvedValue(buildMockAdmin());
 
-            const result = await service.validateCredentials('admin@fitcalendar.ru', 'wrong-password');
+            const result = await service.validateCredentials('admin', 'wrong-password');
 
             expect(result).toBeNull();
         });
@@ -140,7 +140,7 @@ describe('AdminAuthService', () => {
             expect(result).toBeNull();
         });
 
-        it('returns null when email does not exist AND still runs bcrypt.compare (timing parity)', async () => {
+        it('returns null when login does not exist AND still runs bcrypt.compare (timing parity)', async () => {
             mockRepository.findOne.mockResolvedValue(null);
             const compareMock = bcrypt.compare as jest.Mock;
             compareMock.mockClear();
@@ -156,16 +156,16 @@ describe('AdminAuthService', () => {
     });
 
     describe('signToken', () => {
-        it('produces a JWT verifiable with the same secret with sub/email/name claims', () => {
+        it('produces a JWT verifiable with the same secret with sub/login/name claims', () => {
             const admin = buildMockAdmin();
 
             const token = service.signToken(admin);
 
-            const decoded = jwtService.verify<{ sub: string; email: string; name: string }>(token, {
+            const decoded = jwtService.verify<{ sub: string; login: string; name: string }>(token, {
                 secret: TEST_JWT_SECRET,
             });
             expect(decoded.sub).toBe(admin.id);
-            expect(decoded.email).toBe(admin.email);
+            expect(decoded.login).toBe(admin.login);
             expect(decoded.name).toBe(admin.name);
         });
     });
@@ -184,12 +184,12 @@ describe('AdminAuthService', () => {
     });
 
     describe('getInviteTokenInfo', () => {
-        it('returns email/name/purpose from the joined adminUser relation', async () => {
+        it('returns login/name/purpose from the joined adminUser relation', async () => {
             mockTokenRepo.findOne.mockResolvedValue(buildMockToken({ purpose: 'reset', adminUser: buildMockAdmin() }));
 
             const info = await service.getInviteTokenInfo('plaintext-token');
 
-            expect(info).toEqual({ email: 'admin@fitcalendar.ru', name: 'Admin', purpose: 'reset' });
+            expect(info).toEqual({ login: 'admin', name: 'Admin', purpose: 'reset' });
             const call = mockTokenRepo.findOne.mock.calls[0][0];
             expect((call?.where as { tokenHash: string }).tokenHash).toBe(sha256('plaintext-token'));
             expect(call?.relations).toEqual({ adminUser: true });

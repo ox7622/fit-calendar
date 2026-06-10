@@ -30,7 +30,7 @@ export class AdminUsersService {
         const admins = await this.adminRepo.find({ order: { createdAt: 'ASC' } });
         return admins.map((a) => ({
             id: a.id,
-            email: a.email,
+            login: a.login,
             name: a.name,
             isActive: a.isActive,
             lastLoginAt: a.lastLoginAt?.toISOString() ?? null,
@@ -38,19 +38,19 @@ export class AdminUsersService {
         }));
     }
 
-    async invite(issuerAdminId: string, email: string, name: string): Promise<IssuedTokenResponseDto> {
+    async invite(issuerAdminId: string, login: string, name: string): Promise<IssuedTokenResponseDto> {
         return this.dataSource.transaction(async (manager) => {
             const adminRepo = manager.getRepository(AdminUser);
             const tokenRepo = manager.getRepository(AdminInviteToken);
 
-            const existing = await adminRepo.findOne({ where: { email } });
+            const existing = await adminRepo.findOne({ where: { login } });
 
             let adminUser: AdminUser;
             let action: 'created' | 'reactivated';
 
             if (existing) {
                 if (existing.isActive) {
-                    throw new ConflictException('Этот email уже используется активным админом');
+                    throw new ConflictException('Этот логин уже используется активным админом');
                 }
                 existing.name = name;
                 adminUser = await adminRepo.save(existing);
@@ -58,7 +58,7 @@ export class AdminUsersService {
             } else {
                 adminUser = await adminRepo.save(
                     adminRepo.create({
-                        email,
+                        login,
                         name,
                         passwordHash: SENTINEL_HASH,
                         isActive: false,

@@ -9,9 +9,9 @@ import { sha256Hex } from '../../../common/utils/token-hash';
 
 import { InviteTokenInfoDto } from './dto/set-password.dto';
 
-// Pre-computed bcrypt hash used for timing parity when no admin matches the email.
+// Pre-computed bcrypt hash used for timing parity when no admin matches the login.
 // bcrypt.compare's cost is dominated by the hash work; running a real compare even
-// on the miss path keeps response timing roughly equal between "wrong email" and
+// on the miss path keeps response timing roughly equal between "wrong login" and
 // "wrong password," limiting user-enumeration via timing side-channel.
 const TIMING_PARITY_HASH = '$2b$10$33m0A904Fee1YMpeWq/tOe8vQ4rppu306AFwr.Rhvzb2eMi1bkXku';
 
@@ -19,7 +19,7 @@ const BCRYPT_COST = 10;
 
 interface IAdminTokenPayload {
     sub: string;
-    email: string;
+    login: string;
     name: string;
 }
 
@@ -36,14 +36,14 @@ export class AdminAuthService {
         private readonly jwtService: JwtService,
     ) {}
 
-    async validateCredentials(email: string, password: string): Promise<AdminUser | null> {
+    async validateCredentials(login: string, password: string): Promise<AdminUser | null> {
         const admin = await this.adminRepository.findOne({
-            where: { email, isActive: true },
+            where: { login, isActive: true },
         });
 
         if (!admin) {
             // Constant-time defense: still run a real bcrypt.compare so the response
-            // timing on a missing/inactive email is comparable to a wrong-password attempt.
+            // timing on a missing/inactive login is comparable to a wrong-password attempt.
             await bcrypt.compare(password, TIMING_PARITY_HASH);
             return null;
         }
@@ -59,7 +59,7 @@ export class AdminAuthService {
     signToken(admin: AdminUser): string {
         const payload: IAdminTokenPayload = {
             sub: admin.id,
-            email: admin.email,
+            login: admin.login,
             name: admin.name,
         };
         return this.jwtService.sign(payload);
@@ -85,7 +85,7 @@ export class AdminAuthService {
             // which one — same reason login returns a single generic 401.
             throw new NotFoundException('Ссылка недействительна или истекла');
         }
-        return { email: token.adminUser.email, name: token.adminUser.name, purpose: token.purpose };
+        return { login: token.adminUser.login, name: token.adminUser.name, purpose: token.purpose };
     }
 
     async setPasswordWithToken(plaintextToken: string, newPassword: string): Promise<void> {

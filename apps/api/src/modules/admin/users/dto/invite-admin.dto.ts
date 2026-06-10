@@ -1,13 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+
+// Keep storage/lookup normalization identical to LoginDto so an admin can sign in
+// with whatever casing/spacing they type.
+const normalizeLogin = ({ value }: { value: unknown }): unknown =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value;
 
 export class InviteAdminDto {
-    @ApiProperty({ example: 'new-admin@fitcalendar.ru' })
-    @IsEmail()
+    @ApiProperty({ example: 'masha', description: 'Unique login (case-insensitive). Free-form — may be a name.' })
+    @Transform(normalizeLogin)
+    @IsString()
+    @IsNotEmpty()
+    @MinLength(2)
     @MaxLength(255)
-    email!: string;
+    login!: string;
 
-    @ApiProperty({ example: 'Test Admin' })
+    @ApiProperty({ example: 'Мария Иванова' })
     @IsString()
     @IsNotEmpty()
     @MaxLength(255)

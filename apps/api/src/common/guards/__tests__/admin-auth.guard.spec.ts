@@ -38,13 +38,13 @@ describe('AdminAuthGuard', () => {
 
     describe('canActivate', () => {
         it('returns true and attaches request.admin on a valid token', async () => {
-            const token = jwtService.sign({ sub: 'admin-1', email: 'admin@x.ru', name: 'Admin' });
+            const token = jwtService.sign({ sub: 'admin-1', login: 'admin', name: 'Admin' });
             const { ctx, request } = buildContext(`Bearer ${token}`);
 
             const ok = await guard.canActivate(ctx);
 
             expect(ok).toBe(true);
-            expect(request.admin).toEqual({ id: 'admin-1', email: 'admin@x.ru', name: 'Admin' });
+            expect(request.admin).toEqual({ id: 'admin-1', login: 'admin', name: 'Admin' });
         });
 
         it('throws UnauthorizedException when Authorization header is missing', async () => {
@@ -62,7 +62,7 @@ describe('AdminAuthGuard', () => {
         it('throws UnauthorizedException for an expired token', async () => {
             const expiredJwt = new JwtService({ secret: SECRET });
             const expiredToken = expiredJwt.sign(
-                { sub: 'admin-1', email: 'admin@x.ru', name: 'Admin' },
+                { sub: 'admin-1', login: 'admin', name: 'Admin' },
                 { expiresIn: -10 }, // already expired
             );
             const { ctx } = buildContext(`Bearer ${expiredToken}`);
@@ -71,7 +71,7 @@ describe('AdminAuthGuard', () => {
         });
 
         it('throws UnauthorizedException for a tampered token', async () => {
-            const token = jwtService.sign({ sub: 'admin-1', email: 'admin@x.ru', name: 'Admin' });
+            const token = jwtService.sign({ sub: 'admin-1', login: 'admin', name: 'Admin' });
             // Flip a character in the payload section to invalidate the signature.
             const parts = token.split('.');
             parts[1] = parts[1].slice(0, -1) + (parts[1].slice(-1) === 'a' ? 'b' : 'a');
@@ -83,7 +83,7 @@ describe('AdminAuthGuard', () => {
 
         it('throws UnauthorizedException for a token signed with the wrong secret', async () => {
             const otherJwt = new JwtService({ secret: WRONG_SECRET });
-            const token = otherJwt.sign({ sub: 'admin-1', email: 'admin@x.ru', name: 'Admin' });
+            const token = otherJwt.sign({ sub: 'admin-1', login: 'admin', name: 'Admin' });
             const { ctx } = buildContext(`Bearer ${token}`);
 
             await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);

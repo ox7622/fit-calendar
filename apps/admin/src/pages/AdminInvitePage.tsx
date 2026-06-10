@@ -7,7 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function AdminInvitePage() {
-    const [email, setEmail] = useState('');
+    const [login, setLogin] = useState('');
     const [name, setName] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -19,13 +19,13 @@ export function AdminInvitePage() {
         setError(null);
         setSubmitting(true);
         try {
-            const result = await adminUsersApi.invite({ email, name });
+            const result = await adminUsersApi.invite({ login, name });
             setIssued(result);
         } catch (err) {
             if (err instanceof ApiError && err.status === 409) {
-                setError('Этот email уже используется активным админом. Используйте «Сбросить пароль».');
+                setError('Этот логин уже используется активным админом. Используйте «Сбросить пароль».');
             } else if (err instanceof ApiError && err.status === 400) {
-                setError('Проверьте корректность email и имени.');
+                setError('Проверьте корректность логина и имени.');
             } else {
                 setError('Не удалось создать приглашение.');
             }
@@ -49,15 +49,15 @@ export function AdminInvitePage() {
             {!issued && (
                 <form onSubmit={onSubmit} className="space-y-4" noValidate>
                     <div className="space-y-1">
-                        <label htmlFor="invite-email" className="block text-body-secondary">
-                            Email
+                        <label htmlFor="invite-login" className="block text-body-secondary">
+                            Логин
                         </label>
                         <input
-                            id="invite-email"
-                            type="email"
+                            id="invite-login"
+                            type="text"
                             required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            value={login}
+                            onChange={(e) => setLogin(e.target.value)}
                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             disabled={submitting}
                         />
@@ -86,7 +86,7 @@ export function AdminInvitePage() {
 
                     <button
                         type="submit"
-                        disabled={submitting || !email || !name}
+                        disabled={submitting || !login || !name}
                         className="rounded-md bg-primary text-primary-foreground px-4 py-2 font-medium hover:bg-accent-active disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         {submitting && (
@@ -103,7 +103,7 @@ export function AdminInvitePage() {
             {issued && (
                 <div className="space-y-3">
                     <IssuedTokenLinkCard
-                        forEmail={email}
+                        forLogin={login}
                         token={issued.token}
                         expiresAt={issued.expiresAt}
                         actionLabel={issued.action === 'created' ? 'новый аккаунт' : 'переактивация'}

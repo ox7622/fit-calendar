@@ -89,9 +89,9 @@ describe('Seed Data Verification Tests', () => {
             expect(count).toBeGreaterThanOrEqual(1);
         });
 
-        it('should have admin with correct email', async () => {
+        it('should have admin with correct login', async () => {
             const admin = await adminUserRepo.findOne({
-                where: { email: 'admin@fitcalendar.ru' },
+                where: { login: 'admin' },
             });
             expect(admin).not.toBeNull();
             expect(admin?.name).toBe('Admin');

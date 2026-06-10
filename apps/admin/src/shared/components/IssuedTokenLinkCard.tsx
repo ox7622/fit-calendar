@@ -8,7 +8,7 @@ export function buildSetPasswordUrl(token: string): string {
 }
 
 interface IIssuedTokenLinkCardProps {
-    forEmail: string;
+    forLogin: string;
     token: string;
     expiresAt: string;
     /** Optional context shown in the lede (e.g. "новый аккаунт", "переактивация"). */
@@ -17,7 +17,7 @@ interface IIssuedTokenLinkCardProps {
     onDismiss?: () => void;
 }
 
-export function IssuedTokenLinkCard({ forEmail, token, expiresAt, actionLabel, onDismiss }: IIssuedTokenLinkCardProps) {
+export function IssuedTokenLinkCard({ forLogin, token, expiresAt, actionLabel, onDismiss }: IIssuedTokenLinkCardProps) {
     const [copied, setCopied] = useState(false);
     const url = buildSetPasswordUrl(token);
 
@@ -31,7 +31,7 @@ export function IssuedTokenLinkCard({ forEmail, token, expiresAt, actionLabel, o
     return (
         <div className="rounded border border-primary/40 bg-primary/5 p-4 space-y-2">
             <p className="text-sm">
-                Ссылка для <span className="font-medium">{forEmail}</span>
+                Ссылка для <span className="font-medium">{forLogin}</span>
                 {actionLabel ? <> ({actionLabel})</> : null} создана. Передайте её получателю — открывается один раз,
                 действует до {new Date(expiresAt).toLocaleString('ru-RU')}.
             </p>

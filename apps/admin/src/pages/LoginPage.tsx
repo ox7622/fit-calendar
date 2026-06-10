@@ -2,16 +2,17 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 
 import { adminAuthApi } from '@/shared/api/auth.api';
+import { PasswordInput } from '@/shared/components/PasswordInput';
 import { useAdminStore } from '@/shared/stores/adminStore';
 import { useNavigate } from 'react-router-dom';
 
-const INVALID_CREDENTIALS_MESSAGE = 'Неверный email или пароль';
+const INVALID_CREDENTIALS_MESSAGE = 'Неверный логин или пароль';
 
 export function LoginPage() {
     const navigate = useNavigate();
     const setAuth = useAdminStore((s) => s.setAuth);
 
-    const [email, setEmail] = useState('');
+    const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export function LoginPage() {
         setError(null);
         setSubmitting(true);
         try {
-            const result = await adminAuthApi.login({ email, password });
+            const result = await adminAuthApi.login({ login, password });
             setAuth({ token: result.token, admin: result.admin });
             navigate('/dashboard', { replace: true });
         } catch {
@@ -44,16 +45,16 @@ export function LoginPage() {
                 <h1 className="heading-2 text-center">Админ-панель</h1>
 
                 <div className="space-y-1">
-                    <label htmlFor="admin-email" className="block text-body-secondary">
-                        Email
+                    <label htmlFor="admin-login" className="block text-body-secondary">
+                        Логин
                     </label>
                     <input
-                        id="admin-email"
-                        type="email"
+                        id="admin-login"
+                        type="text"
                         autoComplete="username"
                         required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={login}
+                        onChange={(e) => setLogin(e.target.value)}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         disabled={submitting}
                     />
@@ -63,14 +64,12 @@ export function LoginPage() {
                     <label htmlFor="admin-password" className="block text-body-secondary">
                         Пароль
                     </label>
-                    <input
+                    <PasswordInput
                         id="admin-password"
-                        type="password"
                         autoComplete="current-password"
                         required
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        onChange={setPassword}
                         disabled={submitting}
                     />
                 </div>
@@ -83,7 +82,7 @@ export function LoginPage() {
 
                 <button
                     type="submit"
-                    disabled={submitting || !email || !password}
+                    disabled={submitting || !login || !password}
                     className="w-full rounded-md bg-primary text-primary-foreground py-2 font-medium hover:bg-accent-active disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {submitting && (

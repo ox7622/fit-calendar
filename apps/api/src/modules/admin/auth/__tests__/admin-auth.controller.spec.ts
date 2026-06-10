@@ -18,7 +18,7 @@ describe('AdminAuthController', () => {
 
     const adminFixture: AdminUser = {
         id: 'admin-uuid-1',
-        email: 'admin@fitcalendar.ru',
+        login: 'admin',
         name: 'Admin',
         passwordHash: '$2b$10$irrelevantforthistest',
         isActive: true,
@@ -51,24 +51,24 @@ describe('AdminAuthController', () => {
             mockAuthService.recordLogin.mockResolvedValue(undefined);
 
             const result = await controller.login({
-                email: 'admin@fitcalendar.ru',
+                login: 'admin',
                 password: 'admin123',
             });
 
             expect(result).toEqual({
                 token: 'signed.jwt.token',
-                admin: { id: adminFixture.id, email: adminFixture.email, name: adminFixture.name },
+                admin: { id: adminFixture.id, login: adminFixture.login, name: adminFixture.name },
             });
-            expect(mockAuthService.validateCredentials).toHaveBeenCalledWith('admin@fitcalendar.ru', 'admin123');
+            expect(mockAuthService.validateCredentials).toHaveBeenCalledWith('admin', 'admin123');
             expect(mockAuthService.recordLogin).toHaveBeenCalledWith(adminFixture.id);
         });
 
         it('throws UnauthorizedException with the Russian message on wrong creds (no user enumeration)', async () => {
             mockAuthService.validateCredentials.mockResolvedValue(null);
 
-            await expect(controller.login({ email: 'admin@fitcalendar.ru', password: 'wrong' })).rejects.toMatchObject({
+            await expect(controller.login({ login: 'admin', password: 'wrong' })).rejects.toMatchObject({
                 status: 401,
-                message: 'Неверный email или пароль',
+                message: 'Неверный логин или пароль',
             });
 
             expect(mockAuthService.signToken).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('AdminAuthController', () => {
         it('throws UnauthorizedException for any rejection (instance check)', async () => {
             mockAuthService.validateCredentials.mockResolvedValue(null);
 
-            await expect(controller.login({ email: 'admin@fitcalendar.ru', password: 'wrong' })).rejects.toBeInstanceOf(
+            await expect(controller.login({ login: 'admin', password: 'wrong' })).rejects.toBeInstanceOf(
                 UnauthorizedException,
             );
         });
@@ -100,14 +100,14 @@ describe('AdminAuthController', () => {
     describe('GET /admin/auth/invite-token/:token', () => {
         it('delegates to AdminAuthService.getInviteTokenInfo and returns its payload', async () => {
             mockAuthService.getInviteTokenInfo.mockResolvedValue({
-                email: 'test2@fitcalendar.ru',
+                login: 'test2',
                 name: 'Test Two',
                 purpose: 'invite',
             });
 
             const result = await controller.getInviteTokenInfo('plaintext-token');
 
-            expect(result).toEqual({ email: 'test2@fitcalendar.ru', name: 'Test Two', purpose: 'invite' });
+            expect(result).toEqual({ login: 'test2', name: 'Test Two', purpose: 'invite' });
             expect(mockAuthService.getInviteTokenInfo).toHaveBeenCalledWith('plaintext-token');
         });
 

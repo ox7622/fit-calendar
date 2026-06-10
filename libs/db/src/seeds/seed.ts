@@ -44,10 +44,10 @@ async function seed(): Promise<void> {
         // canonical seed values — earlier seed revisions wrote a placeholder hash that
         // blocked login, and a plain insert-if-missing guard couldn't recover from it.
         const adminRepo = queryRunner.manager.getRepository(AdminUser);
-        const existingAdmin = await adminRepo.findOne({ where: { email: 'admin@fitcalendar.ru' } });
+        const existingAdmin = await adminRepo.findOne({ where: { login: 'admin' } });
         if (!existingAdmin) {
             const admin = adminRepo.create({
-                email: 'admin@fitcalendar.ru',
+                login: 'admin',
                 passwordHash: ADMIN_PASSWORD_HASH,
                 name: 'Admin',
                 isActive: true,

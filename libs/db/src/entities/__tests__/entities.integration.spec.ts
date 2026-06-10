@@ -332,12 +332,12 @@ describe('Entity Integration Tests', () => {
             expect(admin?.passwordHash).toMatch(/^\$2[aby]\$\d+\$/);
         });
 
-        it('should enforce unique email constraint', async () => {
+        it('should enforce unique login constraint', async () => {
             const existingAdmin = await adminUserRepo.findOne({ where: {} });
             if (!existingAdmin) return;
 
             const duplicateAdmin = adminUserRepo.create({
-                email: existingAdmin.email,
+                login: existingAdmin.login,
                 passwordHash: '$2b$10$test',
                 name: 'Duplicate',
             });

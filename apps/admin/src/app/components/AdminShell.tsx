@@ -57,12 +57,14 @@ export function AdminShell() {
             <header className="border-b border-border bg-card">
                 <div className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                        {/* Brand → dashboard. `flex-shrink-0` + `whitespace-nowrap` keep the
+                            logo on one line so the nav can't squeeze it into two rows on wide screens. */}
+                        <NavLink to="/dashboard" className="flex flex-shrink-0 items-center gap-2">
+                            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                                 <Zap size={18} />
                             </span>
-                            <h1 className="heading-3">Админ-панель</h1>
-                        </div>
+                            <h1 className="heading-3 whitespace-nowrap">Админ-панель</h1>
+                        </NavLink>
                         {/* Desktop nav — collapses into the burger below `lg`. */}
                         <nav className="hidden lg:flex items-center gap-1">
                             {NAV_ITEMS.map((item) => (

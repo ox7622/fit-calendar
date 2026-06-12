@@ -10,7 +10,13 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 
 ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_SENTRY_DSN_MINI
+ARG VITE_SENTRY_DSN_ADMIN
+ARG VITE_SENTRY_ENVIRONMENT
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_SENTRY_DSN_MINI=$VITE_SENTRY_DSN_MINI \
+    VITE_SENTRY_DSN_ADMIN=$VITE_SENTRY_DSN_ADMIN \
+    VITE_SENTRY_ENVIRONMENT=$VITE_SENTRY_ENVIRONMENT
 RUN pnpm nx build mini-app && pnpm nx build admin
 
 # ── Runtime: Caddy with the built static sites + the Caddyfile ───────────────

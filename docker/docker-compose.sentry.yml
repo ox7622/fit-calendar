@@ -1,0 +1,26 @@
+# Sentry overlay для prod-стека.
+#
+# Включается дополнительным `-f` к docker-compose.prod.yml:
+#   docker compose --env-file .env.prod \
+#     -f docker/docker-compose.prod.yml \
+#     -f docker/docker-compose.sentry.yml \
+#     up -d --build
+#
+# Переменные (в .env.prod):
+#   SENTRY_DSN              — DSN бэкенда (рантайм)
+#   VITE_SENTRY_DSN_MINI    — DSN Mini App (инлайнится в бандл при build)
+#   VITE_SENTRY_DSN_ADMIN   — DSN Admin (инлайнится в бандл при build)
+#
+# Frontend DSN'ы — build-time, поэтому переключение их требует пересборки caddy.
+# install.sh подключает этот файл автоматически, если задан хотя бы один из DSN.
+services:
+    api:
+        environment:
+            SENTRY_DSN: ${SENTRY_DSN:-}
+
+    caddy:
+        build:
+            args:
+                VITE_SENTRY_DSN_MINI: ${VITE_SENTRY_DSN_MINI:-}
+                VITE_SENTRY_DSN_ADMIN: ${VITE_SENTRY_DSN_ADMIN:-}
+                VITE_SENTRY_ENVIRONMENT: production

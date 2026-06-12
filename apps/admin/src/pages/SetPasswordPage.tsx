@@ -12,9 +12,9 @@ const MISMATCH_MESSAGE = 'Пароли не совпадают';
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 128;
 
-type ConfirmStatus = 'idle' | 'match' | 'mismatch';
+type TConfirmStatus = 'idle' | 'match' | 'mismatch';
 
-const CONFIRM_STATUS: Record<ConfirmStatus, { cls: string; text: string }> = {
+const CONFIRM_STATUS: Record<TConfirmStatus, { cls: string; text: string }> = {
     idle: { cls: 'text-body-secondary', text: 'Повторите пароль' },
     match: { cls: 'text-success', text: 'Пароли совпадают' },
     mismatch: { cls: 'text-destructive', text: MISMATCH_MESSAGE },
@@ -61,7 +61,7 @@ export function SetPasswordPage() {
 
     const checks = checkPassword(password);
     const policyOk = checks.length && checks.letter && checks.digit;
-    const confirmStatus: ConfirmStatus = confirm.length === 0 ? 'idle' : password === confirm ? 'match' : 'mismatch';
+    const confirmStatus: TConfirmStatus = confirm.length === 0 ? 'idle' : password === confirm ? 'match' : 'mismatch';
     const canSubmit = policyOk && confirmStatus === 'match' && !submitting;
 
     useEffect(() => {

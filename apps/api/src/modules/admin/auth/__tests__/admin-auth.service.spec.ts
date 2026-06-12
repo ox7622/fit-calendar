@@ -1,5 +1,3 @@
-import { createHash } from 'crypto';
-
 import { AdminInviteToken, AdminUser } from '@fitcalendar/db';
 import { GoneException, NotFoundException } from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -8,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import type * as Bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { AdminAuthService } from '../admin-auth.service';

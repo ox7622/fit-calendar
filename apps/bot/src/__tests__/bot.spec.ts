@@ -11,6 +11,7 @@ import { errorMiddleware } from '../middleware/error.middleware';
 jest.mock('grammy', () => ({
     Bot: jest.fn().mockImplementation(() => ({
         command: jest.fn(),
+        callbackQuery: jest.fn(),
         catch: jest.fn(),
     })),
 }));

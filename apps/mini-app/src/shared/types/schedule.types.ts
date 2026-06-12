@@ -8,7 +8,7 @@ export interface ScheduleClass {
     coachId?: string;
     coachName: string;
     coachPhotoUrl: string | null;
-    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    difficulty: string;
     impactTypes: string[];
     equipment?: string[];
     status: 'scheduled' | 'cancelled';

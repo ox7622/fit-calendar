@@ -1,26 +1,13 @@
-import { DIFFICULTY_LEVEL_LABELS, IMPACT_TYPES, type TDifficultyLevel, type TImpactType } from '@fitcalendar/shared';
+import { useEffect, useState } from 'react';
+
+import { TaxonomyBadge, showToast } from '@/components';
+import { ApiError, remindersApi, scheduleApi, type ReminderListItem } from '@/shared/api';
+import { useCustomerStore, useRemindersStore, useTaxonomyStore } from '@/shared/stores';
+import type { ScheduleClass } from '@/shared/types/schedule.types';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ArrowLeft, Bell, BellOff, Clock, Dumbbell as DumbbellIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-import { ImpactTypeBadge, showToast } from '@/components';
-import { ApiError, remindersApi, scheduleApi, type ReminderListItem } from '@/shared/api';
-import { useCustomerStore, useRemindersStore } from '@/shared/stores';
-import type { ScheduleClass } from '@/shared/types/schedule.types';
-
-const difficultyBadgeClass: Record<TDifficultyLevel, string> = {
-    beginner: 'bg-success/20 text-success',
-    intermediate: 'bg-warning/20 text-warning',
-    advanced: 'bg-error/20 text-error',
-};
-
-const difficultyLabel = DIFFICULTY_LEVEL_LABELS;
-
-function isKnownImpactType(value: string): value is TImpactType {
-    return (IMPACT_TYPES as readonly string[]).includes(value);
-}
 
 function extractErrorMessage(body: unknown): string | null {
     if (body && typeof body === 'object' && 'message' in body) {
@@ -71,6 +58,8 @@ export function ClassDetailPage(): JSX.Element {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const customer = useCustomerStore((s) => s.customer);
+    const difficultyMap = useTaxonomyStore((s) => s.difficultyMap);
+    const impactMap = useTaxonomyStore((s) => s.impactMap);
 
     const [cls, setCls] = useState<ScheduleClass | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -282,13 +271,11 @@ export function ClassDetailPage(): JSX.Element {
                     <div className="flex items-center gap-2">
                         <DumbbellIcon size={15} className="text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Сложность:</span>
-                        <span
-                            className={`text-xs font-medium rounded-md px-2 py-0.5 ${
-                                difficultyBadgeClass[cls.difficulty]
-                            }`}
-                        >
-                            {difficultyLabel[cls.difficulty]}
-                        </span>
+                        <TaxonomyBadge
+                            label={difficultyMap[cls.difficulty]?.label ?? cls.difficulty}
+                            color={difficultyMap[cls.difficulty]?.color ?? 'slate'}
+                            size="md"
+                        />
                     </div>
 
                     {/* Impact types */}
@@ -296,18 +283,18 @@ export function ClassDetailPage(): JSX.Element {
                         <div>
                             <p className="text-sm font-semibold text-muted-foreground mb-2">Тип нагрузки</p>
                             <div className="flex flex-wrap gap-2">
-                                {cls.impactTypes.map((type) =>
-                                    isKnownImpactType(type) ? (
-                                        <ImpactTypeBadge key={type} type={type} size="md" />
-                                    ) : (
-                                        <span
-                                            key={type}
-                                            className="text-sm text-muted-foreground bg-muted rounded-md px-2 py-0.5"
-                                        >
-                                            {type}
-                                        </span>
-                                    ),
-                                )}
+                                {cls.impactTypes.map((key) => {
+                                    const impact = impactMap[key];
+                                    return (
+                                        <TaxonomyBadge
+                                            key={key}
+                                            label={impact?.label ?? key}
+                                            color={impact?.color ?? 'slate'}
+                                            iconKey={key}
+                                            size="md"
+                                        />
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

@@ -1,26 +1,13 @@
-import { DIFFICULTY_LEVEL_LABELS, IMPACT_TYPES, type TDifficultyLevel, type TImpactType } from '@fitcalendar/shared';
+import { useTaxonomyStore } from '@/shared/stores';
+import type { ScheduleClass } from '@/shared/types/schedule.types';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
-import type { ScheduleClass } from '@/shared/types/schedule.types';
-
-import { ImpactTypeBadge } from './ImpactTypeBadge';
+import { TaxonomyBadge } from './TaxonomyBadge';
 
 interface ClassCardProps {
     class: ScheduleClass;
     onClick?: () => void;
-}
-
-const difficultyBadgeClass: Record<TDifficultyLevel, string> = {
-    beginner: 'bg-success/20 text-success',
-    intermediate: 'bg-warning/20 text-warning',
-    advanced: 'bg-error/20 text-error',
-};
-
-const difficultyLabel = DIFFICULTY_LEVEL_LABELS;
-
-function isKnownImpactType(value: string): value is TImpactType {
-    return (IMPACT_TYPES as readonly string[]).includes(value);
 }
 
 function getInitials(name: string): string {
@@ -46,7 +33,9 @@ export function ClassCard({ class: cls, onClick }: ClassCardProps): JSX.Element 
     const inProgress = isInProgress(cls.startTime, cls.endTime);
     const isPast = endDate.getTime() < Date.now();
     const isCancelled = cls.status === 'cancelled';
-    const badgeClass = difficultyBadgeClass[cls.difficulty];
+    const difficultyMap = useTaxonomyStore((s) => s.difficultyMap);
+    const impactMap = useTaxonomyStore((s) => s.impactMap);
+    const difficulty = difficultyMap[cls.difficulty];
 
     return (
         <button
@@ -94,9 +83,11 @@ export function ClassCard({ class: cls, onClick }: ClassCardProps): JSX.Element 
                             Отменено
                         </span>
                     ) : (
-                        <span className={`flex-shrink-0 text-xs font-medium rounded-md px-1.5 py-0.5 ${badgeClass}`}>
-                            {difficultyLabel[cls.difficulty]}
-                        </span>
+                        <TaxonomyBadge
+                            label={difficulty?.label ?? cls.difficulty}
+                            color={difficulty?.color ?? 'slate'}
+                            className="flex-shrink-0"
+                        />
                     )}
                 </div>
 
@@ -111,18 +102,18 @@ export function ClassCard({ class: cls, onClick }: ClassCardProps): JSX.Element 
                 {/* Impact type badges */}
                 {cls.impactTypes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                        {cls.impactTypes.map((type) =>
-                            isKnownImpactType(type) ? (
-                                <ImpactTypeBadge key={type} type={type} size="sm" />
-                            ) : (
-                                <span
-                                    key={type}
-                                    className="text-xs text-muted-foreground bg-muted rounded-md px-1.5 py-0.5"
-                                >
-                                    {type}
-                                </span>
-                            ),
-                        )}
+                        {cls.impactTypes.map((key) => {
+                            const impact = impactMap[key];
+                            return (
+                                <TaxonomyBadge
+                                    key={key}
+                                    label={impact?.label ?? key}
+                                    color={impact?.color ?? 'slate'}
+                                    iconKey={key}
+                                    size="sm"
+                                />
+                            );
+                        })}
                     </div>
                 )}
 

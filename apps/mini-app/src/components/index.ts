@@ -1,6 +1,6 @@
 export { ClassCard } from './ClassCard';
 export { FilterSheet } from './FilterSheet';
-export { ImpactTypeBadge } from './ImpactTypeBadge';
+export { TaxonomyBadge } from './TaxonomyBadge';
 export { LinkPhonePrompt } from './LinkPhonePrompt';
 export { SettingsSheet } from './SettingsSheet';
 export { SkeletonCard } from './SkeletonCard';

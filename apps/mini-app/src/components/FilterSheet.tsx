@@ -1,10 +1,10 @@
-import { DIFFICULTY_LEVEL_LABELS, IMPACT_TYPES, type TDifficultyLevel, type TImpactType } from '@fitcalendar/shared';
-import { X } from 'lucide-react';
 import type { JSX } from 'react';
 
+import { useTaxonomyStore } from '@/shared/stores';
 import type { CoachOption, ScheduleFilters, TrainingTypeOption } from '@/shared/types/filter.types';
+import { X } from 'lucide-react';
 
-import { ImpactTypeBadge } from './ImpactTypeBadge';
+import { TaxonomyBadge } from './TaxonomyBadge';
 
 interface FilterSheetProps {
     filters: ScheduleFilters;
@@ -13,10 +13,6 @@ interface FilterSheetProps {
     trainingTypes: TrainingTypeOption[];
     coaches: CoachOption[];
 }
-
-const difficultyOptions: { value: TDifficultyLevel; label: string }[] = (
-    ['beginner', 'intermediate', 'advanced'] as const
-).map((value) => ({ value, label: DIFFICULTY_LEVEL_LABELS[value] }));
 
 function countActiveFilters(filters: ScheduleFilters): number {
     let count = 0;
@@ -29,15 +25,17 @@ function countActiveFilters(filters: ScheduleFilters): number {
 
 export function FilterSheet({ filters, onChange, onClose, trainingTypes, coaches }: FilterSheetProps): JSX.Element {
     const activeCount = countActiveFilters(filters);
+    const difficultyOptions = useTaxonomyStore((s) => s.difficultyLevels);
+    const impactOptions = useTaxonomyStore((s) => s.impactTypes);
 
-    function toggleDifficulty(level: TDifficultyLevel): void {
+    function toggleDifficulty(level: string): void {
         onChange({
             ...filters,
             difficultyLevel: filters.difficultyLevel === level ? undefined : level,
         });
     }
 
-    function toggleImpactType(type: TImpactType): void {
+    function toggleImpactType(type: string): void {
         const current = filters.impactType ?? [];
         const updated = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
         onChange({ ...filters, impactType: updated.length > 0 ? updated : undefined });
@@ -97,12 +95,12 @@ export function FilterSheet({ filters, onChange, onClose, trainingTypes, coaches
                         <div className="flex gap-2 flex-wrap">
                             {difficultyOptions.map((opt) => (
                                 <button
-                                    key={opt.value}
+                                    key={opt.key}
                                     type="button"
-                                    onClick={() => toggleDifficulty(opt.value)}
+                                    onClick={() => toggleDifficulty(opt.key)}
                                     className={[
                                         'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border',
-                                        filters.difficultyLevel === opt.value
+                                        filters.difficultyLevel === opt.key
                                             ? 'bg-primary text-primary-foreground border-primary'
                                             : 'bg-card text-foreground border-border hover:border-primary/50',
                                     ].join(' ')}
@@ -119,19 +117,24 @@ export function FilterSheet({ filters, onChange, onClose, trainingTypes, coaches
                             Тип нагрузки
                         </h3>
                         <div className="flex gap-2 flex-wrap">
-                            {IMPACT_TYPES.map((type) => {
-                                const isSelected = (filters.impactType ?? []).includes(type);
+                            {impactOptions.map((opt) => {
+                                const isSelected = (filters.impactType ?? []).includes(opt.key);
                                 return (
                                     <button
-                                        key={type}
+                                        key={opt.key}
                                         type="button"
-                                        onClick={() => toggleImpactType(type)}
+                                        onClick={() => toggleImpactType(opt.key)}
                                         className={[
                                             'rounded-lg transition-colors border px-1.5 py-0.5',
                                             isSelected ? 'border-primary/50' : 'border-transparent',
                                         ].join(' ')}
                                     >
-                                        <ImpactTypeBadge type={type} size="md" />
+                                        <TaxonomyBadge
+                                            label={opt.label}
+                                            color={opt.color}
+                                            iconKey={opt.key}
+                                            size="md"
+                                        />
                                     </button>
                                 );
                             })}

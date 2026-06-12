@@ -4,6 +4,13 @@
 @layer base {
     /* Unified Dark Theme (default) - #17272B, #1E3338, #2A4449 */
     :root {
+        /* Native controls (date/time pickers, their icons, spinners, scrollbars)
+           follow the active theme. Dark by default; `.light` overrides below.
+           accent-color recolors the picker's selection from the browser's blue
+           to the app's teal accent (same teal in both themes). */
+        color-scheme: dark;
+        accent-color: hsl(var(--accent-primary));
+
         --bg-primary: 192 30% 13%;
         --bg-card: 192 30% 17%;
         --bg-sidebar: 192 32% 10%;
@@ -51,6 +58,9 @@
 
     /* Unified Light Theme - #BCDDE6, #FFFFFF, #9BC5D1 */
     .light {
+        /* Native controls follow the light theme (overrides :root's dark). */
+        color-scheme: light;
+
         --bg-primary: 198 30% 92%;
         --bg-card: 0 0% 100%;
         --bg-sidebar: 197 26% 88%;

@@ -28,6 +28,18 @@ export interface IAdminScheduleListResponse {
     pageSize: number;
 }
 
+export interface IBulkCreateResponse {
+    created: number;
+    items: IAdminScheduleItem[];
+}
+
+export type TSkipReason = 'not_found' | 'has_subscribers';
+
+export interface IBulkDeleteResponse {
+    deleted: string[];
+    skipped: { id: string; reason: TSkipReason }[];
+}
+
 export interface IAdminScheduleQuery {
     from?: string;
     to?: string;
@@ -70,6 +82,9 @@ export const adminScheduleApi = {
     create: (payload: IScheduleFormPayload): Promise<IAdminScheduleItem> =>
         adminApiClient.post<IAdminScheduleItem>('/admin/schedule', payload),
 
+    bulkCreate: (entries: IScheduleFormPayload[]): Promise<IBulkCreateResponse> =>
+        adminApiClient.post<IBulkCreateResponse>('/admin/schedule/bulk', { entries }),
+
     update: (id: string, payload: Partial<IScheduleFormPayload>): Promise<IAdminScheduleItem> =>
         adminApiClient.put<IAdminScheduleItem>(`/admin/schedule/${id}`, payload),
 
@@ -77,4 +92,7 @@ export const adminScheduleApi = {
         adminApiClient.post<IAdminScheduleItem>(`/admin/schedule/${id}/cancel`, { reason: reason ?? undefined }),
 
     delete: (id: string): Promise<void> => adminApiClient.delete<void>(`/admin/schedule/${id}`),
+
+    bulkDelete: (ids: string[]): Promise<IBulkDeleteResponse> =>
+        adminApiClient.post<IBulkDeleteResponse>('/admin/schedule/bulk-delete', { ids }),
 };

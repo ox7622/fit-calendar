@@ -54,11 +54,11 @@ export function ScheduleList({ items }: IScheduleListProps): JSX.Element {
                         {group.headerLabel}
                     </h3>
                     <div className="overflow-x-auto rounded-lg border border-border">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm table-fixed">
                             <thead className="bg-muted text-left text-xs text-muted-foreground">
                                 <tr>
-                                    <th className="px-4 py-2 w-28 uppercase tracking-wide">Время</th>
-                                    <th className="px-4 py-2 uppercase tracking-wide">Занятие</th>
+                                    <th className="px-4 py-2 w-36 uppercase tracking-wide">Время</th>
+                                    <th className="px-4 py-2 w-1/3 uppercase tracking-wide">Занятие</th>
                                     <th className="px-4 py-2 uppercase tracking-wide">Тренер</th>
                                     <th className="px-4 py-2 w-32 uppercase tracking-wide">Статус</th>
                                     <th className="px-4 py-2 w-12"></th>
@@ -74,13 +74,13 @@ export function ScheduleList({ items }: IScheduleListProps): JSX.Element {
                                             onClick={() => navigate(`/schedule/${item.id}`)}
                                             className="cursor-pointer hover:bg-muted/50 transition-colors"
                                         >
-                                            <td className="px-4 py-2 font-mono">
+                                            <td className="px-4 py-2 font-mono whitespace-nowrap">
                                                 {format(start, 'HH:mm', { locale: ru })}
                                                 <span className="text-muted-foreground text-xs ml-1">
                                                     · {item.durationMinutes} мин
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-2">
+                                            <td className="px-4 py-2 truncate">
                                                 <span
                                                     className={
                                                         isCancelled
@@ -91,7 +91,9 @@ export function ScheduleList({ items }: IScheduleListProps): JSX.Element {
                                                     {item.trainingType.name}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-2 text-muted-foreground">{item.coach.name}</td>
+                                            <td className="px-4 py-2 text-muted-foreground truncate">
+                                                {item.coach.name}
+                                            </td>
                                             <td className="px-4 py-2">
                                                 {isCancelled ? (
                                                     <span className="inline-flex items-center text-xs font-medium rounded-md bg-error/10 text-error px-2 py-0.5">

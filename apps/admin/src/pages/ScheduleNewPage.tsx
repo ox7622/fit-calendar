@@ -22,6 +22,18 @@ export function ScheduleNewPage() {
                         throw err;
                     }
                 }}
+                onSubmitRecurring={async (entries) => {
+                    try {
+                        await adminScheduleApi.bulkCreate(entries);
+                        navigate('/dashboard', { replace: true });
+                    } catch (err) {
+                        if (err instanceof ApiError) {
+                            const body = err.data as { message?: string } | null;
+                            throw new Error(body?.message ?? 'Не удалось создать занятия');
+                        }
+                        throw err;
+                    }
+                }}
                 onCancel={() => navigate('/dashboard')}
             />
         </div>

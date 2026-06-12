@@ -1,11 +1,19 @@
+import { useMemo } from 'react';
+
 import type { IAdminScheduleItem } from '@/shared/api';
 import { addDays, format, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
+import { findOverlappingIds } from './bulk/find-overlapping-ids';
+
 interface IScheduleCalendarProps {
     items: IAdminScheduleItem[];
     rangeStart: Date;
+    /** When true, clicking a class toggles selection instead of opening it. */
+    selectMode?: boolean;
+    selectedIds?: Set<string>;
+    onToggleSelect?: (id: string) => void;
 }
 
 const DAYS_IN_WEEK = 7;
@@ -19,9 +27,16 @@ function coachInitials(name: string): string {
         .slice(0, 2);
 }
 
-export function ScheduleCalendar({ items, rangeStart }: IScheduleCalendarProps): JSX.Element {
+export function ScheduleCalendar({
+    items,
+    rangeStart,
+    selectMode = false,
+    selectedIds,
+    onToggleSelect,
+}: IScheduleCalendarProps): JSX.Element {
     const navigate = useNavigate();
     const days = Array.from({ length: DAYS_IN_WEEK }, (_, i) => addDays(rangeStart, i));
+    const overlappingIds = useMemo(() => findOverlappingIds(items), [items]);
 
     const itemsByDay: Record<string, IAdminScheduleItem[]> = {};
     for (const day of days) {
@@ -55,18 +70,48 @@ export function ScheduleCalendar({ items, rangeStart }: IScheduleCalendarProps):
                             ) : (
                                 dayItems.map((item) => {
                                     const isCancelled = item.status === 'cancelled';
+                                    const isOverlapping = overlappingIds.has(item.id);
+                                    const isSelected = selectMode && (selectedIds?.has(item.id) ?? false);
                                     return (
                                         <button
                                             key={item.id}
                                             type="button"
-                                            onClick={() => navigate(`/schedule/${item.id}`)}
+                                            onClick={() =>
+                                                selectMode
+                                                    ? onToggleSelect?.(item.id)
+                                                    : navigate(`/schedule/${item.id}`)
+                                            }
+                                            aria-pressed={selectMode ? isSelected : undefined}
+                                            title={
+                                                selectMode
+                                                    ? 'Нажмите, чтобы выбрать для удаления'
+                                                    : isOverlapping
+                                                    ? 'Несколько занятий в одно время'
+                                                    : undefined
+                                            }
                                             className={`w-full text-left rounded-md px-2 py-1.5 text-xs transition-colors ${
                                                 isCancelled
                                                     ? 'bg-error/10 text-error hover:bg-error/20 line-through'
                                                     : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                            }${isOverlapping ? ' ring-2 ring-error ring-offset-1' : ''}${
+                                                isSelected ? ' outline outline-2 outline-offset-1 outline-primary' : ''
                                             }`}
                                         >
-                                            <div className="font-semibold truncate">{item.trainingType.name}</div>
+                                            <div className="flex items-start gap-1">
+                                                {selectMode && (
+                                                    <span
+                                                        aria-hidden
+                                                        className={`mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] leading-none ${
+                                                            isSelected
+                                                                ? 'border-primary bg-primary text-primary-foreground'
+                                                                : 'border-current opacity-50'
+                                                        }`}
+                                                    >
+                                                        {isSelected ? '✓' : ''}
+                                                    </span>
+                                                )}
+                                                <span className="font-semibold truncate">{item.trainingType.name}</span>
+                                            </div>
                                             <div className="flex items-center justify-between text-[10px] mt-0.5 opacity-80">
                                                 <span>{format(parseISO(item.startTime), 'HH:mm')}</span>
                                                 <span>{coachInitials(item.coach.name)}</span>

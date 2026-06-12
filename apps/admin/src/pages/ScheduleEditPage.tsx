@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { DuplicateClassDialog } from '@/features/schedule/bulk/DuplicateClassDialog';
 import { CancelClassModal } from '@/features/schedule/CancelClassModal';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError, type IAdminScheduleItem } from '@/shared/api';
@@ -13,6 +14,7 @@ export function ScheduleEditPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [dupOpen, setDupOpen] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -43,7 +45,6 @@ export function ScheduleEditPage() {
     }
 
     const isCancelled = entry.status === 'cancelled';
-    const isPast = new Date(entry.startTime).getTime() <= Date.now();
     const startLabel = new Date(entry.startTime).toLocaleString('ru-RU', {
         day: 'numeric',
         month: 'long',
@@ -73,6 +74,13 @@ export function ScheduleEditPage() {
             <div className="mb-4 flex items-center justify-between">
                 <h2 className="heading-2">Редактирование занятия</h2>
                 <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setDupOpen(true)}
+                        className="rounded border border-border px-3 py-1 text-body hover:bg-surface-hover"
+                    >
+                        Копировать
+                    </button>
                     {!isCancelled && (
                         <button
                             type="button"
@@ -82,16 +90,14 @@ export function ScheduleEditPage() {
                             Отменить занятие
                         </button>
                     )}
-                    {isPast && (
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            className="rounded border border-border px-3 py-1 text-body hover:bg-surface-hover"
-                            title="Доступно только для прошедших занятий без напоминаний"
-                        >
-                            Удалить
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="rounded border border-border px-3 py-1 text-body hover:bg-surface-hover"
+                        title="Удаление доступно, только если на занятие никто не записан. Если есть записи — используйте отмену."
+                    >
+                        Удалить
+                    </button>
                 </div>
             </div>
 
@@ -146,6 +152,14 @@ export function ScheduleEditPage() {
                         }
                     }}
                     onClose={() => setShowCancelModal(false)}
+                />
+            )}
+
+            {dupOpen && (
+                <DuplicateClassDialog
+                    source={entry}
+                    onClose={() => setDupOpen(false)}
+                    onCreated={() => setDupOpen(false)}
                 />
             )}
         </div>

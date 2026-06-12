@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { CopyWeekDialog } from '@/features/schedule/bulk/CopyWeekDialog';
 import { ScheduleCalendar } from '@/features/schedule/ScheduleCalendar';
 import { ScheduleFilters } from '@/features/schedule/ScheduleFilters';
 import { ScheduleList } from '@/features/schedule/ScheduleList';
@@ -30,6 +31,12 @@ export function DashboardPage() {
     const [items, setItems] = useState<IAdminScheduleItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [reloadToken, setReloadToken] = useState(0);
+    const [copyWeekOpen, setCopyWeekOpen] = useState(false);
+    const [toast, setToast] = useState<string | null>(null);
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [bulkBusy, setBulkBusy] = useState(false);
 
     const rangeEnd = addDays(rangeStart, DEFAULT_RANGE_DAYS - 1);
 
@@ -60,11 +67,67 @@ export function DashboardPage() {
         return () => {
             cancelled = true;
         };
-    }, [rangeStart, status]);
+    }, [rangeStart, status, reloadToken]);
+
+    const showToast = (message: string): void => {
+        setToast(message);
+        setTimeout(() => setToast(null), 4000);
+    };
+
+    const onCreated = (count: number): void => {
+        setReloadToken((t) => t + 1);
+        showToast(`Создано занятий: ${count}`);
+    };
 
     const onPrev = (): void => setRangeStart((prev) => subWeeks(prev, 1));
     const onNext = (): void => setRangeStart((prev) => addWeeks(prev, 1));
     const onToday = (): void => setRangeStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+    const exitSelectMode = (): void => {
+        setSelectMode(false);
+        setSelectedIds(new Set());
+    };
+
+    const toggleSelect = (id: string): void => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handleBulkDelete = async (): Promise<void> => {
+        const ids = [...selectedIds];
+        if (ids.length === 0) return;
+        if (
+            !window.confirm(
+                `Удалить выбранные занятия (${ids.length})? ` +
+                    'Занятия, на которые записаны клиенты, будут пропущены — их нужно отменять.',
+            )
+        ) {
+            return;
+        }
+        setBulkBusy(true);
+        try {
+            const res = await adminScheduleApi.bulkDelete(ids);
+            const subs = res.skipped.filter((s) => s.reason === 'has_subscribers').length;
+            const gone = res.skipped.filter((s) => s.reason === 'not_found').length;
+            const parts = [`Удалено: ${res.deleted.length}`];
+            if (subs > 0) parts.push(`пропущено (есть записи): ${subs}`);
+            if (gone > 0) parts.push(`не найдено: ${gone}`);
+            showToast(parts.join(', '));
+            exitSelectMode();
+            setReloadToken((t) => t + 1);
+        } catch {
+            showToast('Не удалось удалить занятия');
+        } finally {
+            setBulkBusy(false);
+        }
+    };
 
     return (
         <div className="p-6 space-y-4">
@@ -80,7 +143,32 @@ export function DashboardPage() {
                     </Link>
                     <button
                         type="button"
-                        onClick={() => setView('list')}
+                        onClick={() => setCopyWeekOpen(true)}
+                        disabled={items.length === 0}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
+                    >
+                        Копировать неделю
+                    </button>
+                    {view === 'calendar' && (
+                        <button
+                            type="button"
+                            onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                            disabled={items.length === 0}
+                            className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${
+                                selectMode
+                                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                                    : 'border-border hover:bg-muted'
+                            }`}
+                        >
+                            {selectMode ? 'Готово' : 'Выбрать'}
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            exitSelectMode();
+                            setView('list');
+                        }}
                         className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
                             view === 'list'
                                 ? 'bg-primary/10 text-primary font-medium'
@@ -104,6 +192,30 @@ export function DashboardPage() {
                     </button>
                 </div>
             </div>
+
+            {selectMode && view === 'calendar' && (
+                <div className="flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/5 px-3 py-2">
+                    <span className="text-sm">Выбрано занятий: {selectedIds.size}</span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={exitSelectMode}
+                            disabled={bulkBusy}
+                            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
+                        >
+                            Отмена
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleBulkDelete}
+                            disabled={bulkBusy || selectedIds.size === 0}
+                            className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                            {bulkBusy ? 'Удаление...' : `Удалить (${selectedIds.size})`}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-1">
@@ -142,9 +254,29 @@ export function DashboardPage() {
             ) : error ? (
                 <p className="text-destructive text-center py-8">{error}</p>
             ) : view === 'calendar' ? (
-                <ScheduleCalendar items={items} rangeStart={rangeStart} />
+                <ScheduleCalendar
+                    items={items}
+                    rangeStart={rangeStart}
+                    selectMode={selectMode}
+                    selectedIds={selectedIds}
+                    onToggleSelect={toggleSelect}
+                />
             ) : (
                 <ScheduleList items={items} />
+            )}
+
+            {copyWeekOpen && (
+                <CopyWeekDialog
+                    items={items}
+                    sourceWeekStart={rangeStart}
+                    onClose={() => setCopyWeekOpen(false)}
+                    onCreated={onCreated}
+                />
+            )}
+            {toast && (
+                <div className="fixed bottom-4 right-4 z-50 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm shadow-lg">
+                    {toast}
+                </div>
             )}
         </div>
     );

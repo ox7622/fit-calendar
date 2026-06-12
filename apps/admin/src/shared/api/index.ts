@@ -53,8 +53,11 @@ export type {
     IAdminScheduleItem,
     IAdminScheduleListResponse,
     IAdminScheduleQuery,
+    IBulkCreateResponse,
+    IBulkDeleteResponse,
     IScheduleFormPayload,
     TAdminScheduleStatus,
     TAdminScheduleStatusFilter,
     TAllowedDuration,
+    TSkipReason,
 } from './schedule.api';

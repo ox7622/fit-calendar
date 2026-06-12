@@ -3,7 +3,7 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, startOfWeek } from 'date-fns';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 import { ReminderService } from '../../reminder/reminder.service';
 import { AdminAuditService } from '../audit';
@@ -11,6 +11,8 @@ import type { IAuditContext } from '../audit/audit-context';
 
 import { AdminScheduleItemDto, AdminScheduleListResponseDto, toAdminScheduleItem } from './dto/admin-schedule-list.dto';
 import { AdminScheduleQueryDto } from './dto/admin-schedule-query.dto';
+import { BulkCreateResponseDto, BulkCreateScheduleDto } from './dto/bulk-create-schedule.dto';
+import { BulkDeleteResponseDto, SkippedDeleteDto } from './dto/bulk-delete-schedule.dto';
 import { CreateScheduleEntryDto } from './dto/create-schedule-entry.dto';
 import { UpdateScheduleEntryDto } from './dto/update-schedule-entry.dto';
 import {
@@ -111,6 +113,56 @@ export class AdminScheduleService {
     }
 
     /**
+     * Bulk-create independent schedule entries (copy week / copy class / recurrence).
+     * Duplicates are NOT checked — overlapping slots are allowed by design. Validates
+     * each distinct coach/type once BEFORE the transaction so a bad reference fails
+     * fast and nothing is written. No reminders/events (same as single `create`).
+     */
+    async bulkCreate(dto: BulkCreateScheduleDto): Promise<BulkCreateResponseDto> {
+        const coachIds = [...new Set(dto.entries.map((e) => e.coachId))];
+        const typeIds = [...new Set(dto.entries.map((e) => e.trainingTypeId))];
+
+        // Validate every distinct coach/type in one query each (before the
+        // transaction) so a bad reference fails fast and nothing is written.
+        const [coaches, types] = await Promise.all([
+            this.coachRepo.find({ where: { id: In(coachIds) } }),
+            this.trainingTypeRepo.find({ where: { id: In(typeIds) } }),
+        ]);
+        const coachById = new Map(coaches.map((c) => [c.id, c]));
+        const typeById = new Map(types.map((t) => [t.id, t]));
+        this.assertAllActive(coachIds, coachById, 'Coach');
+        this.assertAllActive(typeIds, typeById, 'TrainingType');
+
+        const rows = dto.entries.map((e) =>
+            this.scheduleRepo.create({
+                coachId: e.coachId,
+                trainingTypeId: e.trainingTypeId,
+                startTime: e.startTime,
+                durationMinutes: e.durationMinutes,
+                status: 'scheduled',
+            }),
+        );
+
+        const saved: ScheduleEntry[] = await this.dataSource.transaction((manager) =>
+            manager.save(ScheduleEntry, rows),
+        );
+
+        // Build the response from the coach/type entities already loaded for
+        // validation — no need to re-SELECT the rows we just inserted.
+        const items = saved.map((row) =>
+            toAdminScheduleItem({
+                ...row,
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                coach: coachById.get(row.coachId)!,
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                trainingType: typeById.get(row.trainingTypeId)!,
+            }),
+        );
+        this.logger.log(`Bulk-created ${items.length} schedule entries`);
+        return { created: items.length, items };
+    }
+
+    /**
      * Story 6.3 — the update flow has three side-effects beyond persisting the row:
      *
      *   1. If `startTime` or `durationMinutes` changes, emit SCHEDULE_CHANGED_EVENT
@@ -206,26 +258,33 @@ export class AdminScheduleService {
 
         const result: TCancelResult = await this.dataSource.transaction(async (manager) => {
             const lockedRepo = manager.getRepository(ScheduleEntry);
-            const entry = await lockedRepo.findOne({
+            // Lock the bare row only. Requesting `relations` here would make
+            // TypeORM emit `SELECT ... LEFT JOIN coaches LEFT JOIN training_types
+            // ... FOR UPDATE`, which Postgres rejects with "FOR UPDATE cannot be
+            // applied to the nullable side of an outer join". Relations are loaded
+            // by a separate, unlocked read below (we still hold this row's lock).
+            const locked = await lockedRepo.findOne({
                 where: { id },
-                relations: ['coach', 'trainingType'],
                 lock: { mode: 'pessimistic_write' },
             });
-            if (!entry) {
+            if (!locked) {
                 throw new NotFoundException(`Schedule entry ${id} not found`);
             }
-            if (entry.status === 'cancelled') {
-                // Idempotent path — return the existing record. No event, no writes.
-                return { entry, wasAlreadyCancelled: true, affectedCustomerIds: [] };
+
+            const wasAlreadyCancelled = locked.status === 'cancelled';
+            let affectedCustomerIds: string[] = [];
+            if (!wasAlreadyCancelled) {
+                affectedCustomerIds = await this.reminderService.findPendingCustomersByClass(id, manager);
+                await manager.update(ScheduleEntry, { id }, { status: 'cancelled', cancellationReason: reason });
+                await this.reminderService.deletePendingByClass(id, manager);
             }
 
-            const affectedCustomerIds = await this.reminderService.findPendingCustomersByClass(id, manager);
-            await manager.update(ScheduleEntry, { id }, { status: 'cancelled', cancellationReason: reason });
-            await this.reminderService.deletePendingByClass(id, manager);
-
-            entry.status = 'cancelled';
-            entry.cancellationReason = reason;
-            return { entry, wasAlreadyCancelled: false, affectedCustomerIds };
+            // Re-read WITH relations (no lock) for the response DTO + event
+            // snapshot. Reflects the just-written status/reason on the cancel path.
+            const entry = await lockedRepo.findOne({ where: { id }, relations: ['coach', 'trainingType'] });
+            // Guaranteed present — we hold the pessimistic_write lock on this row.
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            return { entry: entry!, wasAlreadyCancelled, affectedCustomerIds };
         });
 
         if (result.wasAlreadyCancelled) {
@@ -261,10 +320,11 @@ export class AdminScheduleService {
     }
 
     /**
-     * Story 6.4 — hard delete. Only safe for classes that:
-     *   - are in the past (future classes should be cancelled, not removed); AND
-     *   - have no reminders at all (sent + failed rows are audit trail).
-     * Otherwise 409 with a Russian explanation pointing the admin at cancel instead.
+     * Story 6.4 — hard delete. Safe only for classes with NO reminders at all
+     * (pending = active subscribers who must be notified via cancel; sent/failed
+     * = audit trail). Past or future doesn't matter: a freshly-duplicated future
+     * class has no subscribers and is fine to remove. A class anyone signed up
+     * for returns 409 pointing the admin at cancel instead.
      */
     async deleteEntry(id: string, audit?: IAuditContext): Promise<void> {
         const entry = await this.scheduleRepo.findOne({
@@ -274,11 +334,8 @@ export class AdminScheduleService {
         if (!entry) {
             throw new NotFoundException(`Schedule entry ${id} not found`);
         }
-        if (entry.startTime.getTime() > Date.now()) {
-            throw new ConflictException('Класс нельзя удалить: занятие ещё не прошло. Используйте отмену.');
-        }
         if (entry.reminders.length > 0) {
-            throw new ConflictException('Класс нельзя удалить: есть напоминания. Используйте отмену.');
+            throw new ConflictException('Класс нельзя удалить: на него записаны клиенты. Используйте отмену.');
         }
         const snapshot = {
             startTime: entry.startTime,
@@ -295,6 +352,77 @@ export class AdminScheduleService {
             resourceId: id,
             metadata: snapshot,
         });
+    }
+
+    /**
+     * Bulk hard-delete — built for the "calendar got duplicated, wipe these"
+     * workflow. Partial success by design: each id is judged independently and
+     * the ones with subscribers (any reminder) are SKIPPED rather than failing
+     * the whole batch, so the admin removes every safe duplicate in one call and
+     * gets back a report of what was kept and why. Same safety rule as the
+     * single delete — a class anyone signed up for must be cancelled, not deleted.
+     */
+    async bulkDelete(ids: string[], audit?: IAuditContext): Promise<BulkDeleteResponseDto> {
+        // De-dup so a repeated id can't be double-counted in the report.
+        const uniqueIds = [...new Set(ids)];
+        const entries = await this.scheduleRepo.find({
+            where: { id: In(uniqueIds) },
+            relations: ['reminders', 'coach', 'trainingType'],
+        });
+        const byId = new Map(entries.map((e) => [e.id, e]));
+
+        const skipped: SkippedDeleteDto[] = [];
+        const deletable: ScheduleEntry[] = [];
+        for (const id of uniqueIds) {
+            const entry = byId.get(id);
+            if (!entry) {
+                skipped.push({ id, reason: 'not_found' });
+            } else if (entry.reminders.length > 0) {
+                skipped.push({ id, reason: 'has_subscribers' });
+            } else {
+                deletable.push(entry);
+            }
+        }
+
+        if (deletable.length > 0) {
+            await this.scheduleRepo.remove(deletable);
+            this.logger.log(`Bulk-deleted ${deletable.length} schedule entries (skipped ${skipped.length})`);
+            // One audit row per removed class — keeps the trail uniform with the
+            // single-delete path. Best-effort; a failed write never blocks.
+            await Promise.all(
+                deletable.map((entry) =>
+                    this.auditService.record({
+                        adminUserId: audit?.adminUserId ?? null,
+                        ipAddress: audit?.ipAddress ?? null,
+                        action: 'delete_schedule_entry',
+                        resourceType: 'schedule_entry',
+                        resourceId: entry.id,
+                        metadata: {
+                            startTime: entry.startTime,
+                            coachName: entry.coach?.name,
+                            className: entry.trainingType?.name,
+                            bulk: true,
+                        },
+                    }),
+                ),
+            );
+        }
+
+        return { deleted: deletable.map((e) => e.id), skipped };
+    }
+
+    /** Assert every requested id is present in the loaded map and active. */
+    private assertAllActive<T extends { isActive: boolean }>(
+        ids: string[],
+        byId: Map<string, T>,
+        label: 'Coach' | 'TrainingType',
+    ): void {
+        for (const id of ids) {
+            const found = byId.get(id);
+            if (!found || !found.isActive) {
+                throw new BadRequestException(`${label} ${id} not found or inactive`);
+            }
+        }
     }
 
     private async assertActiveCoach(coachId: string): Promise<void> {

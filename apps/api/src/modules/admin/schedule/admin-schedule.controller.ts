@@ -21,6 +21,8 @@ import { AdminAuthGuard } from '../../../common/guards/admin-auth.guard';
 import { AdminScheduleService } from './admin-schedule.service';
 import { AdminScheduleItemDto, AdminScheduleListResponseDto } from './dto/admin-schedule-list.dto';
 import { AdminScheduleQueryDto } from './dto/admin-schedule-query.dto';
+import { BulkCreateResponseDto, BulkCreateScheduleDto } from './dto/bulk-create-schedule.dto';
+import { BulkDeleteResponseDto, BulkDeleteScheduleDto } from './dto/bulk-delete-schedule.dto';
 import { CancelClassDto } from './dto/cancel-class.dto';
 import { CreateScheduleEntryDto } from './dto/create-schedule-entry.dto';
 import { UpdateScheduleEntryDto } from './dto/update-schedule-entry.dto';
@@ -53,6 +55,43 @@ export class AdminScheduleController {
     @ApiResponse({ status: 401 })
     async create(@Body() dto: CreateScheduleEntryDto): Promise<AdminScheduleItemDto> {
         return this.scheduleService.create(dto);
+    }
+
+    @Post('bulk')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Bulk-create schedule entries (copy week / copy class / recurrence)',
+        description:
+            'Inserts 1..200 independent entries in a single transaction. Duplicates are NOT ' +
+            'checked. Fails atomically (nothing created) if any referenced coach or training ' +
+            'type is inactive.',
+    })
+    @ApiResponse({ status: 201, type: BulkCreateResponseDto })
+    @ApiResponse({ status: 400, description: 'Empty/oversized array or inactive coach/trainingType' })
+    @ApiResponse({ status: 401 })
+    async bulkCreate(@Body() dto: BulkCreateScheduleDto): Promise<BulkCreateResponseDto> {
+        return this.scheduleService.bulkCreate(dto);
+    }
+
+    @Post('bulk-delete')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Bulk hard-delete schedule entries (e.g. wipe a duplicated calendar)',
+        description:
+            'Deletes 1..200 entries by id. Partial success: entries that have subscribers (any ' +
+            'reminder) are skipped — they must be cancelled, not deleted — and reported in ' +
+            '`skipped`, alongside any ids that no longer exist. Returns the removed ids and the ' +
+            'skip report. Past or future does not matter; only subscriber presence gates deletion.',
+    })
+    @ApiResponse({ status: 200, type: BulkDeleteResponseDto })
+    @ApiResponse({ status: 400, description: 'Empty/oversized array or non-UUID id' })
+    @ApiResponse({ status: 401 })
+    async bulkDelete(
+        @Body() dto: BulkDeleteScheduleDto,
+        @AdminUser('id') adminUserId: string,
+        @Ip() ipAddress: string,
+    ): Promise<BulkDeleteResponseDto> {
+        return this.scheduleService.bulkDelete(dto.ids, { adminUserId, ipAddress });
     }
 
     @Get(':id')

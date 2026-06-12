@@ -65,12 +65,13 @@ describe('AdminScheduleService', () => {
     let scheduleRepo: jest.Mocked<{
         createQueryBuilder: jest.Mock;
         findOne: jest.Mock;
+        find: jest.Mock;
         create: jest.Mock;
         save: jest.Mock;
         remove: jest.Mock;
     }>;
-    let coachRepo: jest.Mocked<{ findOne: jest.Mock }>;
-    let trainingTypeRepo: jest.Mocked<{ findOne: jest.Mock }>;
+    let coachRepo: jest.Mocked<{ findOne: jest.Mock; find: jest.Mock }>;
+    let trainingTypeRepo: jest.Mocked<{ findOne: jest.Mock; find: jest.Mock }>;
     let eventEmitter: jest.Mocked<EventEmitter2>;
     let reminderService: jest.Mocked<
         Pick<ReminderService, 'recomputeNotifyAtForClass' | 'findPendingCustomersByClass' | 'deletePendingByClass'>
@@ -84,12 +85,13 @@ describe('AdminScheduleService', () => {
         scheduleRepo = {
             createQueryBuilder: jest.fn(),
             findOne: jest.fn(),
+            find: jest.fn(),
             create: jest.fn((dto) => dto as ScheduleEntry),
             save: jest.fn(async (entity) => entity as ScheduleEntry),
             remove: jest.fn(async (entity) => entity as ScheduleEntry),
         };
-        coachRepo = { findOne: jest.fn() };
-        trainingTypeRepo = { findOne: jest.fn() };
+        coachRepo = { findOne: jest.fn(), find: jest.fn() };
+        trainingTypeRepo = { findOne: jest.fn(), find: jest.fn() };
         eventEmitter = { emit: jest.fn() } as unknown as jest.Mocked<EventEmitter2>;
         reminderService = {
             recomputeNotifyAtForClass: jest.fn().mockResolvedValue(0),
@@ -330,7 +332,9 @@ describe('AdminScheduleService', () => {
     describe('cancel (Story 6.4)', () => {
         it('flips status, persists reason, deletes pending reminders, emits the event, takes a row lock', async () => {
             const entry = buildEntry({ id: 'sched-cancel', status: 'scheduled' });
-            txScheduleRepo.findOne.mockResolvedValueOnce(entry);
+            // Two reads inside the txn now: the locked bare row, then an
+            // unlocked re-read WITH relations for the response/snapshot.
+            txScheduleRepo.findOne.mockResolvedValue(entry);
             reminderService.findPendingCustomersByClass.mockResolvedValueOnce(['cust-a', 'cust-b']);
 
             const result = await service.cancel('sched-cancel', 'Coach sick');
@@ -343,6 +347,15 @@ describe('AdminScheduleService', () => {
                     lock: { mode: 'pessimistic_write' },
                 }),
             );
+
+            // Regression guard: the LOCKED read must NOT request relations.
+            // `FOR UPDATE` + the LEFT JOINs TypeORM emits for relations makes
+            // Postgres throw "FOR UPDATE cannot be applied to the nullable side
+            // of an outer join" (the production 500). Relations come from a
+            // separate unlocked read.
+            const lockCallArgs = txScheduleRepo.findOne.mock.calls[0][0];
+            expect(lockCallArgs.lock).toEqual({ mode: 'pessimistic_write' });
+            expect(lockCallArgs.relations).toBeUndefined();
 
             // findPendingCustomersByClass now runs inside the transaction with
             // the manager, so a new subscriber sneaking in between read +
@@ -377,7 +390,7 @@ describe('AdminScheduleService', () => {
 
         it('accepts a null reason and surfaces it in the event payload', async () => {
             const entry = buildEntry({ id: 'sched-null-reason', status: 'scheduled' });
-            txScheduleRepo.findOne.mockResolvedValueOnce(entry);
+            txScheduleRepo.findOne.mockResolvedValue(entry);
 
             await service.cancel('sched-null-reason', null);
 
@@ -397,7 +410,7 @@ describe('AdminScheduleService', () => {
             // early once the (locked) status reads as cancelled. No update,
             // no event, no reminder churn.
             const entry = buildEntry({ id: 'sched-already', status: 'cancelled', cancellationReason: 'Old reason' });
-            txScheduleRepo.findOne.mockResolvedValueOnce(entry);
+            txScheduleRepo.findOne.mockResolvedValue(entry);
 
             const result = await service.cancel('sched-already', 'New reason');
 
@@ -444,7 +457,7 @@ describe('AdminScheduleService', () => {
             expect(scheduleRepo.remove).not.toHaveBeenCalled();
         });
 
-        it('throws 409 when class is still in the future (admin should cancel, not delete)', async () => {
+        it('removes a FUTURE class with no reminders (duplicated-calendar cleanup)', async () => {
             const future = new Date(Date.now() + 7 * 86_400_000);
             const entry = buildEntry({
                 id: 'sched-future',
@@ -453,11 +466,12 @@ describe('AdminScheduleService', () => {
             } as Partial<ScheduleEntry>);
             scheduleRepo.findOne.mockResolvedValueOnce(entry);
 
-            await expect(service.deleteEntry('sched-future')).rejects.toThrow(ConflictException);
-            expect(scheduleRepo.remove).not.toHaveBeenCalled();
+            await service.deleteEntry('sched-future');
+
+            expect(scheduleRepo.remove).toHaveBeenCalledWith(entry);
         });
 
-        it('throws 409 when class has any reminders (audit trail must be preserved)', async () => {
+        it('throws 409 when class has any reminders (subscribers must be cancelled, not deleted)', async () => {
             const entry = buildEntry({
                 id: 'sched-audit',
                 startTime: new Date('2020-01-01T10:00:00Z'),
@@ -467,6 +481,103 @@ describe('AdminScheduleService', () => {
 
             await expect(service.deleteEntry('sched-audit')).rejects.toThrow(ConflictException);
             expect(scheduleRepo.remove).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('bulkDelete', () => {
+        it('deletes entries with no reminders and skips ones with subscribers + missing ids', async () => {
+            const ok1 = buildEntry({ id: 'ok-1', reminders: [] } as Partial<ScheduleEntry>);
+            const ok2 = buildEntry({ id: 'ok-2', reminders: [] } as Partial<ScheduleEntry>);
+            const withSubs = buildEntry({ id: 'subs', reminders: [{ id: 'r' }] } as Partial<ScheduleEntry>);
+            // 'gone' is requested but find() doesn't return it.
+            scheduleRepo.find.mockResolvedValueOnce([ok1, withSubs, ok2]);
+
+            const result = await service.bulkDelete(['ok-1', 'subs', 'ok-2', 'gone']);
+
+            expect(scheduleRepo.remove).toHaveBeenCalledWith([ok1, ok2]);
+            expect(result.deleted).toEqual(['ok-1', 'ok-2']);
+            expect(result.skipped).toEqual([
+                { id: 'subs', reason: 'has_subscribers' },
+                { id: 'gone', reason: 'not_found' },
+            ]);
+        });
+
+        it('de-duplicates repeated ids so the report counts each once', async () => {
+            const ok1 = buildEntry({ id: 'ok-1', reminders: [] } as Partial<ScheduleEntry>);
+            scheduleRepo.find.mockResolvedValueOnce([ok1]);
+
+            const result = await service.bulkDelete(['ok-1', 'ok-1']);
+
+            expect(result.deleted).toEqual(['ok-1']);
+            expect(result.skipped).toEqual([]);
+        });
+
+        it('does not call remove when nothing is deletable', async () => {
+            const withSubs = buildEntry({ id: 'subs', reminders: [{ id: 'r' }] } as Partial<ScheduleEntry>);
+            scheduleRepo.find.mockResolvedValueOnce([withSubs]);
+
+            const result = await service.bulkDelete(['subs']);
+
+            expect(scheduleRepo.remove).not.toHaveBeenCalled();
+            expect(result.deleted).toEqual([]);
+            expect(result.skipped).toEqual([{ id: 'subs', reason: 'has_subscribers' }]);
+        });
+    });
+
+    describe('bulkCreate', () => {
+        const activeCoach = { id: 'c1', isActive: true, name: 'Мария', photoUrl: null };
+        const activeType = { id: 't1', isActive: true, name: 'Йога', difficulty: 'beginner' };
+        const entry = {
+            coachId: 'c1',
+            trainingTypeId: 't1',
+            startTime: new Date('2026-05-04T10:00:00Z'),
+            durationMinutes: 60,
+        };
+
+        beforeEach(() => {
+            coachRepo.find.mockResolvedValue([activeCoach]);
+            trainingTypeRepo.find.mockResolvedValue([activeType]);
+            // manager.save echoes back the rows it was given, assigning ids.
+            dataSource.transaction.mockImplementation(async (cb: (m: unknown) => Promise<unknown>) =>
+                cb({
+                    save: jest.fn(async (_entity: unknown, rows: ScheduleEntry[]) =>
+                        rows.map((r, i) => ({ ...r, id: `s${i + 1}` })),
+                    ),
+                }),
+            );
+        });
+
+        it('validates each entity in one query and maps every saved row to a response item', async () => {
+            const result = await service.bulkCreate({
+                entries: [entry, { ...entry, startTime: new Date('2026-05-06T10:00:00Z') }],
+            });
+
+            expect(result.created).toBe(2);
+            expect(result.items).toHaveLength(2);
+            expect(result.items[0].coach.name).toBe('Мария');
+            expect(result.items[0].trainingType.name).toBe('Йога');
+            // One query per entity (batched via In), not one per id.
+            expect(coachRepo.find).toHaveBeenCalledTimes(1);
+            expect(trainingTypeRepo.find).toHaveBeenCalledTimes(1);
+            // No post-save reload of the rows we just inserted.
+            expect(scheduleRepo.find).not.toHaveBeenCalled();
+        });
+
+        it('rejects an inactive coach without inserting anything', async () => {
+            coachRepo.find.mockResolvedValue([{ id: 'c1', isActive: false }]);
+            const managerSave = jest.fn();
+            dataSource.transaction.mockImplementation(async (cb: (m: unknown) => Promise<unknown>) =>
+                cb({ save: managerSave }),
+            );
+
+            await expect(service.bulkCreate({ entries: [entry] })).rejects.toBeInstanceOf(BadRequestException);
+            expect(managerSave).not.toHaveBeenCalled();
+        });
+
+        it('rejects when a referenced coach does not exist', async () => {
+            coachRepo.find.mockResolvedValue([]); // requested c1 not returned
+
+            await expect(service.bulkCreate({ entries: [entry] })).rejects.toBeInstanceOf(BadRequestException);
         });
     });
 });

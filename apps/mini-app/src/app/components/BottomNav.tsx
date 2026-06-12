@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Calendar, Home, User, Users } from 'lucide-react';
+// `User` понадобится снова, когда вернём вкладку «Профиль» (см. закомментированный пункт ниже).
+import { Calendar, Home, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 export type TabId = 'schedule' | 'coaches' | 'me' | 'club';
@@ -14,7 +15,9 @@ interface Tab {
 const tabs: Tab[] = [
     { id: 'schedule', path: '/', icon: Calendar, label: 'Расписание' },
     { id: 'coaches', path: '/coaches', icon: Users, label: 'Тренеры' },
-    { id: 'me', path: '/me', icon: User, label: 'Профиль' },
+    // Личный кабинет (привязка к Telegram) временно скрыт из нижнего меню — фича отложена.
+    // Код страницы /me и роут сохранены; чтобы вернуть вкладку, раскомментируйте строку ниже.
+    // { id: 'me', path: '/me', icon: User, label: 'Профиль' },
     { id: 'club', path: '/club', icon: Home, label: 'Клуб' },
 ];
 

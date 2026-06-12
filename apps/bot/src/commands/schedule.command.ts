@@ -12,10 +12,10 @@ async function getJson<T>(url: string): Promise<T> {
 
 /** HTTP-backed data source: the standalone bot reaches the API over the network. */
 function httpDataSource(): ScheduleDataSource {
+    const base = process.env['API_URL'];
     const apiUrl = (): string => {
-        const url = process.env['API_URL'];
-        if (!url) throw new Error('API_URL is not configured');
-        return url;
+        if (!base) throw new Error('API_URL is not configured');
+        return base;
     };
     return {
         getToday: () => getJson<IClassEntry[]>(`${apiUrl()}/api/schedule/today`),

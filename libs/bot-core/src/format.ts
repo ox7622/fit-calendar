@@ -1,3 +1,5 @@
+import { addDays, format } from 'date-fns';
+
 import type { IClassEntry } from './types';
 
 /** "12 июня 2026 г." style — full date for single-day headers. */
@@ -47,8 +49,5 @@ export function classLine(cls: IClassEntry): string {
 
 /** YYYY-MM-DD for tomorrow in local time. */
 export function tomorrowDateKey(): string {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const pad = (n: number): string => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    return format(addDays(new Date(), 1), 'yyyy-MM-dd');
 }

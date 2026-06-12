@@ -9,6 +9,8 @@ import { errorMiddleware } from '../middleware/error.middleware';
 
 // Mock grammy
 jest.mock('grammy', () => ({
+    // Keep the real (pure) InlineKeyboard builder; only stub the network-bound Bot.
+    ...jest.requireActual('grammy'),
     Bot: jest.fn().mockImplementation(() => ({
         command: jest.fn(),
         callbackQuery: jest.fn(),

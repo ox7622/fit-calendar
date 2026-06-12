@@ -1,5 +1,6 @@
 import { clampWeekOffset, MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 
 import { classLine, formatDateRu, formatDayHeader, tomorrowDateKey } from './format';
 import type { IClassEntry, ScheduleDataSource } from './types';
@@ -7,10 +8,8 @@ import { buildWeekMessage } from './week-message';
 
 const LOAD_ERROR = 'Не удалось загрузить расписание. Попробуйте позже.';
 
-function miniAppReplyMarkup(miniAppUrl?: string) {
-    return miniAppUrl
-        ? { inline_keyboard: [[{ text: MINI_APP_BUTTON_TEXT, web_app: { url: miniAppUrl } }]] }
-        : undefined;
+function miniAppKeyboard(miniAppUrl?: string): InlineKeyboard | undefined {
+    return miniAppUrl ? new InlineKeyboard().webApp(MINI_APP_BUTTON_TEXT, miniAppUrl) : undefined;
 }
 
 /**
@@ -18,7 +17,7 @@ function miniAppReplyMarkup(miniAppUrl?: string) {
  * driven by a ScheduleDataSource. Shared by the standalone and webhook bots.
  */
 export function registerScheduleCommands(bot: Bot<Context>, dataSource: ScheduleDataSource, miniAppUrl?: string): void {
-    const dayMarkup = miniAppReplyMarkup(miniAppUrl);
+    const dayMarkup = miniAppKeyboard(miniAppUrl);
 
     const replyForDay = async (
         ctx: Context,

@@ -1,4 +1,4 @@
-import { clampWeekOffset, MINI_APP_BUTTON_TEXT, WEEK_OFFSET_MAX, WEEK_OFFSET_MIN } from '@fitcalendar/shared';
+import { MINI_APP_BUTTON_TEXT, WEEK_OFFSET_MAX, WEEK_OFFSET_MIN } from '@fitcalendar/shared';
 import { InlineKeyboard } from 'grammy';
 
 import { classLine, formatDayHeader, formatWeekRange } from './format';
@@ -9,10 +9,12 @@ export interface WeekMessage {
     replyMarkup: InlineKeyboard;
 }
 
-/** Build the text + inline keyboard for one week of schedule. */
-export function buildWeekMessage(days: IWeekDay[], weekOffset: number, miniAppUrl?: string): WeekMessage {
-    const offset = clampWeekOffset(weekOffset);
-
+/**
+ * Build the text + inline keyboard for one week of schedule. `offset` is expected
+ * to be pre-clamped by the caller (the command/callback entry points); this is a
+ * pure formatter and does not re-validate it.
+ */
+export function buildWeekMessage(days: IWeekDay[], offset: number, miniAppUrl?: string): WeekMessage {
     const startISO = days[0]?.date ?? '';
     const endISO = days[days.length - 1]?.date ?? startISO;
     const header = `📅 Неделя ${formatWeekRange(startISO, endISO)}`;

@@ -119,6 +119,32 @@
         @apply bg-background text-foreground antialiased;
     }
 
+    /* Themed native dropdowns. `color-scheme` (set per theme above) already
+       drives the light/dark chrome of <select> popups and the datetime-local
+       picker; these rules recolor the option list to the app's popover palette
+       where the browser honours it (Chrome/Firefox on Windows/Linux). macOS
+       draws the <select> list natively and ignores these, so it falls back to
+       the color-scheme look there. */
+    select option,
+    select optgroup {
+        background-color: hsl(var(--popover));
+        color: hsl(var(--popover-foreground));
+    }
+
+    /* Recolor the datetime-local calendar icon to follow the theme instead of
+       the browser default (which leans too dark/light against our palette). */
+    input[type='date']::-webkit-calendar-picker-indicator,
+    input[type='time']::-webkit-calendar-picker-indicator,
+    input[type='datetime-local']::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    input[type='date']::-webkit-calendar-picker-indicator:hover,
+    input[type='time']::-webkit-calendar-picker-indicator:hover,
+    input[type='datetime-local']::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+    }
+
     /* Light theme card shadows */
     .light [data-slot='card'],
     .light .card,

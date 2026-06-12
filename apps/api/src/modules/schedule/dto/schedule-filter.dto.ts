@@ -1,11 +1,10 @@
 import { Transform } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class ScheduleFilterDto {
     @IsOptional()
     @IsString()
-    @IsIn(['beginner', 'intermediate', 'advanced'])
-    difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
+    difficultyLevel?: string;
 
     @IsOptional()
     @IsString()

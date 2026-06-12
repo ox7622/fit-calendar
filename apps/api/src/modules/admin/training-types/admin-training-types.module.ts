@@ -1,4 +1,4 @@
-import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { DifficultyLevel, ImpactType, ScheduleEntry, TrainingType } from '@fitcalendar/db';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -8,7 +8,7 @@ import { AdminTrainingTypesController } from './admin-training-types.controller'
 import { AdminTrainingTypesService } from './admin-training-types.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([TrainingType, ScheduleEntry]), AdminAuthModule],
+    imports: [TypeOrmModule.forFeature([TrainingType, ScheduleEntry, DifficultyLevel, ImpactType]), AdminAuthModule],
     controllers: [AdminTrainingTypesController],
     providers: [AdminTrainingTypesService],
     exports: [AdminTrainingTypesService],

@@ -2,8 +2,12 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 
 import { ScheduleEntry } from './schedule-entry.entity';
 
-export type TDifficulty = 'beginner' | 'intermediate' | 'advanced';
-export type TImpactType = 'cardio' | 'strength' | 'flexibility' | 'balance';
+// Difficulty / impact are now admin-managed (see the difficulty_levels /
+// impact_types tables). `training_types` stores their stable `key` strings;
+// these aliases stay for readability but are plain strings — the set is no
+// longer fixed.
+export type TDifficulty = string;
+export type TImpactType = string;
 
 @Entity('training_types')
 export class TrainingType {

@@ -1,7 +1,7 @@
-import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { DifficultyLevel, ImpactType, ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { AdminAuditService } from '../audit';
 import type { IAuditContext } from '../audit/audit-context';
@@ -19,6 +19,10 @@ export class AdminTrainingTypesService {
         private readonly typeRepo: Repository<TrainingType>,
         @InjectRepository(ScheduleEntry)
         private readonly scheduleRepo: Repository<ScheduleEntry>,
+        @InjectRepository(DifficultyLevel)
+        private readonly difficultyRepo: Repository<DifficultyLevel>,
+        @InjectRepository(ImpactType)
+        private readonly impactRepo: Repository<ImpactType>,
         private readonly auditService: AdminAuditService,
     ) {}
 
@@ -43,6 +47,7 @@ export class AdminTrainingTypesService {
     }
 
     async create(dto: CreateTrainingTypeDto): Promise<TrainingTypeDto> {
+        await this.assertValidTaxonomy(dto.difficulty, dto.impactTypes);
         const type = this.typeRepo.create({
             name: dto.name,
             description: dto.description ?? null,
@@ -59,6 +64,7 @@ export class AdminTrainingTypesService {
     async update(id: string, dto: UpdateTrainingTypeDto): Promise<TrainingTypeDto> {
         const type = await this.typeRepo.findOne({ where: { id } });
         if (!type) throw new NotFoundException(`TrainingType ${id} not found`);
+        await this.assertValidTaxonomy(dto.difficulty, dto.impactTypes);
         if (dto.name !== undefined) type.name = dto.name;
         if (dto.description !== undefined) type.description = dto.description;
         if (dto.difficulty !== undefined) type.difficulty = dto.difficulty;
@@ -67,6 +73,34 @@ export class AdminTrainingTypesService {
         if (dto.isActive !== undefined) type.isActive = dto.isActive;
         const saved = await this.typeRepo.save(type);
         return toTrainingTypeDto(saved);
+    }
+
+    /**
+     * Validate that the referenced taxonomy keys exist and are active. Replaces
+     * the old static `@IsIn` DTO check now that difficulty/impact are admin-managed.
+     * `undefined` (on update) means "unchanged" and is skipped.
+     */
+    private async assertValidTaxonomy(difficulty?: string, impactTypes?: string[]): Promise<void> {
+        // The two checks are independent — run them together.
+        const [level, foundImpacts] = await Promise.all([
+            difficulty !== undefined
+                ? this.difficultyRepo.findOne({ where: { key: difficulty, isActive: true } })
+                : null,
+            impactTypes !== undefined && impactTypes.length > 0
+                ? this.impactRepo.find({ where: { key: In(impactTypes), isActive: true } })
+                : [],
+        ]);
+
+        if (difficulty !== undefined && !level) {
+            throw new BadRequestException(`Уровень сложности «${difficulty}» не найден или неактивен`);
+        }
+        if (impactTypes !== undefined && impactTypes.length > 0) {
+            const foundKeys = new Set(foundImpacts.map((t) => t.key));
+            const missing = impactTypes.filter((k) => !foundKeys.has(k));
+            if (missing.length > 0) {
+                throw new BadRequestException(`Типы нагрузки не найдены или неактивны: ${missing.join(', ')}`);
+            }
+        }
     }
 
     /**

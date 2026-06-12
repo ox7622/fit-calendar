@@ -18,6 +18,7 @@ import { AdminAuthModule } from './modules/admin/auth';
 import { AdminClubModule } from './modules/admin/club';
 import { AdminCoachesModule } from './modules/admin/coaches';
 import { AdminScheduleModule } from './modules/admin/schedule';
+import { TaxonomyModule } from './modules/admin/taxonomy';
 import { AdminTrainingTypesModule } from './modules/admin/training-types';
 import { AdminUsersModule } from './modules/admin/users';
 import { BotModule } from './modules/bot';
@@ -122,6 +123,11 @@ import { AppService } from './services/app.service';
          * Admin Training Types Module (Story 6.6)
          */
         AdminTrainingTypesModule,
+        /**
+         * Taxonomy Module — admin CRUD for difficulty levels & impact types,
+         * plus the public `/taxonomy` read for the mini-app.
+         */
+        TaxonomyModule,
         /**
          * Admin Club Module (Story 6.7)
          */

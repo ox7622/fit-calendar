@@ -1,18 +1,14 @@
-import type { TDifficulty, TImpactType } from '@fitcalendar/db';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     ArrayMaxSize,
     ArrayMinSize,
     IsArray,
     IsBoolean,
-    IsIn,
     IsOptional,
     IsString,
     MaxLength,
     MinLength,
 } from 'class-validator';
-
-import { DIFFICULTY_LEVELS, IMPACT_TYPES } from '../training-types.constants';
 
 export class CreateTrainingTypeDto {
     @ApiProperty({ minLength: 2, maxLength: 255 })
@@ -27,15 +23,18 @@ export class CreateTrainingTypeDto {
     @MaxLength(2000)
     description?: string;
 
-    @ApiProperty({ enum: DIFFICULTY_LEVELS })
-    @IsIn(DIFFICULTY_LEVELS)
-    difficulty: TDifficulty;
+    // `difficulty` / `impactTypes` are taxonomy keys. Shape is validated here;
+    // existence + active-state is checked against the DB in the service, so
+    // admin-defined values (not a fixed enum) are accepted.
+    @ApiProperty({ description: 'Difficulty level key' })
+    @IsString()
+    difficulty: string;
 
-    @ApiProperty({ enum: IMPACT_TYPES, isArray: true, minItems: 1 })
+    @ApiProperty({ type: [String], minItems: 1, description: 'Impact type keys' })
     @IsArray()
     @ArrayMinSize(1)
-    @IsIn(IMPACT_TYPES, { each: true })
-    impactTypes: TImpactType[];
+    @IsString({ each: true })
+    impactTypes: string[];
 
     @ApiProperty({ type: [String], maxItems: 30 })
     @IsArray()

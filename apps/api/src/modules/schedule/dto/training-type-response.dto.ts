@@ -10,8 +10,8 @@ export class TrainingTypeResponseDto {
     @ApiProperty({ description: 'Training type description', nullable: true })
     description: string | null;
 
-    @ApiProperty({ description: 'Difficulty level', enum: ['beginner', 'intermediate', 'advanced'] })
-    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    @ApiProperty({ description: 'Difficulty level key' })
+    difficulty: string;
 
     @ApiProperty({ description: 'Impact types', type: [String] })
     impactTypes: string[];

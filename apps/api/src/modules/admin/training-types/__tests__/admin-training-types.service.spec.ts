@@ -1,5 +1,5 @@
-import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { DifficultyLevel, ImpactType, ScheduleEntry, TrainingType } from '@fitcalendar/db';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -33,6 +33,8 @@ describe('AdminTrainingTypesService', () => {
         remove: jest.Mock;
     };
     let scheduleRepo: { count: jest.Mock };
+    let difficultyRepo: { findOne: jest.Mock };
+    let impactRepo: { find: jest.Mock };
 
     beforeEach(async () => {
         mockAuditService.record.mockClear();
@@ -44,12 +46,29 @@ describe('AdminTrainingTypesService', () => {
             remove: jest.fn(async (entity) => entity as TrainingType),
         };
         scheduleRepo = { count: jest.fn().mockResolvedValue(0) };
+        // Defaults: every referenced taxonomy key resolves as active. Tests that
+        // exercise the rejection path override these.
+        difficultyRepo = { findOne: jest.fn().mockResolvedValue({ id: 'd', key: 'intermediate', isActive: true }) };
+        // Default: all standard keys resolve as active, so any valid set passes;
+        // rejection-path tests override with mockResolvedValueOnce.
+        impactRepo = {
+            find: jest
+                .fn()
+                .mockResolvedValue([
+                    { key: 'cardio' },
+                    { key: 'strength' },
+                    { key: 'flexibility' },
+                    { key: 'balance' },
+                ]),
+        };
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 AdminTrainingTypesService,
                 { provide: getRepositoryToken(TrainingType), useValue: typeRepo },
                 { provide: getRepositoryToken(ScheduleEntry), useValue: scheduleRepo },
+                { provide: getRepositoryToken(DifficultyLevel), useValue: difficultyRepo },
+                { provide: getRepositoryToken(ImpactType), useValue: impactRepo },
                 { provide: AdminAuditService, useValue: mockAuditService },
             ],
         }).compile();
@@ -103,6 +122,35 @@ describe('AdminTrainingTypesService', () => {
                 description: null,
             }),
         );
+    });
+
+    it('create rejects an unknown/inactive difficulty key (400)', async () => {
+        difficultyRepo.findOne.mockResolvedValueOnce(null);
+
+        await expect(
+            service.create({
+                name: 'Пилатес',
+                difficulty: 'ghost',
+                impactTypes: ['flexibility'],
+                equipment: [],
+            }),
+        ).rejects.toThrow(BadRequestException);
+        expect(typeRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('create rejects when an impact key is unknown/inactive (400)', async () => {
+        // Only one of the two requested keys comes back as active.
+        impactRepo.find.mockResolvedValueOnce([{ key: 'flexibility' }]);
+
+        await expect(
+            service.create({
+                name: 'Пилатес',
+                difficulty: 'intermediate',
+                impactTypes: ['flexibility', 'ghost'],
+                equipment: [],
+            }),
+        ).rejects.toThrow(BadRequestException);
+        expect(typeRepo.save).not.toHaveBeenCalled();
     });
 
     it('update throws 404 when type missing', async () => {

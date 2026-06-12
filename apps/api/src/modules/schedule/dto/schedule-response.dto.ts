@@ -31,8 +31,8 @@ export class ClassResponseDto {
     @ApiProperty({ description: 'Coach photo URL', nullable: true })
     coachPhotoUrl: string | null;
 
-    @ApiProperty({ description: 'Difficulty level', enum: ['beginner', 'intermediate', 'advanced'] })
-    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    @ApiProperty({ description: 'Difficulty level key' })
+    difficulty: string;
 
     @ApiProperty({ description: 'Impact types (e.g. cardio, strength)', type: [String] })
     impactTypes: string[];

@@ -1,14 +1,12 @@
-import { TDifficulty, TImpactType, TrainingType } from '@fitcalendar/db';
+import { TrainingType } from '@fitcalendar/db';
 import { ApiProperty } from '@nestjs/swagger';
-
-import { DIFFICULTY_LEVELS, IMPACT_TYPES } from '../training-types.constants';
 
 export class TrainingTypeDto {
     @ApiProperty() id: string;
     @ApiProperty() name: string;
     @ApiProperty({ nullable: true, type: String }) description: string | null;
-    @ApiProperty({ enum: DIFFICULTY_LEVELS }) difficulty: TDifficulty;
-    @ApiProperty({ type: [String], enum: IMPACT_TYPES }) impactTypes: TImpactType[];
+    @ApiProperty({ description: 'Difficulty level key' }) difficulty: string;
+    @ApiProperty({ type: [String], description: 'Impact type keys' }) impactTypes: string[];
     @ApiProperty({ type: [String] }) equipment: string[];
     @ApiProperty() isActive: boolean;
     @ApiProperty() createdAt: Date;

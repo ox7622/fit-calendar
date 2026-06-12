@@ -19,7 +19,9 @@ export type TAdminAuditAction =
     | 'delete_coach'
     | 'delete_training_type'
     | 'delete_guest_visit'
-    | 'delete_freeze_event';
+    | 'delete_freeze_event'
+    | 'delete_difficulty_level'
+    | 'delete_impact_type';
 
 @Entity('admin_audit_log')
 @Index('idx_admin_audit_admin_created', ['adminUserId', 'createdAt'])

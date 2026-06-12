@@ -1,7 +1,19 @@
 import { Transform } from 'class-transformer';
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class ScheduleFilterDto {
+    /**
+     * Week to fetch relative to the current week (0 = current), used by GET /schedule/week.
+     * Coerced to an integer; unparseable values fall back to 0. The service clamps the range.
+     */
+    @IsOptional()
+    @Transform(({ value }: { value: unknown }) => {
+        const parsed = Number.parseInt(String(value), 10);
+        return Number.isNaN(parsed) ? 0 : parsed;
+    })
+    @IsInt()
+    weekOffset?: number;
+
     @IsOptional()
     @IsString()
     difficultyLevel?: string;

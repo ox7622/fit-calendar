@@ -84,12 +84,8 @@ export class ScheduleController {
         description: 'Week to fetch relative to the current week (0 = current). Clamped to [-4, 8].',
     })
     @ApiResponse({ status: 200, description: 'Weekly schedule', type: WeekScheduleDto })
-    async getWeek(
-        @Query() filter: ScheduleFilterDto,
-        @Query('weekOffset') weekOffset?: string,
-    ): Promise<WeekScheduleDto> {
-        const offset = weekOffset === undefined ? 0 : Number.parseInt(weekOffset, 10);
-        return this.scheduleService.getWeek(filter, offset);
+    async getWeek(@Query() filter: ScheduleFilterDto): Promise<WeekScheduleDto> {
+        return this.scheduleService.getWeek(filter, filter.weekOffset ?? 0);
     }
 
     @Get(':id')

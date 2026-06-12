@@ -368,6 +368,33 @@ describe('ScheduleService', () => {
         });
     });
 
+    describe('getWeek weekOffset', () => {
+        it('defaults to the current week (offset 0) and returns 7 days', async () => {
+            mockScheduleRepository.find.mockResolvedValue([]);
+            const result = await service.getWeek();
+            expect(result.days).toHaveLength(7);
+            const first = new Date(`${result.days[0].date}T00:00:00`);
+            const today = new Date();
+            expect(first.getDate()).toBe(today.getDate());
+        });
+
+        it('shifts the anchor by 7 days per offset', async () => {
+            mockScheduleRepository.find.mockResolvedValue([]);
+            const week0 = await service.getWeek({}, 0);
+            const week1 = await service.getWeek({}, 1);
+            const start0 = new Date(`${week0.days[0].date}T00:00:00`).getTime();
+            const start1 = new Date(`${week1.days[0].date}T00:00:00`).getTime();
+            expect(Math.round((start1 - start0) / 86_400_000)).toBe(7);
+        });
+
+        it('clamps an out-of-range offset', async () => {
+            mockScheduleRepository.find.mockResolvedValue([]);
+            const wayAhead = await service.getWeek({}, 999);
+            const maxWeek = await service.getWeek({}, 8);
+            expect(wayAhead.days[0].date).toBe(maxWeek.days[0].date);
+        });
+    });
+
     describe('static metadata helpers', () => {
         it('getDifficultyLevels returns the three known levels in order', () => {
             const levels = service.getDifficultyLevels();

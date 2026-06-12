@@ -1,5 +1,5 @@
 import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { DIFFICULTY_LEVEL_LABELS, type TDifficultyLevel } from '@fitcalendar/shared';
+import { clampWeekOffset, DIFFICULTY_LEVEL_LABELS, type TDifficultyLevel } from '@fitcalendar/shared';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, format, startOfDay } from 'date-fns';
@@ -87,19 +87,21 @@ export class ScheduleService {
     }
 
     /**
-     * Get weekly schedule: 7 days from today (inclusive)
+     * Get weekly schedule: 7 days from an anchor week (weekOffset 0 = current week).
+     * The offset is clamped to the navigable range before anchoring.
      */
-    async getWeek(filter: ScheduleFilterDto = {}): Promise<WeekScheduleDto> {
-        this.logger.log('Fetching week schedule');
-        const today = startOfDay(new Date());
-        const endOfWeek = startOfDay(addDays(today, 7));
+    async getWeek(filter: ScheduleFilterDto = {}, weekOffset = 0): Promise<WeekScheduleDto> {
+        const offset = clampWeekOffset(weekOffset);
+        this.logger.log(`Fetching week schedule (offset ${offset})`);
+        const anchor = startOfDay(addDays(new Date(), 7 * offset));
+        const endOfWeek = startOfDay(addDays(anchor, 7));
 
-        const entries = await this.queryEntries(today, endOfWeek, filter);
+        const entries = await this.queryEntries(anchor, endOfWeek, filter);
 
         // Generate 7 days
         const days: DayScheduleDto[] = [];
         for (let i = 0; i < 7; i++) {
-            const dayDate = addDays(today, i);
+            const dayDate = addDays(anchor, i);
             const dateStr = format(dayDate, 'yyyy-MM-dd');
 
             const dayClasses = entries

@@ -1,17 +1,12 @@
 import { clampWeekOffset, MINI_APP_BUTTON_TEXT, WEEK_OFFSET_MAX, WEEK_OFFSET_MIN } from '@fitcalendar/shared';
+import { InlineKeyboard } from 'grammy';
 
 import { classLine, formatDayHeader, formatWeekRange } from './format';
 import type { IWeekDay } from './types';
 
-interface InlineButton {
-    text: string;
-    callback_data?: string;
-    web_app?: { url: string };
-}
-
 export interface WeekMessage {
     text: string;
-    replyMarkup: { inline_keyboard: InlineButton[][] };
+    replyMarkup: InlineKeyboard;
 }
 
 /** Build the text + inline keyboard for one week of schedule. */
@@ -27,13 +22,20 @@ export function buildWeekMessage(days: IWeekDay[], weekOffset: number, miniAppUr
         .map((day) => `— ${formatDayHeader(day.date)} —\n${day.classes.map(classLine).join('\n')}`);
     const body = blocks.length > 0 ? blocks.join('\n\n') : 'На этой неделе занятий нет 😴';
 
-    const navRow: InlineButton[] = [];
-    if (offset > WEEK_OFFSET_MIN) navRow.push({ text: '◀ Пред.', callback_data: `week:${offset - 1}` });
-    if (offset < WEEK_OFFSET_MAX) navRow.push({ text: 'След. ▶', callback_data: `week:${offset + 1}` });
+    const keyboard = new InlineKeyboard();
+    let hasNav = false;
+    if (offset > WEEK_OFFSET_MIN) {
+        keyboard.text('◀ Пред.', `week:${offset - 1}`);
+        hasNav = true;
+    }
+    if (offset < WEEK_OFFSET_MAX) {
+        keyboard.text('След. ▶', `week:${offset + 1}`);
+        hasNav = true;
+    }
+    if (miniAppUrl) {
+        if (hasNav) keyboard.row();
+        keyboard.webApp(MINI_APP_BUTTON_TEXT, miniAppUrl);
+    }
 
-    const rows: InlineButton[][] = [];
-    if (navRow.length > 0) rows.push(navRow);
-    if (miniAppUrl) rows.push([{ text: MINI_APP_BUTTON_TEXT, web_app: { url: miniAppUrl } }]);
-
-    return { text: `${header}\n\n${body}`, replyMarkup: { inline_keyboard: rows } };
+    return { text: `${header}\n\n${body}`, replyMarkup: keyboard };
 }

@@ -74,7 +74,7 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
     });
 
     bot.callbackQuery(/^week:(-?\d+)$/, async (ctx) => {
-        const target = clampWeekOffset(Number.parseInt(ctx.match[1], 10));
+        const target = clampWeekOffset(Number.parseInt(ctx.match[1] ?? '', 10));
         let message;
         try {
             const days = await dataSource.getWeek(target);

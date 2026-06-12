@@ -1,31 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import { adminTrainingTypesApi, type IAdminTrainingType, type TDifficulty } from '@/shared/api';
-import { ImpactTypeBadge } from '@/shared/components/ImpactTypeBadge';
-import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
+import {
+    adminDifficultyLevelsApi,
+    adminImpactTypesApi,
+    adminTrainingTypesApi,
+    type IAdminTrainingType,
+    type ITaxonomyItem,
+} from '@/shared/api';
+import { TaxonomyBadge } from '@/shared/components/TaxonomyBadge';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const DIFFICULTY_LABEL: Record<TDifficulty, string> = DIFFICULTY_LEVEL_LABELS;
-
-const DIFFICULTY_COLOR: Record<TDifficulty, string> = {
-    beginner: 'bg-green-500/15 text-green-500',
-    intermediate: 'bg-yellow-500/15 text-yellow-500',
-    advanced: 'bg-red-500/15 text-red-500',
-};
+function toMap(items: ITaxonomyItem[]): Record<string, ITaxonomyItem> {
+    return Object.fromEntries(items.map((item) => [item.key, item]));
+}
 
 export function TrainingTypesListPage() {
     const [types, setTypes] = useState<IAdminTrainingType[]>([]);
+    const [difficultyItems, setDifficultyItems] = useState<ITaxonomyItem[]>([]);
+    const [impactItems, setImpactItems] = useState<ITaxonomyItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
-        adminTrainingTypesApi
-            .list()
-            .then((data) => {
+        Promise.all([adminTrainingTypesApi.list(), adminDifficultyLevelsApi.list(), adminImpactTypesApi.list()])
+            .then(([typeRows, difficulty, impact]) => {
                 if (cancelled) return;
-                setTypes(data);
+                setTypes(typeRows);
+                setDifficultyItems(difficulty);
+                setImpactItems(impact);
                 setLoading(false);
             })
             .catch(() => {
@@ -37,6 +41,9 @@ export function TrainingTypesListPage() {
             cancelled = true;
         };
     }, []);
+
+    const difficultyMap = useMemo(() => toMap(difficultyItems), [difficultyItems]);
+    const impactMap = useMemo(() => toMap(impactItems), [impactItems]);
 
     return (
         <div className="space-y-4 p-6">
@@ -68,40 +75,52 @@ export function TrainingTypesListPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {types.map((type) => (
-                            <tr key={type.id} className="border-b border-border hover:bg-muted/20">
-                                <td className="p-2">
-                                    <Link to={`/training-types/${type.id}`} className="text-body hover:text-primary">
-                                        {type.name}
-                                    </Link>
-                                </td>
-                                <td className="p-2">
-                                    <span
-                                        className={`rounded px-2 py-0.5 text-xs ${DIFFICULTY_COLOR[type.difficulty]}`}
-                                    >
-                                        {DIFFICULTY_LABEL[type.difficulty]}
-                                    </span>
-                                </td>
-                                <td className="p-2">
-                                    <div className="flex flex-wrap gap-1">
-                                        {type.impactTypes.map((it) => (
-                                            <ImpactTypeBadge key={it} type={it} />
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="p-2">
-                                    {type.isActive ? (
-                                        <span className="rounded bg-primary/15 px-2 py-0.5 text-xs text-primary">
-                                            Активен
-                                        </span>
-                                    ) : (
-                                        <span className="rounded bg-muted px-2 py-0.5 text-xs text-body-secondary">
-                                            Скрыт
-                                        </span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                        {types.map((type) => {
+                            const difficulty = difficultyMap[type.difficulty];
+                            return (
+                                <tr key={type.id} className="border-b border-border hover:bg-muted/20">
+                                    <td className="p-2">
+                                        <Link
+                                            to={`/training-types/${type.id}`}
+                                            className="text-body hover:text-primary"
+                                        >
+                                            {type.name}
+                                        </Link>
+                                    </td>
+                                    <td className="p-2">
+                                        <TaxonomyBadge
+                                            label={difficulty?.label ?? type.difficulty}
+                                            color={difficulty?.color ?? 'slate'}
+                                        />
+                                    </td>
+                                    <td className="p-2">
+                                        <div className="flex flex-wrap gap-1">
+                                            {type.impactTypes.map((key) => {
+                                                const impact = impactMap[key];
+                                                return (
+                                                    <TaxonomyBadge
+                                                        key={key}
+                                                        label={impact?.label ?? key}
+                                                        color={impact?.color ?? 'slate'}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </td>
+                                    <td className="p-2">
+                                        {type.isActive ? (
+                                            <span className="rounded bg-primary/15 px-2 py-0.5 text-xs text-primary">
+                                                Активен
+                                            </span>
+                                        ) : (
+                                            <span className="rounded bg-muted px-2 py-0.5 text-xs text-body-secondary">
+                                                Скрыт
+                                            </span>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             )}

@@ -1,15 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
-import { DIFFICULTY_LEVELS, IMPACT_TYPES, type TDifficulty, type TImpactType } from '@/shared/api';
+import { adminDifficultyLevelsApi, adminImpactTypesApi, type ITaxonomyItem } from '@/shared/api';
 import { ChipInput } from '@/shared/components/ChipInput';
-import { ImpactTypeBadge } from '@/shared/components/ImpactTypeBadge';
-import { DIFFICULTY_LEVEL_LABELS } from '@fitcalendar/shared';
+import { TaxonomyBadge } from '@/shared/components/TaxonomyBadge';
 
 export interface ITrainingTypeFormValues {
     name: string;
     description: string;
-    difficulty: TDifficulty;
-    impactTypes: TImpactType[];
+    difficulty: string;
+    impactTypes: string[];
     equipment: string[];
     isActive: boolean;
 }
@@ -24,25 +23,67 @@ interface ITrainingTypeFormProps {
 const EMPTY_VALUES: ITrainingTypeFormValues = {
     name: '',
     description: '',
-    difficulty: 'beginner',
+    difficulty: '',
     impactTypes: [],
     equipment: [],
     isActive: true,
 };
 
-const DIFFICULTY_LABELS: Record<TDifficulty, string> = DIFFICULTY_LEVEL_LABELS;
+/** Active items, plus any already-selected-but-now-inactive ones so editing an
+ *  existing type never silently drops a value the admin can't see. */
+function withSelected(items: ITaxonomyItem[], selectedKeys: string[]): ITaxonomyItem[] {
+    return items.filter((item) => item.isActive || selectedKeys.includes(item.key));
+}
 
 export function TrainingTypeForm({ initial, submitLabel, onSubmit, onCancel }: ITrainingTypeFormProps) {
     const [values, setValues] = useState<ITrainingTypeFormValues>({ ...EMPTY_VALUES, ...initial });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const toggleImpact = (type: TImpactType): void => {
+    const [difficultyItems, setDifficultyItems] = useState<ITaxonomyItem[]>([]);
+    const [impactItems, setImpactItems] = useState<ITaxonomyItem[]>([]);
+    const [taxonomyLoading, setTaxonomyLoading] = useState(true);
+    const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        Promise.all([adminDifficultyLevelsApi.list(), adminImpactTypesApi.list()])
+            .then(([difficulty, impact]) => {
+                if (cancelled) return;
+                setDifficultyItems(difficulty);
+                setImpactItems(impact);
+                // Creating (no preset difficulty): default to the first active level.
+                setValues((v) => {
+                    if (v.difficulty) return v;
+                    const firstActive = difficulty.find((d) => d.isActive);
+                    return firstActive ? { ...v, difficulty: firstActive.key } : v;
+                });
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setTaxonomyError('Не удалось загрузить уровни сложности и типы нагрузки');
+            })
+            .finally(() => {
+                if (!cancelled) setTaxonomyLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const difficultyChoices = useMemo(
+        () => withSelected(difficultyItems, [values.difficulty]),
+        [difficultyItems, values.difficulty],
+    );
+    const impactChoices = useMemo(
+        () => withSelected(impactItems, values.impactTypes),
+        [impactItems, values.impactTypes],
+    );
+
+    const toggleImpact = (key: string): void => {
         setValues((v) => ({
             ...v,
-            impactTypes: v.impactTypes.includes(type)
-                ? v.impactTypes.filter((t) => t !== type)
-                : [...v.impactTypes, type],
+            impactTypes: v.impactTypes.includes(key) ? v.impactTypes.filter((t) => t !== key) : [...v.impactTypes, key],
         }));
     };
 
@@ -51,6 +92,10 @@ export function TrainingTypeForm({ initial, submitLabel, onSubmit, onCancel }: I
         setError(null);
         if (values.name.trim().length < 2) {
             setError('Название обязательно (минимум 2 символа)');
+            return;
+        }
+        if (!values.difficulty) {
+            setError('Выберите уровень сложности');
             return;
         }
         if (values.impactTypes.length === 0) {
@@ -103,51 +148,75 @@ export function TrainingTypeForm({ initial, submitLabel, onSubmit, onCancel }: I
                 />
             </div>
 
+            {taxonomyError && <p className="text-destructive">{taxonomyError}</p>}
+
             <div>
-                <label className="text-body mb-1 block">Уровень сложности</label>
-                <div className="inline-flex rounded border border-border bg-surface p-1">
-                    {DIFFICULTY_LEVELS.map((level) => (
-                        <button
-                            key={level}
-                            type="button"
-                            onClick={() => setValues((v) => ({ ...v, difficulty: level }))}
-                            disabled={submitting}
-                            className={`rounded px-3 py-1 text-sm transition-colors ${
-                                values.difficulty === level
-                                    ? 'bg-primary text-white'
-                                    : 'text-body-secondary hover:bg-muted/40'
-                            }`}
-                        >
-                            {DIFFICULTY_LABELS[level]}
-                        </button>
-                    ))}
-                </div>
+                <label className="text-body mb-1 block">
+                    Уровень сложности <span className="text-destructive">*</span>
+                </label>
+                {taxonomyLoading ? (
+                    <p className="text-body-secondary">Загрузка...</p>
+                ) : difficultyChoices.length === 0 ? (
+                    <p className="text-body-secondary">
+                        Нет уровней сложности — добавьте их на странице «Сложность и нагрузка».
+                    </p>
+                ) : (
+                    <div className="inline-flex flex-wrap gap-1 rounded border border-border bg-surface p-1">
+                        {difficultyChoices.map((level) => (
+                            <button
+                                key={level.key}
+                                type="button"
+                                onClick={() => setValues((v) => ({ ...v, difficulty: level.key }))}
+                                disabled={submitting}
+                                className={`rounded px-3 py-1 text-sm transition-colors ${
+                                    values.difficulty === level.key
+                                        ? 'bg-primary text-white'
+                                        : 'text-body-secondary hover:bg-muted/40'
+                                }`}
+                            >
+                                {level.label}
+                                {!level.isActive && ' (скрыт)'}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div>
                 <label className="text-body mb-1 block">
                     Типы нагрузки <span className="text-destructive">*</span>
                 </label>
-                <div className="flex flex-wrap gap-2">
-                    {IMPACT_TYPES.map((type) => {
-                        const selected = values.impactTypes.includes(type);
-                        return (
-                            <button
-                                key={type}
-                                type="button"
-                                onClick={() => toggleImpact(type)}
-                                disabled={submitting}
-                                className={`rounded border px-2 py-1 transition-opacity ${
-                                    selected
-                                        ? 'border-primary bg-primary/10'
-                                        : 'border-border opacity-60 hover:opacity-100'
-                                }`}
-                            >
-                                <ImpactTypeBadge type={type} size="md" />
-                            </button>
-                        );
-                    })}
-                </div>
+                {taxonomyLoading ? (
+                    <p className="text-body-secondary">Загрузка...</p>
+                ) : impactChoices.length === 0 ? (
+                    <p className="text-body-secondary">
+                        Нет типов нагрузки — добавьте их на странице «Сложность и нагрузка».
+                    </p>
+                ) : (
+                    <div className="flex flex-wrap gap-2">
+                        {impactChoices.map((type) => {
+                            const selected = values.impactTypes.includes(type.key);
+                            return (
+                                <button
+                                    key={type.key}
+                                    type="button"
+                                    onClick={() => toggleImpact(type.key)}
+                                    disabled={submitting}
+                                    className={`rounded border px-2 py-1 transition-opacity ${
+                                        selected
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border opacity-60 hover:opacity-100'
+                                    }`}
+                                >
+                                    <TaxonomyBadge
+                                        label={`${type.label}${type.isActive ? '' : ' (скрыт)'}`}
+                                        color={type.color}
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             <div>

@@ -14,6 +14,7 @@ export { CoachEditPage } from './CoachEditPage';
 export { TrainingTypesListPage } from './TrainingTypesListPage';
 export { TrainingTypeNewPage } from './TrainingTypeNewPage';
 export { TrainingTypeEditPage } from './TrainingTypeEditPage';
+export { TaxonomyPage } from './TaxonomyPage';
 export { ClubInfoPage } from './ClubInfoPage';
 export { AdminsListPage } from './AdminsListPage';
 export { AdminInvitePage } from './AdminInvitePage';

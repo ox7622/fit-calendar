@@ -1,23 +1,15 @@
-import { IMPACT_TYPES as SHARED_IMPACT_TYPES, type TImpactType as TSharedImpactType } from '@fitcalendar/shared';
-
 import { adminApiClient } from './client';
 
-export type TDifficulty = 'beginner' | 'intermediate' | 'advanced';
-export type TImpactType = TSharedImpactType;
-
-export const DIFFICULTY_LEVELS: TDifficulty[] = ['beginner', 'intermediate', 'advanced'];
-// Re-exported as a mutable array for consumers that expect `TImpactType[]`
-// (admin form code does `IMPACT_TYPES.map(...)`). The `as const` tuple from
-// `@fitcalendar/shared` is read-only and would force `.map((t) => ...)` to
-// widen, so we copy into a plain array here.
-export const IMPACT_TYPES: TImpactType[] = [...SHARED_IMPACT_TYPES];
+// `difficulty` / `impactTypes` hold taxonomy *keys* (admin-defined, not a fixed
+// enum) — see the taxonomy module. Consumers resolve key → label/colour via
+// `adminDifficultyLevelsApi` / `adminImpactTypesApi`.
 
 export interface IAdminTrainingType {
     id: string;
     name: string;
     description: string | null;
-    difficulty: TDifficulty;
-    impactTypes: TImpactType[];
+    difficulty: string;
+    impactTypes: string[];
     equipment: string[];
     isActive: boolean;
     createdAt: string;
@@ -32,8 +24,8 @@ export interface ITrainingTypeOption {
 export interface ITrainingTypeFormPayload {
     name: string;
     description?: string;
-    difficulty: TDifficulty;
-    impactTypes: TImpactType[];
+    difficulty: string;
+    impactTypes: string[];
     equipment: string[];
     isActive?: boolean;
 }

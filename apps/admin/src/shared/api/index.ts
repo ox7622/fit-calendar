@@ -22,7 +22,7 @@ export type {
 } from './customers.api';
 export { adminCoachesApi } from './coaches.api';
 export type { IAdminCoach, ICoachOption, ICoachFormPayload, IPhotoUploadResponse } from './coaches.api';
-export { adminTrainingTypesApi, DIFFICULTY_LEVELS, IMPACT_TYPES } from './training-types.api';
+export { adminTrainingTypesApi } from './training-types.api';
 export { adminClubApi } from './club.api';
 export { adminMembershipsApi, isActiveExistsError } from './memberships.api';
 export type {
@@ -41,13 +41,14 @@ export type {
     TDayKey,
     TWorkingHours,
 } from './club.api';
+export type { IAdminTrainingType, ITrainingTypeOption, ITrainingTypeFormPayload } from './training-types.api';
+export { adminDifficultyLevelsApi, adminImpactTypesApi } from './taxonomy.api';
 export type {
-    IAdminTrainingType,
-    ITrainingTypeOption,
-    ITrainingTypeFormPayload,
-    TDifficulty,
-    TImpactType,
-} from './training-types.api';
+    ITaxonomyItem,
+    ITaxonomyCreatePayload,
+    TTaxonomyUpdatePayload,
+    TTaxonomyMoveDirection,
+} from './taxonomy.api';
 export { adminScheduleApi, ALLOWED_DURATIONS } from './schedule.api';
 export type {
     IAdminScheduleItem,

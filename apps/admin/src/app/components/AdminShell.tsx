@@ -27,6 +27,7 @@ const NAV_ITEMS: Array<{ to: string; label: string }> = [
     { to: '/plans', label: 'Абонементы' },
     { to: '/coaches', label: 'Тренеры' },
     { to: '/training-types', label: 'Типы' },
+    { to: '/taxonomy', label: 'Сложность и нагрузка' },
     { to: '/club', label: 'Клуб' },
     { to: '/admins', label: 'Админы' },
 ];

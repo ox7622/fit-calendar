@@ -40,7 +40,8 @@ export function ChipInput({ values, onChange, placeholder, maxItems = 20, disabl
             commit();
         }
         if (e.key === 'Backspace' && draft === '' && values.length > 0) {
-            remove(values[values.length - 1]);
+            const last = values[values.length - 1];
+            if (last !== undefined) remove(last);
         }
     };
 

@@ -13,7 +13,7 @@ interface IPlanFormProps {
     onCancel?: () => void;
 }
 
-interface IIPlanFormState {
+interface IPlanFormState {
     name: string;
     durationValue: string;
     durationUnit: TDurationUnit;
@@ -24,7 +24,7 @@ interface IIPlanFormState {
     isActive: boolean;
 }
 
-function toState(values?: Partial<IPlanFormPayload>): IIPlanFormState {
+function toState(values?: Partial<IPlanFormPayload>): IPlanFormState {
     return {
         name: values?.name ?? '',
         durationValue: values?.durationValue?.toString() ?? '1',
@@ -74,7 +74,8 @@ export function PlanForm({ initialValues, submitLabel, onSubmit, onCancel }: IPl
             e.preventDefault();
             addChip();
         } else if (e.key === 'Backspace' && !chipDraft && state.features.length > 0) {
-            removeChip(state.features[state.features.length - 1]);
+            const last = state.features[state.features.length - 1];
+            if (last !== undefined) removeChip(last);
         }
     };
 

@@ -67,8 +67,10 @@ export function SchedulePage(): JSX.Element {
         return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
     }, [selectedDate]);
 
-    // Shift the rail by whole weeks, keeping the same weekday.
-    const goToWeek = (deltaWeeks: number): void => setSelectedDate((d) => addDays(d, deltaWeeks * 7));
+    // Step to the start (Monday) of the previous/next week, so e.g. Sunday → next
+    // Monday rather than landing on Sunday of the following week.
+    const goToWeek = (deltaWeeks: number): void =>
+        setSelectedDate((d) => startOfWeek(addDays(d, deltaWeeks * 7), { weekStartsOn: 1 }));
     const isCurrentWeek = isSameWeek(selectedDate, today, { weekStartsOn: 1 });
 
     const [classes, setClasses] = useState<ScheduleClass[]>([]);

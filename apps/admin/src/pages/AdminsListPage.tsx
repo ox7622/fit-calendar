@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { adminUsersApi, type IAdminUserListItem, type IIssuedTokenResponse } from '@/shared/api';
+import { adminUsersApi, ApiError, type IAdminUserListItem, type IIssuedTokenResponse } from '@/shared/api';
 import { IssuedTokenLinkCard } from '@/shared/components/IssuedTokenLinkCard';
-import { KeyRound, Plus } from 'lucide-react';
+import { useAdminStore } from '@/shared/stores/adminStore';
+import { KeyRound, Plus, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type TIssuedLink = IIssuedTokenResponse & { forLogin: string };
@@ -12,7 +13,9 @@ export function AdminsListPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [resettingId, setResettingId] = useState<string | null>(null);
+    const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
     const [issuedLink, setIssuedLink] = useState<TIssuedLink | null>(null);
+    const currentAdminId = useAdminStore((s) => s.admin?.id);
 
     const refresh = useCallback(async (signal: { cancelled: boolean }) => {
         setLoading(true);
@@ -52,6 +55,26 @@ export function AdminsListPage() {
         }
     };
 
+    const onDeactivate = async (admin: IAdminUserListItem) => {
+        if (deactivatingId) return;
+        const ok = window.confirm(`Отключить администратора ${admin.login}? Он потеряет доступ.`);
+        if (!ok) return;
+        setDeactivatingId(admin.id);
+        setError(null);
+        try {
+            await adminUsersApi.deactivate(admin.id);
+            await refresh({ cancelled: false });
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 409) {
+                setError('Нельзя отключить самого себя или последнего активного администратора.');
+            } else {
+                setError('Не удалось отключить администратора');
+            }
+        } finally {
+            setDeactivatingId(null);
+        }
+    };
+
     return (
         <div className="space-y-4 p-6">
             <div className="flex items-center justify-between">
@@ -69,6 +92,8 @@ export function AdminsListPage() {
                     forLogin={issuedLink.forLogin}
                     token={issuedLink.token}
                     expiresAt={issuedLink.expiresAt}
+                    emailSent={issuedLink.emailSent}
+                    sentToEmail={issuedLink.sentToEmail}
                     onDismiss={() => setIssuedLink(null)}
                 />
             )}
@@ -107,15 +132,28 @@ export function AdminsListPage() {
                                     {a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString('ru-RU') : '—'}
                                 </td>
                                 <td className="p-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => onReset(a)}
-                                        disabled={resettingId === a.id}
-                                        className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted disabled:opacity-60"
-                                    >
-                                        <KeyRound className="h-3 w-3" />
-                                        {resettingId === a.id ? 'Создание...' : 'Сбросить пароль'}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => onReset(a)}
+                                            disabled={resettingId === a.id}
+                                            className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted disabled:opacity-60"
+                                        >
+                                            <KeyRound className="h-3 w-3" />
+                                            {resettingId === a.id ? 'Создание...' : 'Сбросить пароль'}
+                                        </button>
+                                        {a.isActive && a.id !== currentAdminId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onDeactivate(a)}
+                                                disabled={deactivatingId === a.id}
+                                                className="inline-flex items-center gap-1 rounded border border-destructive/40 bg-background px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                                            >
+                                                <UserX className="h-3 w-3" />
+                                                {deactivatingId === a.id ? 'Отключение...' : 'Отключить'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}

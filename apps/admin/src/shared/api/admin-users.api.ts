@@ -19,6 +19,8 @@ export interface IIssuedTokenResponse {
     adminUserId: string;
     expiresAt: string;
     action: 'created' | 'reactivated' | 'reset';
+    emailSent: boolean;
+    sentToEmail: string | null;
 }
 
 export const adminUsersApi = {
@@ -29,6 +31,9 @@ export const adminUsersApi = {
 
     resetPassword: (adminUserId: string): Promise<IIssuedTokenResponse> =>
         adminApiClient.post<IIssuedTokenResponse>(`/admin/users/${adminUserId}/reset-password`),
+
+    deactivate: (adminUserId: string): Promise<void> =>
+        adminApiClient.post<void>(`/admin/users/${adminUserId}/deactivate`),
 };
 
 export interface IInviteTokenInfo {

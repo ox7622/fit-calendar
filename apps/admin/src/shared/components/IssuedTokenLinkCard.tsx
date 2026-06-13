@@ -15,9 +15,21 @@ interface IIssuedTokenLinkCardProps {
     actionLabel?: string;
     /** If provided, renders a "Закрыть" button that calls this. */
     onDismiss?: () => void;
+    /** When true, a "письмо отправлено" banner is shown and the link is framed as a fallback. */
+    emailSent?: boolean;
+    /** Email the link was sent to (shown in the banner). */
+    sentToEmail?: string | null;
 }
 
-export function IssuedTokenLinkCard({ forLogin, token, expiresAt, actionLabel, onDismiss }: IIssuedTokenLinkCardProps) {
+export function IssuedTokenLinkCard({
+    forLogin,
+    token,
+    expiresAt,
+    actionLabel,
+    onDismiss,
+    emailSent,
+    sentToEmail,
+}: IIssuedTokenLinkCardProps) {
     const [copied, setCopied] = useState(false);
     const url = buildSetPasswordUrl(token);
 
@@ -30,10 +42,24 @@ export function IssuedTokenLinkCard({ forLogin, token, expiresAt, actionLabel, o
 
     return (
         <div className="rounded border border-primary/40 bg-primary/5 p-4 space-y-2">
+            {emailSent && (
+                <p className="text-sm text-primary">
+                    ✓ Письмо со ссылкой отправлено на <span className="font-medium">{sentToEmail}</span>.
+                </p>
+            )}
             <p className="text-sm">
-                Ссылка для <span className="font-medium">{forLogin}</span>
-                {actionLabel ? <> ({actionLabel})</> : null} создана. Передайте её получателю — открывается один раз,
-                действует до {new Date(expiresAt).toLocaleString('ru-RU')}.
+                {emailSent ? (
+                    <>
+                        Если письмо не дошло — передайте ссылку для <span className="font-medium">{forLogin}</span>{' '}
+                        вручную.
+                    </>
+                ) : (
+                    <>
+                        Ссылка для <span className="font-medium">{forLogin}</span>
+                        {actionLabel ? <> ({actionLabel})</> : null} создана. Передайте её получателю —
+                    </>
+                )}{' '}
+                открывается один раз, действует до {new Date(expiresAt).toLocaleString('ru-RU')}.
             </p>
             <div className="flex items-center gap-2">
                 <code className="flex-1 truncate rounded bg-background px-2 py-1 text-xs">{url}</code>

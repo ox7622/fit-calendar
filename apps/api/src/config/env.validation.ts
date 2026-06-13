@@ -71,6 +71,13 @@ export class EnvironmentVariables {
     @IsOptional()
     CORS_ORIGIN_ADMIN?: string;
 
+    // Public URL of the admin SPA, used to build the set-password link in admin
+    // invite/reset emails. Kept separate from CORS_ORIGIN_ADMIN (a CORS concern).
+    // When unset, the email is skipped and the copy-link fallback is used instead.
+    @IsString()
+    @IsOptional()
+    ADMIN_APP_URL?: string;
+
     // Telegram Bot configuration
     @IsString()
     @IsNotEmpty()
@@ -99,6 +106,35 @@ export class EnvironmentVariables {
     @IsString()
     @IsOptional()
     CLOUDINARY_API_SECRET?: string;
+
+    // SMTP (Yandex 360) — все опциональны. Если не заданы все обязательные
+    // (HOST/USER/PASS/FROM), MailService инертен: письма не шлются, остаётся
+    // ручной copy-link. SMTP_PORT/SMTP_SECURE хранятся строками и парсятся в
+    // call-site (как SWAGGER_ENABLED), чтобы избежать ложной coercion.
+    @IsString()
+    @IsOptional()
+    SMTP_HOST?: string;
+
+    @IsString()
+    @IsOptional()
+    SMTP_PORT?: string = '465';
+
+    @IsString()
+    @IsOptional()
+    @IsIn(['true', 'false'])
+    SMTP_SECURE?: string = 'true';
+
+    @IsString()
+    @IsOptional()
+    SMTP_USER?: string;
+
+    @IsString()
+    @IsOptional()
+    SMTP_PASS?: string;
+
+    @IsString()
+    @IsOptional()
+    SMTP_FROM?: string;
 
     // Swagger gating. Defaults to "true" for dev ergonomics; set "false" in
     // production so the API schema isn't publicly discoverable. Parsed at the

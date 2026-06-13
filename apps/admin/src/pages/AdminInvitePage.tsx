@@ -107,6 +107,8 @@ export function AdminInvitePage() {
                         token={issued.token}
                         expiresAt={issued.expiresAt}
                         actionLabel={issued.action === 'created' ? 'новый аккаунт' : 'переактивация'}
+                        emailSent={issued.emailSent}
+                        sentToEmail={issued.sentToEmail}
                     />
                     <Link
                         to="/admins"

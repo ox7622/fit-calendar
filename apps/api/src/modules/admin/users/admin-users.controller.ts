@@ -47,4 +47,15 @@ export class AdminUsersController {
     ): Promise<IssuedTokenResponseDto> {
         return this.usersService.issueReset(issuerAdminId, id);
     }
+
+    @Post(':id/deactivate')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({ summary: 'Deactivate an admin (and invalidate their outstanding tokens)' })
+    @ApiParam({ name: 'id' })
+    @ApiResponse({ status: 204, description: 'Deactivated' })
+    @ApiResponse({ status: 409, description: 'Cannot deactivate yourself or the last active admin' })
+    @ApiResponse({ status: 404 })
+    deactivate(@Param('id', new ParseUUIDPipe()) id: string, @AdminUser('id') issuerAdminId: string): Promise<void> {
+        return this.usersService.deactivate(issuerAdminId, id);
+    }
 }

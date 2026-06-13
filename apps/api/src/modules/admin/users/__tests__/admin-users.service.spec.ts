@@ -1,11 +1,13 @@
 import { AdminInviteToken, AdminUser } from '@fitcalendar/db';
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm';
 import { IsNull } from 'typeorm';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
+import { MailService } from '../../../mail/mail.service';
 import { AdminUsersService } from '../admin-users.service';
 
 describe('AdminUsersService', () => {
@@ -15,6 +17,8 @@ describe('AdminUsersService', () => {
     let txAdminRepo: jest.Mocked<Repository<AdminUser>>;
     let txTokenRepo: jest.Mocked<Repository<AdminInviteToken>>;
     let dataSource: jest.Mocked<Pick<DataSource, 'transaction'>>;
+    let mailService: { isEnabled: jest.Mock; sendAdminSetPasswordLink: jest.Mock };
+    let configService: { get: jest.Mock };
 
     const buildAdmin = (overrides: Partial<AdminUser> = {}): AdminUser => ({
         id: 'admin-1',
@@ -38,6 +42,8 @@ describe('AdminUsersService', () => {
             findOne: jest.fn(),
             create: jest.fn((dto) => ({ ...dto, id: 'new-admin-id' } as AdminUser)),
             save: jest.fn(async (entity) => entity as AdminUser),
+            update: jest.fn(),
+            count: jest.fn(),
         } as unknown as jest.Mocked<Repository<AdminUser>>;
         txTokenRepo = {
             update: jest.fn(),
@@ -54,6 +60,8 @@ describe('AdminUsersService', () => {
         dataSource = {
             transaction: jest.fn(async (cb: (m: EntityManager) => Promise<unknown>) => cb(txManager)),
         } as unknown as jest.Mocked<Pick<DataSource, 'transaction'>>;
+        mailService = { isEnabled: jest.fn().mockReturnValue(true), sendAdminSetPasswordLink: jest.fn() };
+        configService = { get: jest.fn().mockReturnValue('https://admin.fit-calendar.ru') };
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -61,6 +69,8 @@ describe('AdminUsersService', () => {
                 { provide: getRepositoryToken(AdminUser), useValue: adminRepo },
                 { provide: getRepositoryToken(AdminInviteToken), useValue: tokenRepo },
                 { provide: getDataSourceToken(), useValue: dataSource },
+                { provide: MailService, useValue: mailService },
+                { provide: ConfigService, useValue: configService },
             ],
         }).compile();
 
@@ -154,6 +164,88 @@ describe('AdminUsersService', () => {
             txAdminRepo.findOne.mockResolvedValue(null);
 
             await expect(service.issueReset('issuer-1', 'ghost')).rejects.toBeInstanceOf(NotFoundException);
+        });
+    });
+
+    describe('email delivery on invite', () => {
+        it('sends the link by email when the login is an email and SMTP is enabled', async () => {
+            txAdminRepo.findOne.mockResolvedValue(null);
+
+            const result = await service.invite('issuer-1', 'masha@example.com', 'Мария');
+
+            expect(mailService.sendAdminSetPasswordLink).toHaveBeenCalledTimes(1);
+            const arg = mailService.sendAdminSetPasswordLink.mock.calls[0][0];
+            expect(arg).toMatchObject({ to: 'masha@example.com', name: 'Мария', purpose: 'invite' });
+            expect(arg.url).toBe(
+                `https://admin.fit-calendar.ru/set-password?token=${encodeURIComponent(result.token)}`,
+            );
+            expect(result.emailSent).toBe(true);
+            expect(result.sentToEmail).toBe('masha@example.com');
+        });
+
+        it('does not send email when the login is not an email', async () => {
+            txAdminRepo.findOne.mockResolvedValue(null);
+
+            const result = await service.invite('issuer-1', 'masha', 'Мария');
+
+            expect(mailService.sendAdminSetPasswordLink).not.toHaveBeenCalled();
+            expect(result.emailSent).toBe(false);
+            expect(result.sentToEmail).toBeNull();
+        });
+
+        it('still succeeds with emailSent=false when sending throws', async () => {
+            txAdminRepo.findOne.mockResolvedValue(null);
+            mailService.sendAdminSetPasswordLink.mockRejectedValue(new Error('SMTP down'));
+
+            const result = await service.invite('issuer-1', 'masha@example.com', 'Мария');
+
+            expect(result.token).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+            expect(result.emailSent).toBe(false);
+            expect(result.sentToEmail).toBeNull();
+        });
+
+        it('skips email when SMTP is disabled', async () => {
+            txAdminRepo.findOne.mockResolvedValue(null);
+            mailService.isEnabled.mockReturnValue(false);
+
+            const result = await service.invite('issuer-1', 'masha@example.com', 'Мария');
+
+            expect(mailService.sendAdminSetPasswordLink).not.toHaveBeenCalled();
+            expect(result.emailSent).toBe(false);
+        });
+    });
+
+    describe('deactivate', () => {
+        it('rejects deactivating yourself', async () => {
+            await expect(service.deactivate('admin-1', 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+            expect(dataSource.transaction).not.toHaveBeenCalled();
+        });
+
+        it('rejects deactivating the last active admin', async () => {
+            txAdminRepo.findOne.mockResolvedValue(buildAdmin({ id: 'admin-2', isActive: true }));
+            txAdminRepo.count.mockResolvedValue(1);
+
+            await expect(service.deactivate('admin-1', 'admin-2')).rejects.toBeInstanceOf(ConflictException);
+            expect(txAdminRepo.update).not.toHaveBeenCalled();
+        });
+
+        it('throws NotFound when the target does not exist', async () => {
+            txAdminRepo.findOne.mockResolvedValue(null);
+
+            await expect(service.deactivate('admin-1', 'ghost')).rejects.toBeInstanceOf(NotFoundException);
+        });
+
+        it('deactivates the admin and consumes their outstanding tokens', async () => {
+            txAdminRepo.findOne.mockResolvedValue(buildAdmin({ id: 'admin-2', isActive: true }));
+            txAdminRepo.count.mockResolvedValue(2);
+
+            await service.deactivate('admin-1', 'admin-2');
+
+            expect(txAdminRepo.update).toHaveBeenCalledWith({ id: 'admin-2' }, { isActive: false });
+            expect(txTokenRepo.update).toHaveBeenCalledWith(
+                { adminUserId: 'admin-2', consumedAt: IsNull() },
+                expect.objectContaining({ consumedAt: expect.any(Date) }),
+            );
         });
     });
 });

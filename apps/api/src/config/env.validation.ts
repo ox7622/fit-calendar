@@ -100,6 +100,35 @@ export class EnvironmentVariables {
     @IsOptional()
     CLOUDINARY_API_SECRET?: string;
 
+    // SMTP (Yandex 360) — все опциональны. Если не заданы все обязательные
+    // (HOST/USER/PASS/FROM), MailService инертен: письма не шлются, остаётся
+    // ручной copy-link. SMTP_PORT/SMTP_SECURE хранятся строками и парсятся в
+    // call-site (как SWAGGER_ENABLED), чтобы избежать ложной coercion.
+    @IsString()
+    @IsOptional()
+    SMTP_HOST?: string;
+
+    @IsString()
+    @IsOptional()
+    SMTP_PORT?: string = '465';
+
+    @IsString()
+    @IsOptional()
+    @IsIn(['true', 'false'])
+    SMTP_SECURE?: string = 'true';
+
+    @IsString()
+    @IsOptional()
+    SMTP_USER?: string;
+
+    @IsString()
+    @IsOptional()
+    SMTP_PASS?: string;
+
+    @IsString()
+    @IsOptional()
+    SMTP_FROM?: string;
+
     // Swagger gating. Defaults to "true" for dev ergonomics; set "false" in
     // production so the API schema isn't publicly discoverable. Parsed at the
     // call site (see `main.ts`) — kept as a string here because class-transformer's

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { useAuth } from '@/app/providers/AuthProvider';
 import { TaxonomyBadge, showToast } from '@/components';
 import { ApiError, remindersApi, scheduleApi, type ReminderListItem } from '@/shared/api';
 import { useCustomerStore, useRemindersStore, useTaxonomyStore } from '@/shared/stores';
@@ -57,6 +58,7 @@ function DetailSkeleton(): JSX.Element {
 export function ClassDetailPage(): JSX.Element {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { status } = useAuth();
     const customer = useCustomerStore((s) => s.customer);
     const difficultyMap = useTaxonomyStore((s) => s.difficultyMap);
     const impactMap = useTaxonomyStore((s) => s.impactMap);
@@ -239,8 +241,10 @@ export function ClassDetailPage(): JSX.Element {
                         </div>
                     )}
 
-                    {/* Remind Me toggle (hidden for past / cancelled classes per AC9) */}
-                    {!isPastOrCancelled && (
+                    {/* Remind Me toggle — only for Telegram-linked customers (reminders are
+                        delivered via the bot; the linking flow is deferred, so hide it for everyone
+                        else). Also hidden for past / cancelled classes per AC9. */}
+                    {status === 'linked' && !isPastOrCancelled && (
                         <button
                             type="button"
                             onClick={reminder ? onUnsubscribe : onSubscribe}

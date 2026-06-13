@@ -1,8 +1,11 @@
 import { formatDuration, formatPriceRub } from '@fitcalendar/shared';
-import { Check } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { membershipPlansApi, type PlanCard } from '@/shared/api';
+import { clubApi } from '@/shared/api/club.api';
+import type { ClubInfo } from '@/shared/api/club.api';
 
 function PlanCardSkeleton(): JSX.Element {
     const shimmer =
@@ -62,9 +65,27 @@ function PlanCardView({ plan }: { plan: PlanCard }): JSX.Element {
  * Story 7.1
  */
 export function PlansPage(): JSX.Element {
+    const navigate = useNavigate();
     const [plans, setPlans] = useState<PlanCard[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [club, setClub] = useState<ClubInfo | null>(null);
+
+    // Club header — this screen is a subpage of the club, so it wears the club's name.
+    useEffect(() => {
+        let cancelled = false;
+        clubApi
+            .getInfo()
+            .then((data) => {
+                if (!cancelled) setClub(data);
+            })
+            .catch(() => {
+                // Header name is non-critical; fall back to a generic label.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const load = (): void => {
         setIsLoading(true);
@@ -104,11 +125,20 @@ export function PlansPage(): JSX.Element {
 
     return (
         <div className="flex flex-col h-full">
-            <div className="px-4 pt-4 pb-3">
-                <h1 className="heading-2">Абонементы</h1>
+            <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    aria-label="Назад"
+                >
+                    <ArrowLeft size={20} />
+                </button>
+                <h1 className="heading-1 truncate">{club?.name ?? 'Клуб'}</h1>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+                <p className="text-sm font-semibold text-muted-foreground">Абонементы</p>
                 {isLoading ? (
                     <>
                         <PlanCardSkeleton />

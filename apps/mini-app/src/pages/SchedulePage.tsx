@@ -1,7 +1,7 @@
-import { addDays, format, isSameDay, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay, isSameWeek, startOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Moon, SlidersHorizontal, Sun } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Moon, SlidersHorizontal, Sun } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useTheme } from '@/app/providers/ThemeProvider';
@@ -33,6 +33,28 @@ function capitalize(value: string): string {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+/** Icon button flanking the day rail to step the week back/forward. */
+function WeekArrow({
+    label,
+    onClick,
+    children,
+}: {
+    label: string;
+    onClick: () => void;
+    children: ReactNode;
+}): JSX.Element {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-label={label}
+            className="flex-shrink-0 w-9 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors active:scale-95"
+        >
+            {children}
+        </button>
+    );
+}
+
 export function SchedulePage(): JSX.Element {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
@@ -44,6 +66,10 @@ export function SchedulePage(): JSX.Element {
         const monday = startOfWeek(selectedDate, { weekStartsOn: 1 });
         return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
     }, [selectedDate]);
+
+    // Shift the rail by whole weeks, keeping the same weekday.
+    const goToWeek = (deltaWeeks: number): void => setSelectedDate((d) => addDays(d, deltaWeeks * 7));
+    const isCurrentWeek = isSameWeek(selectedDate, today, { weekStartsOn: 1 });
 
     const [classes, setClasses] = useState<ScheduleClass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -109,6 +135,15 @@ export function SchedulePage(): JSX.Element {
                     <h1 className="heading-1 mt-0.5">{format(selectedDate, 'd MMMM', { locale: ru })}</h1>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
+                    {!isCurrentWeek && (
+                        <button
+                            type="button"
+                            onClick={() => setSelectedDate(today)}
+                            className="h-10 px-3 rounded-[10px] bg-card border border-border text-sm font-medium text-primary hover:bg-muted transition-colors active:scale-95"
+                        >
+                            Сегодня
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={toggleTheme}
@@ -133,30 +168,38 @@ export function SchedulePage(): JSX.Element {
                 </div>
             </div>
 
-            {/* Day rail */}
+            {/* Day rail with week navigation */}
             <div className="px-4 pb-3">
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                    {weekDays.map((day) => {
-                        const isActive = isSameDay(day, selectedDate);
-                        return (
-                            <button
-                                key={day.toISOString()}
-                                type="button"
-                                onClick={() => setSelectedDate(day)}
-                                className={[
-                                    'flex-shrink-0 min-w-[50px] rounded-xl py-2 flex flex-col items-center gap-0.5 transition-colors active:scale-95',
-                                    isActive
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-card text-muted-foreground hover:text-foreground',
-                                ].join(' ')}
-                            >
-                                <span className="text-[11px] font-medium uppercase">
-                                    {capitalize(format(day, 'EEEEEE', { locale: ru }))}
-                                </span>
-                                <span className="text-lg font-bold leading-none">{format(day, 'd')}</span>
-                            </button>
-                        );
-                    })}
+                <div className="flex items-stretch gap-2">
+                    <WeekArrow label="Предыдущая неделя" onClick={() => goToWeek(-1)}>
+                        <ChevronLeft size={18} />
+                    </WeekArrow>
+                    <div className="flex flex-1 gap-2 overflow-x-auto scrollbar-hide">
+                        {weekDays.map((day) => {
+                            const isActive = isSameDay(day, selectedDate);
+                            return (
+                                <button
+                                    key={day.toISOString()}
+                                    type="button"
+                                    onClick={() => setSelectedDate(day)}
+                                    className={[
+                                        'flex-shrink-0 min-w-[50px] rounded-xl py-2 flex flex-col items-center gap-0.5 transition-colors active:scale-95',
+                                        isActive
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-card text-muted-foreground hover:text-foreground',
+                                    ].join(' ')}
+                                >
+                                    <span className="text-[11px] font-medium uppercase">
+                                        {capitalize(format(day, 'EEEEEE', { locale: ru }))}
+                                    </span>
+                                    <span className="text-lg font-bold leading-none">{format(day, 'd')}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <WeekArrow label="Следующая неделя" onClick={() => goToWeek(1)}>
+                        <ChevronRight size={18} />
+                    </WeekArrow>
                 </div>
                 <div className="mt-2 h-0.5 w-2/3 rounded-full bg-gradient-to-r from-primary/50 to-transparent" />
             </div>

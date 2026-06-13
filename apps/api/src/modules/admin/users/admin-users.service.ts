@@ -132,6 +132,37 @@ export class AdminUsersService {
         };
     }
 
+    async deactivate(issuerAdminId: string, targetId: string): Promise<void> {
+        // Self-lockout guard runs before the transaction — no DB work needed to reject it.
+        if (issuerAdminId === targetId) {
+            throw new ConflictException('Нельзя отключить самого себя');
+        }
+
+        await this.dataSource.transaction(async (manager) => {
+            const adminRepo = manager.getRepository(AdminUser);
+            const tokenRepo = manager.getRepository(AdminInviteToken);
+
+            const target = await adminRepo.findOne({ where: { id: targetId } });
+            if (!target) {
+                throw new NotFoundException('Админ не найден');
+            }
+            if (!target.isActive) {
+                // Already inactive — idempotent no-op.
+                return;
+            }
+
+            const activeCount = await adminRepo.count({ where: { isActive: true } });
+            if (activeCount <= 1) {
+                throw new ConflictException('Нельзя отключить последнего активного администратора');
+            }
+
+            await adminRepo.update({ id: targetId }, { isActive: false });
+            // Consume any outstanding invite/reset tokens: otherwise a still-valid
+            // set-password link would flip isActive back to true and bypass the deactivation.
+            await tokenRepo.update({ adminUserId: targetId, consumedAt: IsNull() }, { consumedAt: new Date() });
+        });
+    }
+
     // Sends the one-time link by email when the login is an email and SMTP is
     // configured. Never throws: a failed/disabled send degrades to emailSent=false
     // and the caller still returns the plaintext link as a manual fallback.

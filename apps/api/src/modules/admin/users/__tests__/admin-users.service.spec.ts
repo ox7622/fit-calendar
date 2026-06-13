@@ -42,6 +42,8 @@ describe('AdminUsersService', () => {
             findOne: jest.fn(),
             create: jest.fn((dto) => ({ ...dto, id: 'new-admin-id' } as AdminUser)),
             save: jest.fn(async (entity) => entity as AdminUser),
+            update: jest.fn(),
+            count: jest.fn(),
         } as unknown as jest.Mocked<Repository<AdminUser>>;
         txTokenRepo = {
             update: jest.fn(),
@@ -210,6 +212,40 @@ describe('AdminUsersService', () => {
 
             expect(mailService.sendAdminSetPasswordLink).not.toHaveBeenCalled();
             expect(result.emailSent).toBe(false);
+        });
+    });
+
+    describe('deactivate', () => {
+        it('rejects deactivating yourself', async () => {
+            await expect(service.deactivate('admin-1', 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+            expect(dataSource.transaction).not.toHaveBeenCalled();
+        });
+
+        it('rejects deactivating the last active admin', async () => {
+            txAdminRepo.findOne.mockResolvedValue(buildAdmin({ id: 'admin-2', isActive: true }));
+            txAdminRepo.count.mockResolvedValue(1);
+
+            await expect(service.deactivate('admin-1', 'admin-2')).rejects.toBeInstanceOf(ConflictException);
+            expect(txAdminRepo.update).not.toHaveBeenCalled();
+        });
+
+        it('throws NotFound when the target does not exist', async () => {
+            txAdminRepo.findOne.mockResolvedValue(null);
+
+            await expect(service.deactivate('admin-1', 'ghost')).rejects.toBeInstanceOf(NotFoundException);
+        });
+
+        it('deactivates the admin and consumes their outstanding tokens', async () => {
+            txAdminRepo.findOne.mockResolvedValue(buildAdmin({ id: 'admin-2', isActive: true }));
+            txAdminRepo.count.mockResolvedValue(2);
+
+            await service.deactivate('admin-1', 'admin-2');
+
+            expect(txAdminRepo.update).toHaveBeenCalledWith({ id: 'admin-2' }, { isActive: false });
+            expect(txTokenRepo.update).toHaveBeenCalledWith(
+                { adminUserId: 'admin-2', consumedAt: IsNull() },
+                expect.objectContaining({ consumedAt: expect.any(Date) }),
+            );
         });
     });
 });

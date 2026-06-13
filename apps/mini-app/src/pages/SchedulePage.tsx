@@ -1,4 +1,4 @@
-import { addDays, format, isSameDay, isSameWeek, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Moon, SlidersHorizontal, Sun } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -10,6 +10,9 @@ import { coachesApi, scheduleApi } from '@/shared/api';
 import type { CoachOption, ScheduleFilters, TrainingTypeOption } from '@/shared/types/filter.types';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
 import type { ScheduleFilterParams } from '@/shared/api/schedule.api';
+
+/** Days shown in the rail at once; chevrons page the window by this amount. */
+const DAYS_PER_PAGE = 5;
 
 function countActiveFilters(filters: ScheduleFilters): number {
     let count = 0;
@@ -33,7 +36,7 @@ function capitalize(value: string): string {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/** Icon button flanking the day rail to step the week back/forward. */
+/** Icon button flanking the day rail to page the day window back/forward. */
 function WeekArrow({
     label,
     onClick,
@@ -59,19 +62,27 @@ export function SchedulePage(): JSX.Element {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
     const today = useMemo(() => new Date(), []);
+    const [windowStart, setWindowStart] = useState<Date>(today);
     const [selectedDate, setSelectedDate] = useState<Date>(today);
 
-    // Mon–Sun rail for the week containing the selected day.
-    const weekDays = useMemo(() => {
-        const monday = startOfWeek(selectedDate, { weekStartsOn: 1 });
-        return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-    }, [selectedDate]);
+    // Forward-only rail of DAYS_PER_PAGE days starting at windowStart (today on first
+    // load — past days are never shown).
+    const visibleDays = useMemo(
+        () => Array.from({ length: DAYS_PER_PAGE }, (_, i) => addDays(windowStart, i)),
+        [windowStart],
+    );
 
-    // Step to the start (Monday) of the previous/next week, so e.g. Sunday → next
-    // Monday rather than landing on Sunday of the following week.
-    const goToWeek = (deltaWeeks: number): void =>
-        setSelectedDate((d) => startOfWeek(addDays(d, deltaWeeks * 7), { weekStartsOn: 1 }));
-    const isCurrentWeek = isSameWeek(selectedDate, today, { weekStartsOn: 1 });
+    // Page the window by whole screens; never start earlier than today. The newly
+    // exposed first day becomes selected so its classes load.
+    const pageWindow = (deltaPages: number): void => {
+        const candidate = addDays(windowStart, deltaPages * DAYS_PER_PAGE);
+        const next = candidate < today ? today : candidate;
+        setWindowStart(next);
+        setSelectedDate(next);
+    };
+
+    const atStart = isSameDay(windowStart, today);
+    const isToday = isSameDay(selectedDate, today);
 
     const [classes, setClasses] = useState<ScheduleClass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -137,10 +148,13 @@ export function SchedulePage(): JSX.Element {
                     <h1 className="heading-1 mt-0.5">{format(selectedDate, 'd MMMM', { locale: ru })}</h1>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
-                    {!isCurrentWeek && (
+                    {!isToday && (
                         <button
                             type="button"
-                            onClick={() => setSelectedDate(today)}
+                            onClick={() => {
+                                setWindowStart(today);
+                                setSelectedDate(today);
+                            }}
                             className="h-10 px-3 rounded-[10px] bg-card border border-border text-sm font-medium text-primary hover:bg-muted transition-colors active:scale-95"
                         >
                             Сегодня
@@ -170,14 +184,16 @@ export function SchedulePage(): JSX.Element {
                 </div>
             </div>
 
-            {/* Day rail with week navigation */}
+            {/* Day rail — forward-only window starting at today */}
             <div className="px-4 pb-3">
                 <div className="flex items-stretch gap-2">
-                    <WeekArrow label="Предыдущая неделя" onClick={() => goToWeek(-1)}>
-                        <ChevronLeft size={18} />
-                    </WeekArrow>
-                    <div className="flex flex-1 gap-2 overflow-x-auto scrollbar-hide">
-                        {weekDays.map((day) => {
+                    {!atStart && (
+                        <WeekArrow label="Предыдущие дни" onClick={() => pageWindow(-1)}>
+                            <ChevronLeft size={18} />
+                        </WeekArrow>
+                    )}
+                    <div className="flex flex-1 gap-2">
+                        {visibleDays.map((day) => {
                             const isActive = isSameDay(day, selectedDate);
                             return (
                                 <button
@@ -185,7 +201,7 @@ export function SchedulePage(): JSX.Element {
                                     type="button"
                                     onClick={() => setSelectedDate(day)}
                                     className={[
-                                        'flex-shrink-0 min-w-[50px] rounded-xl py-2 flex flex-col items-center gap-0.5 transition-colors active:scale-95',
+                                        'flex-1 min-w-0 rounded-xl py-2 flex flex-col items-center gap-0.5 transition-colors active:scale-95',
                                         isActive
                                             ? 'bg-primary text-primary-foreground'
                                             : 'bg-card text-muted-foreground hover:text-foreground',
@@ -199,7 +215,7 @@ export function SchedulePage(): JSX.Element {
                             );
                         })}
                     </div>
-                    <WeekArrow label="Следующая неделя" onClick={() => goToWeek(1)}>
+                    <WeekArrow label="Следующие дни" onClick={() => pageWindow(1)}>
                         <ChevronRight size={18} />
                     </WeekArrow>
                 </div>

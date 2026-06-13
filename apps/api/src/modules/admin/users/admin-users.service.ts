@@ -1,10 +1,13 @@
 import { AdminInviteToken, AdminUser, type TAdminInviteTokenPurpose } from '@fitcalendar/db';
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { isEmail } from 'class-validator';
 import { DataSource, IsNull, Repository } from 'typeorm';
 
 import { generateUrlSafeToken, sha256Hex } from '../../../common/utils/token-hash';
+import { MailService } from '../../mail/mail.service';
 
 import { AdminUserListItemDto } from './dto/admin-user.dto';
 import { IssuedTokenResponseDto } from './dto/invite-admin.dto';
@@ -20,10 +23,14 @@ const SENTINEL_HASH = bcrypt.hashSync(generateUrlSafeToken(), 10);
 
 @Injectable()
 export class AdminUsersService {
+    private readonly logger = new Logger(AdminUsersService.name);
+
     constructor(
         @InjectRepository(AdminUser) private readonly adminRepo: Repository<AdminUser>,
         @InjectRepository(AdminInviteToken) private readonly tokenRepo: Repository<AdminInviteToken>,
         @InjectDataSource() private readonly dataSource: DataSource,
+        private readonly mail: MailService,
+        private readonly config: ConfigService,
     ) {}
 
     async list(): Promise<AdminUserListItemDto[]> {
@@ -39,7 +46,9 @@ export class AdminUsersService {
     }
 
     async invite(issuerAdminId: string, login: string, name: string): Promise<IssuedTokenResponseDto> {
-        return this.dataSource.transaction(async (manager) => {
+        const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
+
+        const issued = await this.dataSource.transaction(async (manager) => {
             const adminRepo = manager.getRepository(AdminUser);
             const tokenRepo = manager.getRepository(AdminInviteToken);
 
@@ -68,18 +77,31 @@ export class AdminUsersService {
             }
 
             const plaintext = await this.issueTokenInTx(tokenRepo, adminUser.id, issuerAdminId, 'invite');
-
-            return {
-                token: plaintext,
-                adminUserId: adminUser.id,
-                expiresAt: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
-                action,
-            };
+            return { plaintext, adminUserId: adminUser.id, action };
         });
+
+        const { emailSent, sentToEmail } = await this.deliverLinkEmail(
+            login,
+            name,
+            issued.plaintext,
+            expiresAt,
+            'invite',
+        );
+
+        return {
+            token: issued.plaintext,
+            adminUserId: issued.adminUserId,
+            expiresAt,
+            action: issued.action,
+            emailSent,
+            sentToEmail,
+        };
     }
 
     async issueReset(issuerAdminId: string, adminUserId: string): Promise<IssuedTokenResponseDto> {
-        return this.dataSource.transaction(async (manager) => {
+        const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
+
+        const issued = await this.dataSource.transaction(async (manager) => {
             const adminRepo = manager.getRepository(AdminUser);
             const tokenRepo = manager.getRepository(AdminInviteToken);
 
@@ -89,14 +111,60 @@ export class AdminUsersService {
             }
 
             const plaintext = await this.issueTokenInTx(tokenRepo, admin.id, issuerAdminId, 'reset');
-
-            return {
-                token: plaintext,
-                adminUserId: admin.id,
-                expiresAt: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
-                action: 'reset',
-            };
+            return { plaintext, adminUserId: admin.id, login: admin.login, name: admin.name };
         });
+
+        const { emailSent, sentToEmail } = await this.deliverLinkEmail(
+            issued.login,
+            issued.name,
+            issued.plaintext,
+            expiresAt,
+            'reset',
+        );
+
+        return {
+            token: issued.plaintext,
+            adminUserId: issued.adminUserId,
+            expiresAt,
+            action: 'reset',
+            emailSent,
+            sentToEmail,
+        };
+    }
+
+    // Sends the one-time link by email when the login is an email and SMTP is
+    // configured. Never throws: a failed/disabled send degrades to emailSent=false
+    // and the caller still returns the plaintext link as a manual fallback.
+    private async deliverLinkEmail(
+        login: string,
+        name: string,
+        token: string,
+        expiresAt: string,
+        purpose: TAdminInviteTokenPurpose,
+    ): Promise<{ emailSent: boolean; sentToEmail: string | null }> {
+        if (!isEmail(login) || !this.mail.isEnabled()) {
+            return { emailSent: false, sentToEmail: null };
+        }
+        const url = this.buildSetPasswordUrl(token);
+        if (!url) {
+            this.logger.warn('CORS_ORIGIN_ADMIN is unset — cannot build set-password URL; skipping email');
+            return { emailSent: false, sentToEmail: null };
+        }
+        try {
+            await this.mail.sendAdminSetPasswordLink({ to: login, name, url, expiresAt, purpose });
+            return { emailSent: true, sentToEmail: login };
+        } catch (err) {
+            this.logger.warn(`Failed to send admin ${purpose} email to ${login}: ${String(err)}`);
+            return { emailSent: false, sentToEmail: null };
+        }
+    }
+
+    private buildSetPasswordUrl(token: string): string | null {
+        const base = this.config.get<string>('CORS_ORIGIN_ADMIN');
+        if (!base) {
+            return null;
+        }
+        return `${base.replace(/\/+$/, '')}/set-password?token=${encodeURIComponent(token)}`;
     }
 
     private async issueTokenInTx(

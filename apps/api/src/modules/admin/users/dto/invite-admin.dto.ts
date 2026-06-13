@@ -40,4 +40,10 @@ export class IssuedTokenResponseDto {
         description: 'created = new row inserted; reactivated = inactive row recycled; reset = active row.',
     })
     action!: 'created' | 'reactivated' | 'reset';
+
+    @ApiProperty({ description: 'true, если ссылка была отправлена письмом на email-логин.' })
+    emailSent!: boolean;
+
+    @ApiProperty({ nullable: true, description: 'Email, на который ушло письмо, либо null.' })
+    sentToEmail!: string | null;
 }

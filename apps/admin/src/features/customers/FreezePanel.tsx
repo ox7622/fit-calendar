@@ -1,25 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { adminMembershipsApi, ApiError, type IAdminMembership, type IFreezeEvent } from '@/shared/api';
+import { addDaysIso, fmtDate, nextStartAfter, todayIso } from '@/shared/lib/date';
 
 interface IFreezePanelProps {
     membership: IAdminMembership;
     onMembershipChange: (next: IAdminMembership) => void;
 }
 
-function fmtDate(iso: string): string {
-    const [y, m, d] = iso.split('-');
-    return `${d}.${m}.${y}`;
-}
-
-function todayIso(): string {
-    const d = new Date();
-    const pad = (n: number): string => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+// Inclusive [start, start+duration-1] vs. inclusive [f.startDate, f.endDate].
+// YYYY-MM-DD strings compare lexicographically.
+function findOverlap(freezes: IFreezeEvent[], startDate: string, durationDays: number): IFreezeEvent | null {
+    if (!startDate || !Number.isInteger(durationDays) || durationDays < 1) return null;
+    const endDate = addDaysIso(startDate, durationDays - 1);
+    return freezes.find((f) => startDate <= f.endDate && f.startDate <= endDate) ?? null;
 }
 
 export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProps) {
-    const [freeze, setFreeze] = useState<IFreezeEvent | null>(null);
+    const [freezes, setFreezes] = useState<IFreezeEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showDialog, setShowDialog] = useState(false);
@@ -34,7 +32,7 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
             .getFreezes(membership.id)
             .then((rows) => {
                 if (!cancelled) {
-                    setFreeze(rows[0] ?? null);
+                    setFreezes(rows);
                     setLoading(false);
                 }
             })
@@ -51,8 +49,17 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
 
     if (membership.plan.freezeDaysAllowed === 0) return null;
 
+    const overlap = findOverlap(freezes, startDate, durationDays);
+
     const handleRecord = async (e: FormEvent): Promise<void> => {
         e.preventDefault();
+        if (overlap) {
+            setError(
+                `Эти даты пересекаются с заморозкой ${fmtDate(overlap.startDate)} – ${fmtDate(overlap.endDate)}. ` +
+                    `Выберите другие.`,
+            );
+            return;
+        }
         setBusy(true);
         setError(null);
         try {
@@ -61,7 +68,7 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
                 durationDays,
                 notes: notes.trim() || undefined,
             });
-            setFreeze(result.freeze);
+            setFreezes((prev) => [result.freeze, ...prev]);
             onMembershipChange(result.membership);
             setShowDialog(false);
             setNotes('');
@@ -77,14 +84,13 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
         }
     };
 
-    const handleUndo = async (): Promise<void> => {
-        if (!freeze) return;
-        if (!window.confirm('Отменить заморозку? Срок действия абонемента вернётся к прежней дате.')) return;
+    const handleUndo = async (freezeId: string): Promise<void> => {
+        if (!window.confirm('Отменить заморозку? Срок действия абонемента вернётся на её длительность назад.')) return;
         setBusy(true);
         setError(null);
         try {
-            const { membership: updated } = await adminMembershipsApi.undoFreeze(freeze.id);
-            setFreeze(null);
+            const { membership: updated } = await adminMembershipsApi.undoFreeze(freezeId);
+            setFreezes((prev) => prev.filter((f) => f.id !== freezeId));
             onMembershipChange(updated);
         } catch (err) {
             setError(err instanceof ApiError ? 'Не удалось отменить заморозку' : 'Не удалось отменить заморозку');
@@ -93,42 +99,53 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
         }
     };
 
+    const canFreeze = membership.freezeDaysRemaining > 0 && membership.status === 'active';
+
     return (
         <div className="rounded border border-border bg-card p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-body">
+                    Доступно дней заморозки: {membership.freezeDaysRemaining} / {membership.plan.freezeDaysAllowed}
+                </p>
+                <button
+                    type="button"
+                    onClick={() => {
+                        setStartDate(nextStartAfter(freezes.map((f) => f.endDate)));
+                        setShowDialog(true);
+                    }}
+                    disabled={busy || !canFreeze}
+                    className="rounded bg-primary px-3 py-1 text-sm text-white hover:opacity-90 disabled:opacity-50"
+                >
+                    Заморозить
+                </button>
+            </div>
+
             {loading ? (
                 <p className="text-sm text-body-secondary">Загрузка...</p>
-            ) : freeze ? (
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <p className="text-body font-semibold">❄️ Заморозка</p>
-                        <p className="text-sm text-body-secondary">
-                            {fmtDate(freeze.startDate)} – {fmtDate(freeze.endDate)} ({freeze.durationDays} дн.)
-                        </p>
-                        {freeze.notes && <p className="text-sm text-body-secondary mt-1">{freeze.notes}</p>}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={handleUndo}
-                        disabled={busy}
-                        className="text-xs text-destructive hover:underline disabled:opacity-50"
-                    >
-                        Отменить заморозку
-                    </button>
-                </div>
+            ) : freezes.length === 0 ? (
+                <p className="text-sm text-body-secondary">Заморозок ещё не было.</p>
             ) : (
-                <div className="flex items-center justify-between">
-                    <p className="text-body">
-                        Доступно дней заморозки: {membership.freezeDaysRemaining} / {membership.plan.freezeDaysAllowed}
-                    </p>
-                    <button
-                        type="button"
-                        onClick={() => setShowDialog(true)}
-                        disabled={busy || membership.freezeDaysRemaining === 0 || membership.status !== 'active'}
-                        className="rounded bg-primary px-3 py-1 text-sm text-white hover:opacity-90 disabled:opacity-50"
-                    >
-                        Заморозить
-                    </button>
-                </div>
+                <ul className="space-y-2">
+                    {freezes.map((freeze) => (
+                        <li key={freeze.id} className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-sm text-body">
+                                    ❄️ {fmtDate(freeze.startDate)} – {fmtDate(freeze.endDate)} ({freeze.durationDays}{' '}
+                                    дн.)
+                                </p>
+                                {freeze.notes && <p className="text-xs text-body-secondary mt-0.5">{freeze.notes}</p>}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleUndo(freeze.id)}
+                                disabled={busy}
+                                className="text-xs text-destructive hover:underline disabled:opacity-50"
+                            >
+                                Отменить
+                            </button>
+                        </li>
+                    ))}
+                </ul>
             )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -182,6 +199,12 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
                                     maxLength={500}
                                 />
                             </div>
+                            {overlap && !error && (
+                                <p className="text-sm text-destructive">
+                                    Эти даты пересекаются с заморозкой {fmtDate(overlap.startDate)} –{' '}
+                                    {fmtDate(overlap.endDate)}.
+                                </p>
+                            )}
                             {error && <p className="text-sm text-destructive">{error}</p>}
                             <div className="flex justify-end gap-2">
                                 <button
@@ -194,7 +217,7 @@ export function FreezePanel({ membership, onMembershipChange }: IFreezePanelProp
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={busy}
+                                    disabled={busy || !!overlap}
                                     className="rounded bg-primary px-3 py-1 text-white hover:opacity-90 disabled:opacity-50"
                                 >
                                     {busy ? 'Запись...' : 'Заморозить'}

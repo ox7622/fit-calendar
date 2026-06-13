@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 
 import { Customer } from './customer.entity';
+import { DATE_ONLY_TRANSFORMER } from './date-only.transformer';
 import { MembershipPlan } from './membership-plan.entity';
 
 export type TMembershipStatus = 'active' | 'expired' | 'cancelled';
@@ -41,10 +42,10 @@ export class CustomerMembership {
     @Column({ type: 'uuid' })
     planId: string;
 
-    @Column({ type: 'date' })
+    @Column({ type: 'date', transformer: DATE_ONLY_TRANSFORMER })
     startDate: Date;
 
-    @Column({ type: 'date' })
+    @Column({ type: 'date', transformer: DATE_ONLY_TRANSFORMER })
     endDate: Date;
 
     @Column({ type: 'int' })

@@ -26,7 +26,7 @@ export class UndoFreezeResultDto {
 
 export class FreezeErrorBodyDto {
     @ApiProperty({
-        enum: ['INSUFFICIENT_FREEZE_DAYS', 'MEMBERSHIP_NOT_ACTIVE', 'FREEZE_ALREADY_USED', 'INVALID_DURATION'],
+        enum: ['INSUFFICIENT_FREEZE_DAYS', 'MEMBERSHIP_NOT_ACTIVE', 'FREEZE_OVERLAPS_EXISTING', 'INVALID_DURATION'],
     })
     code: string;
 

@@ -162,7 +162,7 @@ export class AdminMembershipController {
     }
 
     @Get('admin/memberships/:id/freezes')
-    @ApiOperation({ summary: 'List freezes for a membership (0 or 1 for MVP)' })
+    @ApiOperation({ summary: 'List freezes for a membership (ordered by startDate desc)' })
     @ApiResponse({ status: 200, type: [FreezeEventDto] })
     async listFreezes(@Param('id', new ParseUUIDPipe()) id: string): Promise<FreezeEventDto[]> {
         const freezes = await this.membershipService.findFreezesByMembership(id);
@@ -174,7 +174,7 @@ export class AdminMembershipController {
     @ApiOperation({
         summary: 'Record a freeze (shifts membership endDate + decrements freezeDaysRemaining atomically)',
         description:
-            'Returns 400 with code INVALID_DURATION / MEMBERSHIP_NOT_ACTIVE / FREEZE_ALREADY_USED / ' +
+            'Returns 400 with code INVALID_DURATION / MEMBERSHIP_NOT_ACTIVE / FREEZE_OVERLAPS_EXISTING / ' +
             'INSUFFICIENT_FREEZE_DAYS depending on which guard fails. The endDate shift happens at ' +
             'record time even for future startDates (see Story 7.6 Dev Notes).',
     })

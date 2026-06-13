@@ -319,9 +319,10 @@ export class MembershipService {
     }
 
     /**
-     * Story 7.6 — record a single-contiguous freeze on an active membership.
-     * AC2 caps each membership at one freeze for MVP (re-freezing is a
-     * future story). The membership's `endDate` shifts forward by
+     * Story 7.6 — record a freeze on an active membership. Multiple freezes
+     * are allowed up to the plan's `freezeDaysAllowed` budget (tracked by
+     * `freezeDaysRemaining`); intervals must not overlap each other. The
+     * membership's `endDate` shifts forward by
      * `durationDays` immediately at record time, even if startDate is in
      * the future — see story Dev Notes "Why the freeze reservation
      * includes future starts".
@@ -353,15 +354,6 @@ export class MembershipService {
             }
 
             const freezeRepo = manager.getRepository(FreezeEvent);
-            const existingCount = await freezeRepo.count({ where: { customerMembershipId: membershipId } });
-            if (existingCount > 0) {
-                throw new BadRequestException({
-                    statusCode: 400,
-                    error: 'Bad Request',
-                    code: 'FREEZE_ALREADY_USED',
-                    message: 'Заморозка уже использована для этого абонемента.',
-                });
-            }
             if (dto.durationDays > membership.freezeDaysRemaining) {
                 throw new BadRequestException({
                     statusCode: 400,
@@ -380,6 +372,26 @@ export class MembershipService {
             const start = parseDateOnly(dto.startDate);
             // Inclusive endDate: a 7-day freeze starting Mon ends the following Sun.
             const freezeEnd = addDays(start, dto.durationDays - 1);
+
+            // Reject intervals that overlap any existing freeze on this membership.
+            // The remaining-days counter prevents running over the total budget, but
+            // overlap would double-count days in the endDate shift (two freezes that
+            // share calendar days each contribute their full durationDays to the shift).
+            const existingFreezes = await freezeRepo.find({ where: { customerMembershipId: membershipId } });
+            const startTime = start.getTime();
+            const endTime = freezeEnd.getTime();
+            const overlapsExisting = existingFreezes.some(
+                (f) => startTime <= f.endDate.getTime() && f.startDate.getTime() <= endTime,
+            );
+            if (overlapsExisting) {
+                throw new BadRequestException({
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    code: 'FREEZE_OVERLAPS_EXISTING',
+                    message: 'Интервал заморозки пересекается с уже существующей. Выберите другие даты.',
+                });
+            }
+
             // Membership endDate shifts by durationDays (not durationDays - 1).
             membership.endDate = addDays(membership.endDate, dto.durationDays);
             membership.freezeDaysRemaining -= dto.durationDays;
@@ -455,9 +467,9 @@ export class MembershipService {
             where: { customerMembershipId: membershipId },
             order: { startDate: 'DESC' },
         });
-        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).getTime();
         for (const f of freezes) {
-            if (f.startDate.getTime() <= today.getTime() && today.getTime() <= f.endDate.getTime()) {
+            if (f.startDate.getTime() <= today && today <= f.endDate.getTime()) {
                 return f;
             }
         }

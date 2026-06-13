@@ -8,9 +8,17 @@ import {
     type IAdminMembership,
     type IPlanOption,
 } from '@/shared/api';
+import { todayIso } from '@/shared/lib/date';
 
 interface IAssignMembershipModalProps {
     customerId: string;
+    /**
+     * Pre-filled start date in YYYY-MM-DD. When the customer already has an
+     * active membership, parent passes `activeEndDate + 1` so the new plan
+     * picks up the day after the current one ends — avoids the
+     * ACTIVE_MEMBERSHIP_EXISTS conflict on submit.
+     */
+    initialStartDate?: string;
     onClose: () => void;
     onAssigned: (membership: IAdminMembership) => void;
 }
@@ -21,17 +29,15 @@ interface IConflict {
     message: string;
 }
 
-function todayIso(): string {
-    const d = new Date();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${month}-${day}`;
-}
-
-export function AssignMembershipModal({ customerId, onClose, onAssigned }: IAssignMembershipModalProps) {
+export function AssignMembershipModal({
+    customerId,
+    initialStartDate,
+    onClose,
+    onAssigned,
+}: IAssignMembershipModalProps) {
     const [planOptions, setPlanOptions] = useState<IPlanOption[]>([]);
     const [planId, setPlanId] = useState('');
-    const [startDate, setStartDate] = useState(todayIso());
+    const [startDate, setStartDate] = useState(initialStartDate ?? todayIso());
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -74,7 +80,7 @@ export function AssignMembershipModal({ customerId, onClose, onAssigned }: IAssi
         try {
             await doAssign();
         } catch (err) {
-            if (err instanceof ApiError && err.response.status === 409 && isActiveExistsError(err.data)) {
+            if (err instanceof ApiError && err.status === 409 && isActiveExistsError(err.data)) {
                 setConflict({
                     existingId: err.data.existingActive.id,
                     existingEndDate: err.data.existingActive.endDate,

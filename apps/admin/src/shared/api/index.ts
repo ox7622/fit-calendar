@@ -32,6 +32,13 @@ export type {
     IUpdateMembershipPayload,
     IActiveExistsError,
     TMembershipStatus,
+    IGuestVisit,
+    IRecordGuestVisitPayload,
+    IGuestVisitResult,
+    IFreezeEvent,
+    IRecordFreezePayload,
+    IFreezeResult,
+    IUndoFreezeResult,
 } from './memberships.api';
 export type {
     IAdminClubInfo,

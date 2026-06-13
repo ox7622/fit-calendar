@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { CustomerMembership } from './customer-membership.entity';
+import { DATE_ONLY_TRANSFORMER } from './date-only.transformer';
 
 /**
  * Story 7.6 — single-contiguous freeze per membership (MVP). One row per
@@ -20,10 +21,10 @@ export class FreezeEvent {
     @Column({ type: 'uuid' })
     customerMembershipId: string;
 
-    @Column({ type: 'date' })
+    @Column({ type: 'date', transformer: DATE_ONLY_TRANSFORMER })
     startDate: Date;
 
-    @Column({ type: 'date' })
+    @Column({ type: 'date', transformer: DATE_ONLY_TRANSFORMER })
     endDate: Date;
 
     @Column({ type: 'int' })

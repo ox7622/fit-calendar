@@ -68,6 +68,32 @@ export interface IGuestVisitResult {
     remaining: number;
 }
 
+export interface IFreezeEvent {
+    id: string;
+    customerMembershipId: string;
+    startDate: string;
+    endDate: string;
+    durationDays: number;
+    notes: string | null;
+    recordedByAdminId: string;
+    createdAt: string;
+}
+
+export interface IRecordFreezePayload {
+    startDate: string;
+    durationDays: number;
+    notes?: string;
+}
+
+export interface IFreezeResult {
+    freeze: IFreezeEvent;
+    membership: IAdminMembership;
+}
+
+export interface IUndoFreezeResult {
+    membership: IAdminMembership;
+}
+
 export const adminMembershipsApi = {
     listForCustomer: (customerId: string): Promise<IAdminMembership[]> =>
         adminApiClient.get<IAdminMembership[]>(`/admin/customers/${customerId}/memberships`),
@@ -89,6 +115,15 @@ export const adminMembershipsApi = {
 
     undoGuestVisit: (visitId: string): Promise<{ remaining: number }> =>
         adminApiClient.delete<{ remaining: number }>(`/admin/guest-visits/${visitId}`),
+
+    getFreezes: (membershipId: string): Promise<IFreezeEvent[]> =>
+        adminApiClient.get<IFreezeEvent[]>(`/admin/memberships/${membershipId}/freezes`),
+
+    recordFreeze: (membershipId: string, payload: IRecordFreezePayload): Promise<IFreezeResult> =>
+        adminApiClient.post<IFreezeResult>(`/admin/memberships/${membershipId}/freezes`, payload),
+
+    undoFreeze: (freezeId: string): Promise<IUndoFreezeResult> =>
+        adminApiClient.delete<IUndoFreezeResult>(`/admin/freezes/${freezeId}`),
 };
 
 export { ApiError };

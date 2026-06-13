@@ -10,7 +10,15 @@ import {
     type IAdminCustomer,
     type IAdminMembership,
 } from '@/shared/api';
+import { nextStartAfter } from '@/shared/lib/date';
 import { useNavigate, useParams } from 'react-router-dom';
+
+// Pre-fills the assign-plan dialog with the day after the current active
+// plan's endDate so the new plan stitches on without an ACTIVE_MEMBERSHIP_EXISTS
+// conflict. Today if none active.
+function suggestNextStartDate(memberships: IAdminMembership[]): string {
+    return nextStartAfter(memberships.filter((m) => m.status === 'active').map((m) => m.endDate));
+}
 
 export function CustomerEditPage() {
     const { id } = useParams<{ id: string }>();
@@ -103,6 +111,7 @@ export function CustomerEditPage() {
             {showAssign && id && (
                 <AssignMembershipModal
                     customerId={id}
+                    initialStartDate={suggestNextStartDate(memberships)}
                     onClose={() => setShowAssign(false)}
                     onAssigned={(created) => setMemberships((prev) => [created, ...prev])}
                 />

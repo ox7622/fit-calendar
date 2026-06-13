@@ -50,7 +50,7 @@ describe('MembershipService', () => {
     let txMembershipRepo: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock };
     let txCustomerRepo: { findOne: jest.Mock };
     let txGuestVisitRepo: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
-    let txFreezeRepo: { count: jest.Mock; findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
+    let txFreezeRepo: { find: jest.Mock; findOne: jest.Mock; create: jest.Mock; save: jest.Mock; delete: jest.Mock };
     let dataSource: { transaction: jest.Mock };
 
     beforeEach(async () => {
@@ -80,7 +80,7 @@ describe('MembershipService', () => {
             delete: jest.fn(async () => ({ affected: 1 })),
         };
         txFreezeRepo = {
-            count: jest.fn().mockResolvedValue(0),
+            find: jest.fn().mockResolvedValue([]),
             findOne: jest.fn(),
             create: jest.fn((dto) => ({ id: 'fz-new', ...dto } as FreezeEvent)),
             save: jest.fn(async (entity) => entity as FreezeEvent),
@@ -458,12 +458,47 @@ describe('MembershipService', () => {
             ).rejects.toThrow(BadRequestException);
         });
 
-        it('rejects FREEZE_ALREADY_USED when a freeze row already exists', async () => {
-            txMembershipRepo.findOne.mockResolvedValueOnce(buildMembership({ status: 'active' }));
-            txFreezeRepo.count.mockResolvedValueOnce(1);
+        it('allows a second freeze when budget remains and intervals do not overlap', async () => {
+            const membership = buildMembership({
+                endDate: new Date('2026-12-31T00:00:00Z'),
+                freezeDaysRemaining: 16,
+                status: 'active',
+            });
+            txMembershipRepo.findOne.mockResolvedValueOnce(membership);
+            txFreezeRepo.find.mockResolvedValueOnce([
+                {
+                    id: 'fz-prev',
+                    customerMembershipId: 'm1',
+                    startDate: new Date('2026-06-01T00:00:00Z'),
+                    endDate: new Date('2026-06-14T00:00:00Z'),
+                    durationDays: 14,
+                } as FreezeEvent,
+            ]);
+
+            const result = await service.recordFreeze('m1', { startDate: '2026-07-01', durationDays: 5 }, 'admin-1');
+
+            expect(membership.freezeDaysRemaining).toBe(11);
+            expect(membership.endDate.toISOString().slice(0, 10)).toBe('2027-01-05');
+            expect(result.freeze).toBeDefined();
+            expect(txFreezeRepo.save).toHaveBeenCalled();
+        });
+
+        it('rejects FREEZE_OVERLAPS_EXISTING when new interval intersects an existing one', async () => {
+            txMembershipRepo.findOne.mockResolvedValueOnce(
+                buildMembership({ status: 'active', freezeDaysRemaining: 30 }),
+            );
+            txFreezeRepo.find.mockResolvedValueOnce([
+                {
+                    id: 'fz-prev',
+                    customerMembershipId: 'm1',
+                    startDate: new Date('2026-06-01T00:00:00Z'),
+                    endDate: new Date('2026-06-07T00:00:00Z'),
+                    durationDays: 7,
+                } as FreezeEvent,
+            ]);
 
             await expect(
-                service.recordFreeze('m1', { startDate: '2026-06-01', durationDays: 7 }, 'admin-1'),
+                service.recordFreeze('m1', { startDate: '2026-06-05', durationDays: 5 }, 'admin-1'),
             ).rejects.toThrow(BadRequestException);
             expect(txFreezeRepo.save).not.toHaveBeenCalled();
         });

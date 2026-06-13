@@ -80,22 +80,7 @@ export class AdminUsersService {
             return { plaintext, adminUserId: adminUser.id, action };
         });
 
-        const { emailSent, sentToEmail } = await this.deliverLinkEmail(
-            login,
-            name,
-            issued.plaintext,
-            expiresAt,
-            'invite',
-        );
-
-        return {
-            token: issued.plaintext,
-            adminUserId: issued.adminUserId,
-            expiresAt,
-            action: issued.action,
-            emailSent,
-            sentToEmail,
-        };
+        return this.buildIssuedResponse(login, name, issued, expiresAt, 'invite');
     }
 
     async issueReset(issuerAdminId: string, adminUserId: string): Promise<IssuedTokenResponseDto> {
@@ -111,25 +96,10 @@ export class AdminUsersService {
             }
 
             const plaintext = await this.issueTokenInTx(tokenRepo, admin.id, issuerAdminId, 'reset');
-            return { plaintext, adminUserId: admin.id, login: admin.login, name: admin.name };
+            return { plaintext, adminUserId: admin.id, login: admin.login, name: admin.name, action: 'reset' as const };
         });
 
-        const { emailSent, sentToEmail } = await this.deliverLinkEmail(
-            issued.login,
-            issued.name,
-            issued.plaintext,
-            expiresAt,
-            'reset',
-        );
-
-        return {
-            token: issued.plaintext,
-            adminUserId: issued.adminUserId,
-            expiresAt,
-            action: 'reset',
-            emailSent,
-            sentToEmail,
-        };
+        return this.buildIssuedResponse(issued.login, issued.name, issued, expiresAt, 'reset');
     }
 
     async deactivate(issuerAdminId: string, targetId: string): Promise<void> {
@@ -157,10 +127,37 @@ export class AdminUsersService {
             }
 
             await adminRepo.update({ id: targetId }, { isActive: false });
-            // Consume any outstanding invite/reset tokens: otherwise a still-valid
-            // set-password link would flip isActive back to true and bypass the deactivation.
-            await tokenRepo.update({ adminUserId: targetId, consumedAt: IsNull() }, { consumedAt: new Date() });
+            // Consume outstanding tokens so a still-valid set-password link can't
+            // flip isActive back to true and bypass the deactivation.
+            await this.invalidateOutstandingTokensInTx(tokenRepo, targetId);
         });
+    }
+
+    // Assembles the IssuedTokenResponseDto shared by invite/issueReset: attempts
+    // email delivery (best-effort) and folds the emailSent/sentToEmail signal into
+    // the response so the caller always gets the plaintext link plus delivery status.
+    private async buildIssuedResponse(
+        login: string,
+        name: string,
+        issued: { plaintext: string; adminUserId: string; action: 'created' | 'reactivated' | 'reset' },
+        expiresAt: string,
+        purpose: TAdminInviteTokenPurpose,
+    ): Promise<IssuedTokenResponseDto> {
+        const { emailSent, sentToEmail } = await this.deliverLinkEmail(
+            login,
+            name,
+            issued.plaintext,
+            expiresAt,
+            purpose,
+        );
+        return {
+            token: issued.plaintext,
+            adminUserId: issued.adminUserId,
+            expiresAt,
+            action: issued.action,
+            emailSent,
+            sentToEmail,
+        };
     }
 
     // Sends the one-time link by email when the login is an email and SMTP is
@@ -198,15 +195,23 @@ export class AdminUsersService {
         return `${base.replace(/\/+$/, '')}/set-password?token=${encodeURIComponent(token)}`;
     }
 
+    // Marks every unconsumed token for this admin as consumed. Shared by token
+    // issuance (an older forwarded link can't be raced against a fresh one) and
+    // deactivation (a still-valid link can't re-activate a disabled account).
+    private async invalidateOutstandingTokensInTx(
+        tokenRepo: Repository<AdminInviteToken>,
+        adminUserId: string,
+    ): Promise<void> {
+        await tokenRepo.update({ adminUserId, consumedAt: IsNull() }, { consumedAt: new Date() });
+    }
+
     private async issueTokenInTx(
         tokenRepo: Repository<AdminInviteToken>,
         adminUserId: string,
         issuerAdminId: string,
         purpose: TAdminInviteTokenPurpose,
     ): Promise<string> {
-        // Invalidate any prior unconsumed tokens for this admin so an older
-        // forwarded link can't be raced against the freshly issued one.
-        await tokenRepo.update({ adminUserId, consumedAt: IsNull() }, { consumedAt: new Date() });
+        await this.invalidateOutstandingTokensInTx(tokenRepo, adminUserId);
 
         const plaintext = generateUrlSafeToken();
         await tokenRepo.save(

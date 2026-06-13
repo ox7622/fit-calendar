@@ -175,7 +175,7 @@ export class AdminUsersService {
         }
         const url = this.buildSetPasswordUrl(token);
         if (!url) {
-            this.logger.warn('CORS_ORIGIN_ADMIN is unset — cannot build set-password URL; skipping email');
+            this.logger.warn('ADMIN_APP_URL is unset — cannot build set-password URL; skipping email');
             return { emailSent: false, sentToEmail: null };
         }
         try {
@@ -188,7 +188,7 @@ export class AdminUsersService {
     }
 
     private buildSetPasswordUrl(token: string): string | null {
-        const base = this.config.get<string>('CORS_ORIGIN_ADMIN');
+        const base = this.config.get<string>('ADMIN_APP_URL');
         if (!base) {
             return null;
         }

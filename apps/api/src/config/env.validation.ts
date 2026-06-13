@@ -71,6 +71,13 @@ export class EnvironmentVariables {
     @IsOptional()
     CORS_ORIGIN_ADMIN?: string;
 
+    // Public URL of the admin SPA, used to build the set-password link in admin
+    // invite/reset emails. Kept separate from CORS_ORIGIN_ADMIN (a CORS concern).
+    // When unset, the email is skipped and the copy-link fallback is used instead.
+    @IsString()
+    @IsOptional()
+    ADMIN_APP_URL?: string;
+
     // Telegram Bot configuration
     @IsString()
     @IsNotEmpty()

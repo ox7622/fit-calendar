@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { CopyWeekDialog } from '@/features/schedule/bulk/CopyWeekDialog';
+import { CreateClassDialog } from '@/features/schedule/CreateClassDialog';
+import { MoveClassConfirm } from '@/features/schedule/MoveClassConfirm';
 import { ScheduleCalendar } from '@/features/schedule/ScheduleCalendar';
 import { ScheduleFilters } from '@/features/schedule/ScheduleFilters';
 import { ScheduleList } from '@/features/schedule/ScheduleList';
@@ -37,6 +39,8 @@ export function DashboardPage() {
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkBusy, setBulkBusy] = useState(false);
+    const [createDay, setCreateDay] = useState<Date | null>(null);
+    const [pendingMove, setPendingMove] = useState<{ item: IAdminScheduleItem; newStartTime: string } | null>(null);
 
     const rangeEnd = addDays(rangeStart, DEFAULT_RANGE_DAYS - 1);
 
@@ -77,6 +81,11 @@ export function DashboardPage() {
     const onCreated = (count: number): void => {
         setReloadToken((t) => t + 1);
         showToast(`Создано занятий: ${count}`);
+    };
+
+    const onMoved = (): void => {
+        setReloadToken((t) => t + 1);
+        showToast('Занятие перенесено');
     };
 
     const onPrev = (): void => setRangeStart((prev) => subWeeks(prev, 1));
@@ -260,6 +269,8 @@ export function DashboardPage() {
                     selectMode={selectMode}
                     selectedIds={selectedIds}
                     onToggleSelect={toggleSelect}
+                    onRequestMove={(item, newStartTime) => setPendingMove({ item, newStartTime })}
+                    onCreateForDay={(day) => setCreateDay(day)}
                 />
             ) : (
                 <ScheduleList items={items} />
@@ -271,6 +282,17 @@ export function DashboardPage() {
                     sourceWeekStart={rangeStart}
                     onClose={() => setCopyWeekOpen(false)}
                     onCreated={onCreated}
+                />
+            )}
+            {createDay && (
+                <CreateClassDialog day={createDay} onClose={() => setCreateDay(null)} onCreated={onCreated} />
+            )}
+            {pendingMove && (
+                <MoveClassConfirm
+                    item={pendingMove.item}
+                    newStartTime={pendingMove.newStartTime}
+                    onMoved={onMoved}
+                    onClose={() => setPendingMove(null)}
                 />
             )}
             {toast && (

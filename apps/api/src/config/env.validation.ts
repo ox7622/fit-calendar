@@ -107,34 +107,20 @@ export class EnvironmentVariables {
     @IsOptional()
     CLOUDINARY_API_SECRET?: string;
 
-    // SMTP (Yandex 360) — все опциональны. Если не заданы все обязательные
-    // (HOST/USER/PASS/FROM), MailService инертен: письма не шлются, остаётся
-    // ручной copy-link. SMTP_PORT/SMTP_SECURE хранятся строками и парсятся в
-    // call-site (как SWAGGER_ENABLED), чтобы избежать ложной coercion.
+    // Email (Unisender Go transactional API over HTTPS — prod VPS blocks SMTP).
+    // All optional: if UNISENDER_API_KEY / MAIL_FROM_EMAIL are unset, MailService
+    // is inert (no send; admin invite/reset falls back to the copy-link).
     @IsString()
     @IsOptional()
-    SMTP_HOST?: string;
+    UNISENDER_API_KEY?: string;
 
     @IsString()
     @IsOptional()
-    SMTP_PORT?: string = '465';
+    MAIL_FROM_EMAIL?: string;
 
     @IsString()
     @IsOptional()
-    @IsIn(['true', 'false'])
-    SMTP_SECURE?: string = 'true';
-
-    @IsString()
-    @IsOptional()
-    SMTP_USER?: string;
-
-    @IsString()
-    @IsOptional()
-    SMTP_PASS?: string;
-
-    @IsString()
-    @IsOptional()
-    SMTP_FROM?: string;
+    MAIL_FROM_NAME?: string = 'FitCalendar';
 
     // Swagger gating. Defaults to "true" for dev ergonomics; set "false" in
     // production so the API schema isn't publicly discoverable. Parsed at the

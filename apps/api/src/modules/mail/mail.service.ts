@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
 
 export type TAdminLinkPurpose = 'invite' | 'reset';
 
@@ -14,51 +12,77 @@ export interface ISendAdminSetPasswordLinkParams {
     purpose: TAdminLinkPurpose;
 }
 
+// Unisender Go transactional email API. Sent over HTTPS (443) because the prod
+// VPS blocks outbound SMTP ports (25/465/587) — raw SMTP can't be used there.
+const UNISENDER_ENDPOINT = 'https://goapi.unisender.ru/ru/transactional/api/v1/email/send.json';
+// Bounded so a slow/unreachable provider can never hang the HTTP request that
+// awaits the send (the caller wants emailSent synchronously); on timeout we abort
+// and the caller degrades to emailSent=false + copy-link fallback.
+const SEND_TIMEOUT_MS = 10_000;
+
+interface IUnisenderSendResponse {
+    status?: string;
+    failed_emails?: Record<string, string>;
+    message?: string;
+    code?: number;
+}
+
 @Injectable()
 export class MailService {
-    private transporter: Transporter | null = null;
-
     constructor(private readonly config: ConfigService) {}
 
     /**
      * Mirrors the Cloudinary "optional in dev" pattern: the feature is inert
-     * unless all required SMTP vars are present. Callers gate on this before
+     * unless the API key and sender are configured. Callers gate on this before
      * attempting a send so a missing config never surfaces as an error.
      */
     isEnabled(): boolean {
-        return Boolean(
-            this.config.get<string>('SMTP_HOST') &&
-                this.config.get<string>('SMTP_USER') &&
-                this.config.get<string>('SMTP_PASS') &&
-                this.config.get<string>('SMTP_FROM'),
-        );
+        return Boolean(this.config.get<string>('UNISENDER_API_KEY') && this.config.get<string>('MAIL_FROM_EMAIL'));
     }
 
     async sendAdminSetPasswordLink(params: ISendAdminSetPasswordLinkParams): Promise<void> {
-        const transporter = this.getTransporter();
+        const apiKey = this.config.getOrThrow<string>('UNISENDER_API_KEY');
+        const fromEmail = this.config.getOrThrow<string>('MAIL_FROM_EMAIL');
+        const fromName = this.config.get<string>('MAIL_FROM_NAME') ?? 'FitCalendar';
         const { subject, html, text } = this.buildEmail(params);
-        await transporter.sendMail({
-            from: this.config.getOrThrow<string>('SMTP_FROM'),
-            to: params.to,
-            subject,
-            html,
-            text,
-        });
-    }
 
-    private getTransporter(): Transporter {
-        if (!this.transporter) {
-            this.transporter = nodemailer.createTransport({
-                host: this.config.getOrThrow<string>('SMTP_HOST'),
-                port: Number(this.config.get<string>('SMTP_PORT') ?? '465'),
-                secure: (this.config.get<string>('SMTP_SECURE') ?? 'true') === 'true',
-                auth: {
-                    user: this.config.getOrThrow<string>('SMTP_USER'),
-                    pass: this.config.getOrThrow<string>('SMTP_PASS'),
-                },
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
+
+        let response: Response;
+        try {
+            response = await fetch(UNISENDER_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-KEY': apiKey },
+                body: JSON.stringify({
+                    message: {
+                        recipients: [{ email: params.to }],
+                        body: { html, plaintext: text },
+                        subject,
+                        from_email: fromEmail,
+                        from_name: fromName,
+                    },
+                }),
+                signal: controller.signal,
             });
+        } finally {
+            clearTimeout(timeout);
         }
-        return this.transporter;
+
+        if (!response.ok) {
+            const body = await response.text().catch(() => '');
+            throw new Error(`Unisender send failed: HTTP ${response.status} ${body.slice(0, 300)}`);
+        }
+
+        const data = (await response.json()) as IUnisenderSendResponse;
+        if (data.status !== 'success') {
+            throw new Error(`Unisender send not successful: ${data.message ?? JSON.stringify(data).slice(0, 300)}`);
+        }
+        // HTTP 200 + status=success still reports per-address rejections here.
+        const rejection = data.failed_emails?.[params.to];
+        if (rejection) {
+            throw new Error(`Unisender rejected ${params.to}: ${rejection}`);
+        }
     }
 
     private buildEmail({ name, url, expiresAt, purpose }: ISendAdminSetPasswordLinkParams): {

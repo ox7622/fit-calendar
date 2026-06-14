@@ -69,9 +69,6 @@ export interface IScheduleFormPayload {
     durationMinutes: number;
 }
 
-export const ALLOWED_DURATIONS = [30, 45, 60, 90] as const;
-export type TAllowedDuration = (typeof ALLOWED_DURATIONS)[number];
-
 export const adminScheduleApi = {
     list: (query: IAdminScheduleQuery = {}): Promise<IAdminScheduleListResponse> =>
         adminApiClient.get<IAdminScheduleListResponse>('/admin/schedule', { params: toQueryParams(query) }),

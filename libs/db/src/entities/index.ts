@@ -3,6 +3,7 @@ export * from './coach.entity';
 export * from './training-type.entity';
 export * from './difficulty-level.entity';
 export * from './impact-type.entity';
+export * from './duration-option.entity';
 export * from './schedule-entry.entity';
 export * from './reminder.entity';
 export * from './club-info.entity';

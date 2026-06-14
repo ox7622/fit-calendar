@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 
 import {
     adminCoachesApi,
+    adminDurationOptionsApi,
     adminTrainingTypesApi,
-    ALLOWED_DURATIONS,
     type ICoachOption,
+    type IDurationOption,
     type IScheduleFormPayload,
     type ITrainingTypeOption,
-    type TAllowedDuration,
 } from '@/shared/api';
 
 import { buildRecurrence, type TRecurrenceRange } from './bulk/build-recurrence';
@@ -34,7 +34,7 @@ interface IScheduleFormState {
     trainingTypeId: string;
     coachId: string;
     startTime: string; // datetime-local value, e.g. "2026-05-15T10:00"
-    durationMinutes: TAllowedDuration;
+    durationMinutes: number;
 }
 
 /** Convert an ISO timestamp from the API into the local datetime-local input format. */
@@ -53,7 +53,7 @@ function toState(initial?: Partial<IScheduleFormPayload>): IScheduleFormState {
         trainingTypeId: initial?.trainingTypeId ?? '',
         coachId: initial?.coachId ?? '',
         startTime: isoToLocal(initial?.startTime),
-        durationMinutes: (initial?.durationMinutes as TAllowedDuration | undefined) ?? 60,
+        durationMinutes: initial?.durationMinutes ?? 60,
     };
 }
 
@@ -110,6 +110,7 @@ export function ScheduleForm({
     const [error, setError] = useState<string | null>(null);
     const [coachOptions, setCoachOptions] = useState<ICoachOption[]>([]);
     const [typeOptions, setTypeOptions] = useState<ITrainingTypeOption[]>([]);
+    const [durationOptions, setDurationOptions] = useState<IDurationOption[]>([]);
 
     // Recurrence (only reachable when onSubmitRecurring is provided). The start
     // date and time come from the `startTime` field below; these add the days
@@ -125,11 +126,12 @@ export function ScheduleForm({
 
     useEffect(() => {
         let cancelled = false;
-        Promise.all([adminCoachesApi.getOptions(), adminTrainingTypesApi.getOptions()])
-            .then(([coaches, types]) => {
+        Promise.all([adminCoachesApi.getOptions(), adminTrainingTypesApi.getOptions(), adminDurationOptionsApi.list()])
+            .then(([coaches, types, durations]) => {
                 if (cancelled) return;
                 setCoachOptions(coaches);
                 setTypeOptions(types);
+                setDurationOptions(durations);
             })
             .catch(() => {
                 // Non-fatal — empty options render an empty <select> with a hint.
@@ -138,6 +140,15 @@ export function ScheduleForm({
             cancelled = true;
         };
     }, []);
+
+    // Only active durations are offered; if the entry's saved value has since
+    // been deactivated/deleted, surface it as a one-off option so the form
+    // still reflects truth (deletion of a duration_option is a soft tombstone —
+    // schedule_entries store the raw int, not a FK).
+    const activeValues = durationOptions.filter((d) => d.isActive).map((d) => d.valueMinutes);
+    const visibleDurations = activeValues.includes(state.durationMinutes)
+        ? activeValues
+        : [state.durationMinutes, ...activeValues];
 
     const update = <K extends keyof IScheduleFormState>(key: K, value: IScheduleFormState[K]): void => {
         setState((prev) => ({ ...prev, [key]: value }));
@@ -253,11 +264,11 @@ export function ScheduleForm({
                     <select
                         id="durationMinutes"
                         value={state.durationMinutes}
-                        onChange={(e) => update('durationMinutes', Number(e.target.value) as TAllowedDuration)}
+                        onChange={(e) => update('durationMinutes', Number(e.target.value))}
                         className={INPUT_CLASS}
-                        disabled={submitting}
+                        disabled={submitting || visibleDurations.length === 0}
                     >
-                        {ALLOWED_DURATIONS.map((value) => (
+                        {visibleDurations.map((value) => (
                             <option key={value} value={value}>
                                 {value} мин
                             </option>

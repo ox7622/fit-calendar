@@ -1,6 +1,7 @@
 export * from './bot.const';
 export * from './status-codes.const';
 export * from './difficulty-levels.const';
+export * from './duration-options.const';
 export * from './impact-types.const';
 export * from './taxonomy-colors.const';
 export * from './upload-limits.const';

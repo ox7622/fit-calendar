@@ -57,7 +57,17 @@ export type {
     TTaxonomyUpdatePayload,
     TTaxonomyMoveDirection,
 } from './taxonomy.api';
-export { adminScheduleApi, ALLOWED_DURATIONS } from './schedule.api';
+export {
+    adminDurationOptionsApi,
+    DURATION_OPTION_MAX_MINUTES,
+    DURATION_OPTION_MIN_MINUTES,
+} from './duration-options.api';
+export type {
+    IDurationOption,
+    IDurationOptionCreatePayload,
+    TDurationOptionUpdatePayload,
+} from './duration-options.api';
+export { adminScheduleApi } from './schedule.api';
 export type {
     IAdminScheduleItem,
     IAdminScheduleListResponse,
@@ -67,6 +77,5 @@ export type {
     IScheduleFormPayload,
     TAdminScheduleStatus,
     TAdminScheduleStatusFilter,
-    TAllowedDuration,
     TSkipReason,
 } from './schedule.api';

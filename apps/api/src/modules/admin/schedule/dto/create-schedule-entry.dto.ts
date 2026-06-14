@@ -1,8 +1,7 @@
+import { DURATION_OPTION_MAX_MINUTES, DURATION_OPTION_MIN_MINUTES } from '@fitcalendar/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsIn, IsInt, IsUUID } from 'class-validator';
-
-export const ALLOWED_DURATIONS = [30, 45, 60, 90] as const;
+import { IsDate, IsInt, IsUUID, Max, Min } from 'class-validator';
 
 export class CreateScheduleEntryDto {
     @ApiProperty({ description: 'TrainingType UUID — must be active' })
@@ -21,8 +20,12 @@ export class CreateScheduleEntryDto {
     @IsDate()
     startTime: Date;
 
-    @ApiProperty({ enum: ALLOWED_DURATIONS, example: 60 })
+    /** Sanity bounds only — the curated list lives in `duration_options` and
+     * the admin form drives UX from there. Admins editing via API can
+     * register/use any value in this range. */
+    @ApiProperty({ minimum: DURATION_OPTION_MIN_MINUTES, maximum: DURATION_OPTION_MAX_MINUTES, example: 60 })
     @IsInt()
-    @IsIn(ALLOWED_DURATIONS as unknown as number[])
+    @Min(DURATION_OPTION_MIN_MINUTES)
+    @Max(DURATION_OPTION_MAX_MINUTES)
     durationMinutes: number;
 }

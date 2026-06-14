@@ -273,7 +273,7 @@ export function DashboardPage() {
                     onCreateForDay={(day) => setCreateDay(day)}
                 />
             ) : (
-                <ScheduleList items={items} />
+                <ScheduleList items={items} onCreateForDay={setCreateDay} />
             )}
 
             {copyWeekOpen && (

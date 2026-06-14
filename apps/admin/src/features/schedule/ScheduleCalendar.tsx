@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import type { IAdminScheduleItem } from '@/shared/api';
 import { addDays, format, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { findOverlappingIds } from './bulk/find-overlapping-ids';
@@ -17,7 +18,7 @@ interface IScheduleCalendarProps {
     onToggleSelect?: (id: string) => void;
     /** Drag a class to another day → request a move (date swapped, time kept). */
     onRequestMove?: (item: IAdminScheduleItem, newStartTime: string) => void;
-    /** Click the "+" in a day header → create a class for that day. */
+    /** Click the "+" tile in a day column → create a class for that day. */
     onCreateForDay?: (day: Date) => void;
 }
 
@@ -80,7 +81,7 @@ export function ScheduleCalendar({
                 return (
                     <div
                         key={key}
-                        className={`group flex flex-col gap-1 rounded-lg ${
+                        className={`flex flex-col gap-1 rounded-lg ${
                             dragOverKey === key && dragEnabled ? 'bg-primary/5 ring-2 ring-primary/40' : ''
                         }`}
                         onDragOver={(e) => {
@@ -101,99 +102,90 @@ export function ScheduleCalendar({
                         }}
                     >
                         <div
-                            className={`flex items-center justify-center gap-1 pb-2 text-xs font-semibold uppercase tracking-wide ${
+                            className={`flex flex-col items-center pb-2 text-xs font-semibold uppercase tracking-wide ${
                                 isToday ? 'text-primary' : 'text-muted-foreground'
                             }`}
                         >
-                            <div className="text-center">
-                                <div>{format(day, 'EEE', { locale: ru })}</div>
-                                <div className={isToday ? 'text-primary font-bold' : 'text-foreground/70'}>
-                                    {format(day, 'd')}
-                                </div>
+                            <div>{format(day, 'EEE', { locale: ru })}</div>
+                            <div className={isToday ? 'text-primary font-bold' : 'text-foreground/70'}>
+                                {format(day, 'd')}
                             </div>
+                        </div>
+                        <div className="flex-1 space-y-1 min-h-[150px] rounded-lg border border-border bg-card/50 p-1.5">
+                            {dayItems.map((item) => {
+                                const isCancelled = item.status === 'cancelled';
+                                const isOverlapping = overlappingIds.has(item.id);
+                                const isSelected = selectMode && (selectedIds?.has(item.id) ?? false);
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() =>
+                                            selectMode ? onToggleSelect?.(item.id) : navigate(`/schedule/${item.id}`)
+                                        }
+                                        aria-pressed={selectMode ? isSelected : undefined}
+                                        title={
+                                            selectMode
+                                                ? 'Нажмите, чтобы выбрать для удаления'
+                                                : isOverlapping
+                                                ? 'Пересечение по времени у тренера'
+                                                : undefined
+                                        }
+                                        draggable={dragEnabled && !isCancelled}
+                                        onDragStart={(e) => {
+                                            if (!dragEnabled || isCancelled) return;
+                                            setDraggingId(item.id);
+                                            e.dataTransfer.effectAllowed = 'move';
+                                            e.dataTransfer.setData('text/plain', item.id);
+                                        }}
+                                        onDragEnd={() => {
+                                            setDraggingId(null);
+                                            setDragOverKey(null);
+                                        }}
+                                        className={[
+                                            'w-full text-left rounded-md px-2 py-1.5 text-xs transition-colors',
+                                            isCancelled
+                                                ? 'bg-error/10 text-error hover:bg-error/20 line-through'
+                                                : 'bg-primary/10 text-primary hover:bg-primary/20',
+                                            isOverlapping ? 'ring-2 ring-error ring-offset-1' : '',
+                                            isSelected ? 'outline outline-2 outline-offset-1 outline-primary' : '',
+                                            draggingId === item.id ? 'opacity-40' : '',
+                                            dragEnabled && !isCancelled ? 'cursor-grab active:cursor-grabbing' : '',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ')}
+                                    >
+                                        <div className="flex items-start gap-1">
+                                            {selectMode && (
+                                                <span
+                                                    aria-hidden
+                                                    className={`mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] leading-none ${
+                                                        isSelected
+                                                            ? 'border-primary bg-primary text-primary-foreground'
+                                                            : 'border-current opacity-50'
+                                                    }`}
+                                                >
+                                                    {isSelected ? '✓' : ''}
+                                                </span>
+                                            )}
+                                            <span className="font-semibold truncate">{item.trainingType.name}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] mt-0.5 opacity-80">
+                                            <span>{format(parseISO(item.startTime), 'HH:mm')}</span>
+                                            <span>{coachInitials(item.coach.name)}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
                             {onCreateForDay && !selectMode && (
                                 <button
                                     type="button"
                                     onClick={() => onCreateForDay(day)}
                                     aria-label={`Добавить занятие на ${format(day, 'd MMMM', { locale: ru })}`}
-                                    title="Добавить занятие"
-                                    className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-opacity hover:bg-muted focus:opacity-100 group-hover:opacity-100"
+                                    className="flex w-full items-center justify-center rounded-md border border-dashed border-border py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-muted/50 hover:text-foreground"
                                 >
-                                    +
+                                    <Plus size={14} />
                                 </button>
-                            )}
-                        </div>
-                        <div className="flex-1 space-y-1 min-h-[150px] rounded-lg border border-border bg-card/50 p-1.5">
-                            {dayItems.length === 0 ? (
-                                <div className="text-xs text-muted-foreground/60 text-center pt-4">—</div>
-                            ) : (
-                                dayItems.map((item) => {
-                                    const isCancelled = item.status === 'cancelled';
-                                    const isOverlapping = overlappingIds.has(item.id);
-                                    const isSelected = selectMode && (selectedIds?.has(item.id) ?? false);
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            type="button"
-                                            onClick={() =>
-                                                selectMode
-                                                    ? onToggleSelect?.(item.id)
-                                                    : navigate(`/schedule/${item.id}`)
-                                            }
-                                            aria-pressed={selectMode ? isSelected : undefined}
-                                            title={
-                                                selectMode
-                                                    ? 'Нажмите, чтобы выбрать для удаления'
-                                                    : isOverlapping
-                                                    ? 'Несколько занятий в одно время'
-                                                    : undefined
-                                            }
-                                            draggable={dragEnabled && !isCancelled}
-                                            onDragStart={(e) => {
-                                                if (!dragEnabled || isCancelled) return;
-                                                setDraggingId(item.id);
-                                                e.dataTransfer.effectAllowed = 'move';
-                                                e.dataTransfer.setData('text/plain', item.id);
-                                            }}
-                                            onDragEnd={() => {
-                                                setDraggingId(null);
-                                                setDragOverKey(null);
-                                            }}
-                                            className={[
-                                                'w-full text-left rounded-md px-2 py-1.5 text-xs transition-colors',
-                                                isCancelled
-                                                    ? 'bg-error/10 text-error hover:bg-error/20 line-through'
-                                                    : 'bg-primary/10 text-primary hover:bg-primary/20',
-                                                isOverlapping ? 'ring-2 ring-error ring-offset-1' : '',
-                                                isSelected ? 'outline outline-2 outline-offset-1 outline-primary' : '',
-                                                draggingId === item.id ? 'opacity-40' : '',
-                                                dragEnabled && !isCancelled ? 'cursor-grab active:cursor-grabbing' : '',
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' ')}
-                                        >
-                                            <div className="flex items-start gap-1">
-                                                {selectMode && (
-                                                    <span
-                                                        aria-hidden
-                                                        className={`mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] leading-none ${
-                                                            isSelected
-                                                                ? 'border-primary bg-primary text-primary-foreground'
-                                                                : 'border-current opacity-50'
-                                                        }`}
-                                                    >
-                                                        {isSelected ? '✓' : ''}
-                                                    </span>
-                                                )}
-                                                <span className="font-semibold truncate">{item.trainingType.name}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-[10px] mt-0.5 opacity-80">
-                                                <span>{format(parseISO(item.startTime), 'HH:mm')}</span>
-                                                <span>{coachInitials(item.coach.name)}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })
                             )}
                         </div>
                     </div>

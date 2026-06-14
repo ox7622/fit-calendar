@@ -1,0 +1,56 @@
+import { ScheduleForm } from '@/features/schedule/ScheduleForm';
+import { adminScheduleApi, ApiError } from '@/shared/api';
+import { Modal } from '@/shared/components/Modal';
+
+interface ICreateClassDialogProps {
+    /** The day column the admin clicked "+" on. Prefills the form's date. */
+    day: Date;
+    onClose: () => void;
+    /** Called after a successful create; `count` is 1 for single, N for recurring. */
+    onCreated: (count: number) => void;
+}
+
+/** The form prefills its date from an ISO string; default the time to 09:00 local. */
+function dayAtNineISO(day: Date): string {
+    const base = new Date(day);
+    base.setHours(9, 0, 0, 0);
+    return base.toISOString();
+}
+
+function apiErrorMessage(err: unknown, fallback: string): Error {
+    if (err instanceof ApiError) {
+        const body = err.data as { message?: string } | null;
+        return new Error(body?.message ?? fallback);
+    }
+    return err instanceof Error ? err : new Error(fallback);
+}
+
+export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialogProps): JSX.Element {
+    return (
+        <Modal title="Новое занятие" onClose={onClose} panelClassName="max-h-[90vh] overflow-y-auto">
+            <ScheduleForm
+                initial={{ startTime: dayAtNineISO(day) }}
+                submitLabel="Создать"
+                onSubmit={async (payload) => {
+                    try {
+                        await adminScheduleApi.create(payload);
+                        onCreated(1);
+                        onClose();
+                    } catch (err) {
+                        throw apiErrorMessage(err, 'Не удалось создать занятие');
+                    }
+                }}
+                onSubmitRecurring={async (entries) => {
+                    try {
+                        await adminScheduleApi.bulkCreate(entries);
+                        onCreated(entries.length);
+                        onClose();
+                    } catch (err) {
+                        throw apiErrorMessage(err, 'Не удалось создать занятия');
+                    }
+                }}
+                onCancel={onClose}
+            />
+        </Modal>
+    );
+}

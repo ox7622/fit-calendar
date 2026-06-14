@@ -254,14 +254,25 @@ fi
 # ---------- Шаг 3: Код ----------
 log "Шаг 3. Получение кода"
 
+# Three states: (a) repo present → update; (b) dir exists but no .git → bootstrap
+# git in place over existing files (this is what we hit when an earlier install
+# was extracted from a tarball or `.git` got pruned); (c) empty → fresh clone.
+# Full clone (not --depth=1) so rollback via `git reset --hard <prev>` works.
 if [[ -d "$INSTALL_DIR/.git" ]]; then
     git -C "$INSTALL_DIR" fetch origin "$BRANCH" --quiet
     git -C "$INSTALL_DIR" checkout "$BRANCH" --quiet
     git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" --quiet
     ok "Репо обновлено: $(git -C "$INSTALL_DIR" rev-parse --short HEAD)"
+elif [[ -d "$INSTALL_DIR" ]]; then
+    git -C "$INSTALL_DIR" init --quiet
+    git -C "$INSTALL_DIR" remote add origin "$REPO_URL" 2>/dev/null \
+        || git -C "$INSTALL_DIR" remote set-url origin "$REPO_URL"
+    git -C "$INSTALL_DIR" fetch origin "$BRANCH" --quiet
+    git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" --quiet
+    ok "Репо инициализировано in-place: $(git -C "$INSTALL_DIR" rev-parse --short HEAD)"
 else
     mkdir -p "$(dirname "$INSTALL_DIR")"
-    git clone -b "$BRANCH" --depth 1 "$REPO_URL" "$INSTALL_DIR"
+    git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
     ok "Репо склонировано в $INSTALL_DIR"
 fi
 

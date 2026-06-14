@@ -44,7 +44,7 @@ export function ScheduleCalendar({
     const navigate = useNavigate();
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverKey, setDragOverKey] = useState<string | null>(null);
-    const days = Array.from({ length: DAYS_IN_WEEK }, (_, i) => addDays(rangeStart, i));
+    const days = useMemo(() => Array.from({ length: DAYS_IN_WEEK }, (_, i) => addDays(rangeStart, i)), [rangeStart]);
     const overlappingIds = useMemo(() => findOverlappingIds(items), [items]);
 
     const dragEnabled = !selectMode && onRequestMove !== undefined;
@@ -60,13 +60,16 @@ export function ScheduleCalendar({
         onRequestMove(item, moveToDay(item.startTime, day));
     };
 
-    const itemsByDay: Record<string, IAdminScheduleItem[]> = {};
-    for (const day of days) {
-        const key = format(day, 'yyyy-MM-dd');
-        itemsByDay[key] = items
-            .filter((item) => isSameDay(parseISO(item.startTime), day))
-            .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
-    }
+    const itemsByDay = useMemo(() => {
+        const map: Record<string, IAdminScheduleItem[]> = {};
+        for (const day of days) {
+            const key = format(day, 'yyyy-MM-dd');
+            map[key] = items
+                .filter((item) => isSameDay(parseISO(item.startTime), day))
+                .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
+        }
+        return map;
+    }, [days, items]);
 
     return (
         <div className="grid grid-cols-7 gap-2 min-h-[400px]">
@@ -156,15 +159,18 @@ export function ScheduleCalendar({
                                                 setDraggingId(null);
                                                 setDragOverKey(null);
                                             }}
-                                            className={`w-full text-left rounded-md px-2 py-1.5 text-xs transition-colors ${
+                                            className={[
+                                                'w-full text-left rounded-md px-2 py-1.5 text-xs transition-colors',
                                                 isCancelled
                                                     ? 'bg-error/10 text-error hover:bg-error/20 line-through'
-                                                    : 'bg-primary/10 text-primary hover:bg-primary/20'
-                                            }${isOverlapping ? ' ring-2 ring-error ring-offset-1' : ''}${
-                                                isSelected ? ' outline outline-2 outline-offset-1 outline-primary' : ''
-                                            }${draggingId === item.id ? ' opacity-40' : ''}${
-                                                dragEnabled && !isCancelled ? ' cursor-grab active:cursor-grabbing' : ''
-                                            }`}
+                                                    : 'bg-primary/10 text-primary hover:bg-primary/20',
+                                                isOverlapping ? 'ring-2 ring-error ring-offset-1' : '',
+                                                isSelected ? 'outline outline-2 outline-offset-1 outline-primary' : '',
+                                                draggingId === item.id ? 'opacity-40' : '',
+                                                dragEnabled && !isCancelled ? 'cursor-grab active:cursor-grabbing' : '',
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' ')}
                                         >
                                             <div className="flex items-start gap-1">
                                                 {selectMode && (

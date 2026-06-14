@@ -1,5 +1,5 @@
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
-import { adminScheduleApi, ApiError } from '@/shared/api';
+import { adminScheduleApi, extractApiMessage } from '@/shared/api';
 import { Modal } from '@/shared/components/Modal';
 
 interface ICreateClassDialogProps {
@@ -17,14 +17,6 @@ function dayAtNineISO(day: Date): string {
     return base.toISOString();
 }
 
-function apiErrorMessage(err: unknown, fallback: string): Error {
-    if (err instanceof ApiError) {
-        const body = err.data as { message?: string } | null;
-        return new Error(body?.message ?? fallback);
-    }
-    return err instanceof Error ? err : new Error(fallback);
-}
-
 export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialogProps): JSX.Element {
     return (
         <Modal title="Новое занятие" onClose={onClose} panelClassName="max-h-[90vh] overflow-y-auto">
@@ -37,7 +29,7 @@ export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialo
                         onCreated(1);
                         onClose();
                     } catch (err) {
-                        throw apiErrorMessage(err, 'Не удалось создать занятие');
+                        throw new Error(extractApiMessage(err, 'Не удалось создать занятие'));
                     }
                 }}
                 onSubmitRecurring={async (entries) => {
@@ -46,7 +38,7 @@ export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialo
                         onCreated(entries.length);
                         onClose();
                     } catch (err) {
-                        throw apiErrorMessage(err, 'Не удалось создать занятия');
+                        throw new Error(extractApiMessage(err, 'Не удалось создать занятия'));
                     }
                 }}
                 onCancel={onClose}

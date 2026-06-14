@@ -40,3 +40,16 @@ export class NetworkError extends Error {
         this.name = 'NetworkError';
     }
 }
+
+/**
+ * Pull a human-readable message out of a thrown API error, falling back to a
+ * caller-supplied default. Handles the common `ApiError` shape (`data.message`)
+ * so call sites don't each re-implement the `instanceof` + cast dance.
+ */
+export function extractApiMessage(err: unknown, fallback: string): string {
+    if (err instanceof ApiError) {
+        const body = err.data as { message?: string } | null;
+        return body?.message ?? fallback;
+    }
+    return fallback;
+}

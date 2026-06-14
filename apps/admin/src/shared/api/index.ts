@@ -1,4 +1,5 @@
 export { adminApiClient, ApiError, NetworkError } from './client';
+export { extractApiMessage } from './errors';
 export { adminAuthApi } from './auth.api';
 export type { ILoginRequest, ILoginResponse } from './auth.api';
 export { adminUsersApi, adminPasswordSetupApi } from './admin-users.api';

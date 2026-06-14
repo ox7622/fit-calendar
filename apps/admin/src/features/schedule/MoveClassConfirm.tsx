@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { adminScheduleApi, ApiError, type IAdminScheduleItem } from '@/shared/api';
+import { adminScheduleApi, extractApiMessage, type IAdminScheduleItem } from '@/shared/api';
 import { Modal } from '@/shared/components/Modal';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -31,13 +31,7 @@ export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMove
             onMoved();
             onClose();
         } catch (err) {
-            const fallback = 'Не удалось перенести занятие';
-            if (err instanceof ApiError) {
-                const body = err.data as { message?: string } | null;
-                setError(body?.message ?? fallback);
-            } else {
-                setError(fallback);
-            }
+            setError(extractApiMessage(err, 'Не удалось перенести занятие'));
             setSubmitting(false);
         }
     };

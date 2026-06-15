@@ -113,7 +113,7 @@ export class MailService {
                 <p>Здравствуйте, ${name}!</p>
                 <p>${lede}</p>
                 <p>
-                    <a href="${url}" style="display:inline-block;padding:10px 18px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;">
+                    <a href="${url}" style="display:inline-block;padding:10px 18px;background:#229b8b;color:#fff;border-radius:6px;text-decoration:none;">
                         Задать пароль
                     </a>
                 </p>

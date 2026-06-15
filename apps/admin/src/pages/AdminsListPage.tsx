@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { adminUsersApi, ApiError, type IAdminUserListItem, type IIssuedTokenResponse } from '@/shared/api';
 import { IssuedTokenLinkCard } from '@/shared/components/IssuedTokenLinkCard';
+import { Modal } from '@/shared/components/Modal';
 import { useAdminStore } from '@/shared/stores/adminStore';
 import { KeyRound, Plus, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -13,6 +14,7 @@ export function AdminsListPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [resettingId, setResettingId] = useState<string | null>(null);
+    const [resetTarget, setResetTarget] = useState<IAdminUserListItem | null>(null);
     const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
     const [issuedLink, setIssuedLink] = useState<TIssuedLink | null>(null);
     const currentAdminId = useAdminStore((s) => s.admin?.id);
@@ -40,14 +42,15 @@ export function AdminsListPage() {
         };
     }, [refresh]);
 
-    const onReset = async (admin: IAdminUserListItem) => {
-        if (resettingId) return;
-        const ok = window.confirm(`Сбросить пароль для ${admin.login}?`);
-        if (!ok) return;
+    const confirmReset = async () => {
+        if (!resetTarget || resettingId) return;
+        const admin = resetTarget;
         setResettingId(admin.id);
+        setError(null);
         try {
             const result = await adminUsersApi.resetPassword(admin.id);
             setIssuedLink({ ...result, forLogin: admin.login });
+            setResetTarget(null);
         } catch {
             setError('Не удалось сбросить пароль');
         } finally {
@@ -135,7 +138,7 @@ export function AdminsListPage() {
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => onReset(a)}
+                                            onClick={() => setResetTarget(a)}
                                             disabled={resettingId === a.id}
                                             className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted disabled:opacity-60"
                                         >
@@ -159,6 +162,33 @@ export function AdminsListPage() {
                         ))}
                     </tbody>
                 </table>
+            )}
+
+            {resetTarget && (
+                <Modal title="Сбросить пароль" onClose={() => setResetTarget(null)}>
+                    <p className="text-body mb-4">
+                        Сбросить пароль для <strong>{resetTarget.login}</strong>? Будет создана новая одноразовая ссылка
+                        для входа.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setResetTarget(null)}
+                            disabled={resettingId === resetTarget.id}
+                            className="rounded-md border border-border px-4 py-2 hover:bg-muted disabled:opacity-60"
+                        >
+                            Отмена
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmReset}
+                            disabled={resettingId === resetTarget.id}
+                            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-accent-active disabled:opacity-60"
+                        >
+                            {resettingId === resetTarget.id ? 'Создание...' : 'Сбросить пароль'}
+                        </button>
+                    </div>
+                </Modal>
             )}
         </div>
     );

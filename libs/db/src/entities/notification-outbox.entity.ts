@@ -22,7 +22,11 @@ import { Customer } from './customer.entity';
  * delete `sent` or `failed` rows — they're a small audit trail. A future
  * housekeeping cron can purge old rows once volume justifies it.
  */
-export type TOutboxNotificationType = 'schedule_changed' | 'schedule_cancelled';
+export type TOutboxNotificationType =
+    | 'schedule_created'
+    | 'schedule_changed'
+    | 'schedule_cancelled'
+    | 'schedule_deleted';
 export type TOutboxStatus = 'pending' | 'sent' | 'failed';
 
 export interface IOutboxPayload {

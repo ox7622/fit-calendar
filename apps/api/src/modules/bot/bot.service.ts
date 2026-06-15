@@ -1,3 +1,4 @@
+import { registerFallbackHandler } from '@fitcalendar/bot-core';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { BotError, Context, InlineKeyboard } from 'grammy';
@@ -93,6 +94,9 @@ export class BotService implements OnModuleInit {
         registerStartCommand(this.bot, this.clubService, miniAppUrl);
         registerScheduleCommands(this.bot, this.scheduleService, miniAppUrl);
         registerClubCommand(this.bot, this.clubService);
+
+        // Catch-all for unrecognized text — must be registered after all commands.
+        registerFallbackHandler(this.bot, miniAppUrl);
 
         // Initialize the bot (but don't start polling)
         await this.bot.init();

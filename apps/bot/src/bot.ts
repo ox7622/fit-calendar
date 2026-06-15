@@ -1,3 +1,4 @@
+import { registerFallbackHandler } from '@fitcalendar/bot-core';
 import type { Context } from 'grammy';
 import { Bot } from 'grammy';
 import pino from 'pino';
@@ -28,6 +29,9 @@ export function createBot(config: IBotConfig): Bot<Context> {
     registerStartCommand(bot, config.miniAppUrl);
     registerScheduleCommands(bot, config.miniAppUrl);
     registerClubCommand(bot);
+
+    // Catch-all for unrecognized text — must be registered after all commands.
+    registerFallbackHandler(bot, config.miniAppUrl);
 
     return bot;
 }

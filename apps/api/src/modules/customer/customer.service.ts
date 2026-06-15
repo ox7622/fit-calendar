@@ -97,6 +97,22 @@ export class CustomerService {
     }
 
     /**
+     * Broadcast audience for schedule-change notifications: every customer who
+     * linked their Telegram and is still active. `telegramId IS NULL` is filtered
+     * at the SQL layer so callers never see nulls.
+     */
+    async findBroadcastRecipients(): Promise<{ id: string; telegramId: number }[]> {
+        const rows = await this.customerRepo
+            .createQueryBuilder('c')
+            .select(['c.id AS "id"', 'c.telegramId AS "telegramId"'])
+            .where('c.telegramId IS NOT NULL')
+            .andWhere('c.isActive = true')
+            .getRawMany<{ id: string; telegramId: string }>();
+
+        return rows.map((row) => ({ id: row.id, telegramId: Number(row.telegramId) }));
+    }
+
+    /**
      * Phone-based linking flow (AC5–AC7).
      *
      * Idempotent re-linking: if the calling Telegram identity already owns the

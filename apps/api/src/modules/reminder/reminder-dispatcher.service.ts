@@ -11,12 +11,11 @@ import type { Reminder } from '@fitcalendar/db';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { format, isSameDay } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { GrammyError, InlineKeyboard } from 'grammy';
 
 import { BotNotInitializedError, BotService } from '../bot/bot.service';
 
+import { escapeHtml, formatTimingRu } from './notification-format';
 import { MAX_RETRY_ATTEMPTS, ReminderService } from './reminder.service';
 
 /** Max concurrent sends per tick. Far below the Telegram per-bot rate cap (~30/sec). */
@@ -132,7 +131,7 @@ export class ReminderDispatcherService {
         const entry = reminder.scheduleEntry;
         const className = entry.trainingType?.name ?? 'Занятие';
         const coachName = entry.coach?.name ?? '—';
-        const timing = this.formatTiming(entry.startTime);
+        const timing = formatTimingRu(entry.startTime);
 
         return [
             '🔔 <b>Напоминание о занятии</b>',
@@ -141,19 +140,6 @@ export class ReminderDispatcherService {
             `🕘 ${timing}`,
             `👤 Тренер: ${escapeHtml(coachName)}`,
         ].join('\n');
-    }
-
-    private formatTiming(startTime: Date): string {
-        const now = new Date();
-        const sameDay = isSameDay(startTime, now);
-        const tomorrow = new Date(now);
-        tomorrow.setDate(now.getDate() + 1);
-        const isTomorrow = isSameDay(startTime, tomorrow);
-
-        const hhmm = format(startTime, 'HH:mm', { locale: ru });
-        if (sameDay) return `Сегодня в ${hhmm}`;
-        if (isTomorrow) return `Завтра в ${hhmm}`;
-        return `${format(startTime, 'd MMMM', { locale: ru })} в ${hhmm}`;
     }
 
     private buildKeyboard(scheduleEntryId: string): InlineKeyboard | undefined {
@@ -175,8 +161,4 @@ export class ReminderDispatcherService {
         });
         await Promise.all(runners);
     }
-}
-
-function escapeHtml(value: string): string {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

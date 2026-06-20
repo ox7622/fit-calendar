@@ -2,8 +2,6 @@ import type { TOutboxNotificationType } from '@fitcalendar/db';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
-import { format, isSameDay } from 'date-fns';
-import { ru } from 'date-fns/locale';
 
 import type {
     IScheduleCancelledPayload,
@@ -19,6 +17,7 @@ import {
     SCHEDULE_DELETED_EVENT,
 } from '../../admin/schedule/schedule.events';
 import { CustomerService } from '../../customer/customer.service';
+import { escapeHtml, formatTimingRu } from '../notification-format';
 import { NotificationOutboxService } from '../notification-outbox.service';
 import { isWithinNotifyWindow } from '../notify-window';
 
@@ -76,6 +75,7 @@ export class ScheduleNotificationListener {
             type: 'schedule_deleted',
             scheduleEntryId: payload.scheduleEntryId,
             gateStartTime: payload.snapshot.startTime,
+            // A deleted class reads to the user as a cancellation — reuse that copy by design.
             text: this.cancelledMessage(payload.snapshot, null),
         });
     }
@@ -127,7 +127,7 @@ export class ScheduleNotificationListener {
             '🆕 <b>Новое занятие</b>',
             '',
             `<b>${escapeHtml(s.className)}</b>`,
-            `🗓 ${this.formatTiming(s.startTime)}`,
+            `🗓 ${formatTimingRu(s.startTime)}`,
             `👤 Тренер: ${escapeHtml(s.coachName)}`,
         ].join('\n');
     }
@@ -138,11 +138,11 @@ export class ScheduleNotificationListener {
 
         const lines = ['⚠️ <b>Изменение в расписании</b>', '', `Занятие <b>${escapeHtml(p.snapshot.className)}</b>`];
         if (timeChanged) {
-            lines.push(`❌ <s>Было: ${this.formatTiming(p.oldStartTime)}</s>`);
-            lines.push(`✅ Будет: <b>${this.formatTiming(p.newStartTime)}</b>`);
+            lines.push(`❌ <s>Было: ${formatTimingRu(p.oldStartTime)}</s>`);
+            lines.push(`✅ Будет: <b>${formatTimingRu(p.newStartTime)}</b>`);
         } else {
             // Duration-only edit: the time didn't move, so show it once (no Было/Будет diff).
-            lines.push(`🗓 ${this.formatTiming(p.newStartTime)}`);
+            lines.push(`🗓 ${formatTimingRu(p.newStartTime)}`);
         }
         if (durationChanged) {
             lines.push(`⏱ Длительность: ${p.oldDurationMinutes} → ${p.newDurationMinutes} мин`);
@@ -156,25 +156,11 @@ export class ScheduleNotificationListener {
             '❌ <b>Занятие отменено</b>',
             '',
             `<b>${escapeHtml(s.className)}</b>`,
-            `🗓 ${this.formatTiming(s.startTime)}`,
+            `🗓 ${formatTimingRu(s.startTime)}`,
             `👤 Тренер: ${escapeHtml(s.coachName)}`,
         ];
         const trimmed = reason?.trim();
         if (trimmed) lines.push('', `Причина: ${escapeHtml(trimmed)}`);
         return lines.join('\n');
     }
-
-    private formatTiming(startTime: Date): string {
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(now.getDate() + 1);
-        const hhmm = format(startTime, 'HH:mm', { locale: ru });
-        if (isSameDay(startTime, now)) return `Сегодня в ${hhmm}`;
-        if (isSameDay(startTime, tomorrow)) return `Завтра в ${hhmm}`;
-        return `${format(startTime, 'd MMMM', { locale: ru })} в ${hhmm}`;
-    }
-}
-
-function escapeHtml(value: string): string {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

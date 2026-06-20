@@ -433,36 +433,6 @@ describe('ReminderService', () => {
         });
     });
 
-    describe('findPendingByClassWithCustomer (Story 5.4)', () => {
-        it('joins Customer, filters pending + non-null telegramId, coerces telegramId to number', async () => {
-            const qb = {
-                innerJoin: jest.fn().mockReturnThis(),
-                select: jest.fn().mockReturnThis(),
-                where: jest.fn().mockReturnThis(),
-                andWhere: jest.fn().mockReturnThis(),
-                getRawMany: jest.fn().mockResolvedValueOnce([
-                    { reminderId: 'r1', telegramId: '111', firstName: 'Анна' },
-                    { reminderId: 'r2', telegramId: '222', firstName: 'Борис' },
-                ]),
-            };
-            (reminderRepo.createQueryBuilder as unknown as jest.Mock) = jest.fn().mockReturnValueOnce(qb);
-
-            const result = await service.findPendingByClassWithCustomer('sched-1');
-
-            expect(qb.innerJoin).toHaveBeenCalledWith('r.customer', 'c');
-            // First .where pins scheduleEntryId; the two .andWhere clauses pin status + telegramId-not-null.
-            expect(qb.where).toHaveBeenCalledWith(
-                expect.stringContaining('scheduleEntryId'),
-                expect.objectContaining({ scheduleEntryId: 'sched-1' }),
-            );
-            expect(qb.andWhere).toHaveBeenCalledTimes(2);
-            // Telegram ids are returned as strings from the driver; service must Number() them.
-            expect(result[0].telegramId).toBe(111);
-            expect(typeof result[0].telegramId).toBe('number');
-            expect(result).toHaveLength(2);
-        });
-    });
-
     describe('findPendingCustomersByClass (Story 6.4)', () => {
         it('returns the DISTINCT customer-id list for pending reminders on the class', async () => {
             const qb = {

@@ -396,13 +396,6 @@ describe('CustomerService', () => {
         });
     });
 
-    describe('findTelegramIdsByCustomerIds (Story 5.5)', () => {
-        it('short-circuits to [] on empty input without hitting the DB', async () => {
-            const result = await service.findTelegramIdsByCustomerIds([]);
-            expect(result).toEqual([]);
-        });
-    });
-
     describe('findById / findByPhone / findByTelegramId — thin pass-throughs', () => {
         it('findById delegates to repo.findOne with the id', async () => {
             customerRepo.findOne.mockResolvedValueOnce(buildCustomer({ id: 'x' }));

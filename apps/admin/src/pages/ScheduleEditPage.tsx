@@ -57,12 +57,10 @@ export function ScheduleEditPage() {
 
     const handleDelete = async () => {
         if (!id || !entry) return;
-        const willPush = isWithinNotifyWindow(entry.startTime);
+        const prefix = isWithinNotifyWindow(entry.startTime) ? `${PUSH_WARNING} ` : '';
         const ok = await confirm({
             title: 'Удалить занятие?',
-            message: willPush
-                ? `${PUSH_WARNING} Занятие будет удалено безвозвратно. Продолжить?`
-                : 'Занятие будет удалено безвозвратно. Продолжить?',
+            message: `${prefix}Занятие будет удалено безвозвратно. Продолжить?`,
             confirmLabel: 'Удалить',
             danger: true,
         });

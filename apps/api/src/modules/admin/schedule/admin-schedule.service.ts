@@ -371,7 +371,7 @@ export class AdminScheduleService {
             action: 'delete_schedule_entry',
             resourceType: 'schedule_entry',
             resourceId: id,
-            metadata: { startTime: snapshot.startTime, coachName: snapshot.coachName, className: snapshot.className },
+            metadata: snapshot,
         });
     }
 

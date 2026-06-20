@@ -72,31 +72,6 @@ export class CustomerService {
     }
 
     /**
-     * Story 5.5 — batch lookup for the cancellation notification listener.
-     * Takes the `affectedCustomerIds` from the SCHEDULE_CANCELLED_EVENT
-     * payload and returns the (id, telegramId, firstName) tuples the listener
-     * needs to send. Customers with `telegramId IS NULL` are filtered at the
-     * SQL layer so the listener doesn't have to think about nulls.
-     */
-    async findTelegramIdsByCustomerIds(
-        customerIds: string[],
-    ): Promise<{ id: string; telegramId: number; firstName: string }[]> {
-        if (customerIds.length === 0) return [];
-        const rows = await this.customerRepo
-            .createQueryBuilder('c')
-            .select(['c.id AS "id"', 'c.telegramId AS "telegramId"', 'c.firstName AS "firstName"'])
-            .where('c.id IN (:...customerIds)', { customerIds })
-            .andWhere('c.telegramId IS NOT NULL')
-            .getRawMany<{ id: string; telegramId: string; firstName: string }>();
-
-        return rows.map((row) => ({
-            id: row.id,
-            telegramId: Number(row.telegramId),
-            firstName: row.firstName,
-        }));
-    }
-
-    /**
      * Broadcast audience for schedule-change notifications: every customer who
      * linked their Telegram and is still active. `telegramId IS NULL` is filtered
      * at the SQL layer so callers never see nulls.

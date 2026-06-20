@@ -133,14 +133,22 @@ export class ScheduleNotificationListener {
     }
 
     private changedMessage(p: IScheduleChangedPayload): string {
-        return [
-            '⚠️ <b>Изменение в расписании</b>',
-            '',
-            `Занятие <b>${escapeHtml(p.snapshot.className)}</b>`,
-            `❌ <s>Было: ${this.formatTiming(p.oldStartTime)}</s>`,
-            `✅ Будет: <b>${this.formatTiming(p.newStartTime)}</b>`,
-            `👤 Тренер: ${escapeHtml(p.snapshot.coachName)}`,
-        ].join('\n');
+        const timeChanged = p.oldStartTime.getTime() !== p.newStartTime.getTime();
+        const durationChanged = p.oldDurationMinutes !== p.newDurationMinutes;
+
+        const lines = ['⚠️ <b>Изменение в расписании</b>', '', `Занятие <b>${escapeHtml(p.snapshot.className)}</b>`];
+        if (timeChanged) {
+            lines.push(`❌ <s>Было: ${this.formatTiming(p.oldStartTime)}</s>`);
+            lines.push(`✅ Будет: <b>${this.formatTiming(p.newStartTime)}</b>`);
+        } else {
+            // Duration-only edit: the time didn't move, so show it once (no Было/Будет diff).
+            lines.push(`🗓 ${this.formatTiming(p.newStartTime)}`);
+        }
+        if (durationChanged) {
+            lines.push(`⏱ Длительность: ${p.oldDurationMinutes} → ${p.newDurationMinutes} мин`);
+        }
+        lines.push(`👤 Тренер: ${escapeHtml(p.snapshot.coachName)}`);
+        return lines.join('\n');
     }
 
     private cancelledMessage(s: IScheduleSnapshot, reason: string | null): string {

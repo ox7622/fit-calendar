@@ -78,6 +78,23 @@ describe('ScheduleNotificationListener', () => {
         const first = outboxService.enqueue.mock.calls[0][0];
         expect(first.type).toBe('schedule_changed');
         expect(first.payload.text).toContain('Изменение в расписании');
+        expect(first.payload.text).toContain('Было:');
+    });
+
+    it('changed: duration-only edit shows the duration line, not a time diff', async () => {
+        const payload: IScheduleChangedPayload = {
+            scheduleEntryId: 's1',
+            oldStartTime: inWindow,
+            newStartTime: inWindow,
+            oldDurationMinutes: 60,
+            newDurationMinutes: 90,
+            snapshot: snapshot(inWindow),
+        };
+        await listener.handleChanged(payload);
+        const first = outboxService.enqueue.mock.calls[0][0];
+        expect(first.payload.text).toContain('Длительность');
+        expect(first.payload.text).toContain('90');
+        expect(first.payload.text).not.toContain('Было:');
     });
 
     it('cancelled: type schedule_cancelled, includes reason', async () => {

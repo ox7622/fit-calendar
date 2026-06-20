@@ -108,12 +108,15 @@ export class MailService {
             'Если вы не ожидали это письмо — просто проигнорируйте его.',
         ].join('\n');
 
+        const buttonStyle =
+            'display:inline-block;padding:10px 18px;background:#229b8b;' +
+            'color:#fff;border-radius:6px;text-decoration:none;';
         const html = `
             <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px;">
                 <p>Здравствуйте, ${name}!</p>
                 <p>${lede}</p>
                 <p>
-                    <a href="${url}" style="display:inline-block;padding:10px 18px;background:#229b8b;color:#fff;border-radius:6px;text-decoration:none;">
+                    <a href="${url}" style="${buttonStyle}">
                         Задать пароль
                     </a>
                 </p>

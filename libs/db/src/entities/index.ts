@@ -15,3 +15,4 @@ export * from './freeze-event.entity';
 export * from './admin-audit-log.entity';
 export * from './admin-invite-token.entity';
 export * from './notification-outbox.entity';
+export * from './bot-subscriber.entity';

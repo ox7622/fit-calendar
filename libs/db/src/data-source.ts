@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import {
     AdminAuditLog,
     AdminUser,
+    BotSubscriber,
     ClubInfo,
     Coach,
     Customer,
@@ -29,6 +30,7 @@ export const entities = [
     MembershipPlan,
     AdminAuditLog,
     NotificationOutbox,
+    BotSubscriber,
 ];
 
 export const dataSourceOptions: DataSourceOptions = {

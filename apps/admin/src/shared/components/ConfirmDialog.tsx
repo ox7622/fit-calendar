@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 
 import { Modal } from './Modal';
+import { NotifyCheckbox } from './NotifyCheckbox';
 
 interface IConfirmDialogProps {
     title: string;
@@ -8,9 +9,9 @@ interface IConfirmDialogProps {
     confirmLabel?: string;
     /** Destructive styling for the confirm button (delete/cancel actions). */
     danger?: boolean;
-    /** When set, render a checkbox (default checked) with this label; its value
+    /** When true, render the notify-users checkbox (default checked); its value
      *  is returned to the caller as `notify`. */
-    notifyLabel?: string;
+    notifyToggle?: boolean;
     onConfirm: (notify: boolean) => void;
     onClose: () => void;
 }
@@ -21,7 +22,7 @@ export function ConfirmDialog({
     message,
     confirmLabel = 'Продолжить',
     danger = false,
-    notifyLabel,
+    notifyToggle = false,
     onConfirm,
     onClose,
 }: IConfirmDialogProps): JSX.Element {
@@ -29,17 +30,7 @@ export function ConfirmDialog({
     return (
         <Modal title={title} onClose={onClose}>
             <div className="text-body mb-4">{message}</div>
-            {notifyLabel && (
-                <label className="text-body mb-4 flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={notify}
-                        onChange={(e) => setNotify(e.target.checked)}
-                        className="h-4 w-4"
-                    />
-                    {notifyLabel}
-                </label>
-            )}
+            {notifyToggle && <NotifyCheckbox checked={notify} onChange={setNotify} />}
             <div className="flex justify-end gap-2">
                 <button
                     type="button"
@@ -69,8 +60,8 @@ interface IConfirmRequest {
     message: ReactNode;
     confirmLabel?: string;
     danger?: boolean;
-    /** When set, show a "notify users" checkbox with this label. */
-    notifyToggle?: string;
+    /** When true, show the notify-users opt-out checkbox. */
+    notifyToggle?: boolean;
 }
 
 export interface IConfirmResult {
@@ -106,7 +97,7 @@ export function useConfirm(): {
             message={state.req.message}
             confirmLabel={state.req.confirmLabel}
             danger={state.req.danger}
-            notifyLabel={state.req.notifyToggle}
+            notifyToggle={state.req.notifyToggle}
             onConfirm={(notify) => settle({ confirmed: true, notify })}
             onClose={() => settle({ confirmed: false, notify: true })}
         />

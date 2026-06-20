@@ -1,5 +1,6 @@
-/** Schedule changes only push to users when the class falls inside this window. */
-export const NOTIFY_WINDOW_DAYS = 5;
+import { NOTIFY_WINDOW_DAYS } from '@fitcalendar/shared';
+
+export { NOTIFY_WINDOW_DAYS };
 
 const WINDOW_MS = NOTIFY_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 

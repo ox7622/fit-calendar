@@ -94,7 +94,7 @@ export class AdminScheduleService {
         return toAdminScheduleItem(entry);
     }
 
-    async create(dto: CreateScheduleEntryDto): Promise<AdminScheduleItemDto> {
+    async create(dto: CreateScheduleEntryDto, notify = true): Promise<AdminScheduleItemDto> {
         await this.assertActiveCoach(dto.coachId);
         await this.assertActiveTrainingType(dto.trainingTypeId);
 
@@ -122,7 +122,6 @@ export class AdminScheduleService {
                 startTime: item.startTime,
             },
         };
-        const notify = dto.notify ?? true;
         if (notify) {
             this.eventEmitter.emit(SCHEDULE_CREATED_EVENT, createdPayload);
         }
@@ -189,7 +188,7 @@ export class AdminScheduleService {
      *      consistent state before returning).
      *   3. `status` is read-only here — cancellation goes through Story 6.4.
      */
-    async update(id: string, dto: UpdateScheduleEntryDto): Promise<AdminScheduleItemDto> {
+    async update(id: string, dto: UpdateScheduleEntryDto, notify = true): Promise<AdminScheduleItemDto> {
         const existing = await this.scheduleRepo.findOne({ where: { id } });
         if (!existing) {
             throw new NotFoundException(`Schedule entry ${id} not found`);
@@ -232,7 +231,6 @@ export class AdminScheduleService {
             relations: ['coach', 'trainingType'],
         });
 
-        const notify = dto.notify ?? true;
         if (notify && (startTimeChanged || durationChanged)) {
             const payload: IScheduleChangedPayload = {
                 scheduleEntryId: id,

@@ -2,10 +2,11 @@ import { useState } from 'react';
 
 import { adminScheduleApi, extractApiMessage, type IAdminScheduleItem } from '@/shared/api';
 import { Modal } from '@/shared/components/Modal';
+import { NotifyCheckbox } from '@/shared/components/NotifyCheckbox';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
-import { isWithinNotifyWindow, NOTIFY_USERS_LABEL, PUSH_WARNING } from './notify-window';
+import { isWithinNotifyWindow, PUSH_WARNING } from './notify-window';
 
 interface IMoveClassConfirmProps {
     item: IAdminScheduleItem;
@@ -48,15 +49,7 @@ export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMove
             {isWithinNotifyWindow(newStartTime) && (
                 <>
                     <p className="text-amber-600 mb-2 text-sm">⚠️ {PUSH_WARNING}</p>
-                    <label className="text-body mb-4 flex items-center gap-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={notify}
-                            onChange={(e) => setNotify(e.target.checked)}
-                            className="h-4 w-4"
-                        />
-                        {NOTIFY_USERS_LABEL}
-                    </label>
+                    <NotifyCheckbox checked={notify} onChange={setNotify} />
                 </>
             )}
             {error && (

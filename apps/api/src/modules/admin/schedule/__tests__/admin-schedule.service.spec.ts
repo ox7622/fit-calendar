@@ -279,7 +279,7 @@ describe('AdminScheduleService', () => {
             } as ScheduleEntry);
             scheduleRepo.findOne.mockResolvedValueOnce(buildEntry({ id: 'sched-new' }));
 
-            await service.create({ ...createDto, notify: false });
+            await service.create(createDto, false);
 
             expect(eventEmitter.emit).not.toHaveBeenCalledWith(SCHEDULE_CREATED_EVENT, expect.anything());
         });
@@ -347,7 +347,7 @@ describe('AdminScheduleService', () => {
 
         it('does NOT emit SCHEDULE_CHANGED when notify=false (reminders still recompute)', async () => {
             const newStartTime = new Date('2026-05-15T11:00:00Z');
-            await service.update('sched-edit', { startTime: newStartTime, notify: false });
+            await service.update('sched-edit', { startTime: newStartTime }, false);
 
             expect(reminderService.recomputeNotifyAtForClass).toHaveBeenCalledWith('sched-edit', newStartTime);
             expect(eventEmitter.emit).not.toHaveBeenCalledWith(SCHEDULE_CHANGED_EVENT, expect.anything());

@@ -1,15 +1,13 @@
 import type { IConfirmRequest, IConfirmResult } from '@/shared/components/ConfirmDialog';
-
-/** Mirror of the API gate (apps/api/.../reminder/notify-window.ts) for modal copy. */
-export const NOTIFY_WINDOW_DAYS = 5;
+import { NOTIFY_WINDOW_DAYS } from '@fitcalendar/shared';
 
 const WINDOW_MS = NOTIFY_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 /** Warning shown before an action that will push to every bot user. */
 export const PUSH_WARNING = 'Занятие в ближайшие 5 дней. Все пользователи бота получат пуш-уведомление об этом.';
 
-/** Label for the "notify users" opt-out checkbox shown in the confirmations. */
-export const NOTIFY_USERS_LABEL = 'Уведомить пользователей';
+/** Cancellation-specific variant of {@link PUSH_WARNING}. */
+export const PUSH_WARNING_CANCEL = 'Занятие в ближайшие 5 дней. Все пользователи бота получат пуш об отмене.';
 
 /** True when the ISO start time is between now and now + 5 days (inclusive). */
 export function isWithinNotifyWindow(startTimeIso: string, now: Date = new Date()): boolean {
@@ -35,7 +33,7 @@ export async function confirmNotify(
         title: opts.title,
         message: `${PUSH_WARNING} Продолжить?`,
         confirmLabel: opts.confirmLabel,
-        notifyToggle: NOTIFY_USERS_LABEL,
+        notifyToggle: true,
     });
     return { proceed: res.confirmed, notify: res.notify };
 }

@@ -2,12 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { DuplicateClassDialog } from '@/features/schedule/bulk/DuplicateClassDialog';
 import { CancelClassModal } from '@/features/schedule/CancelClassModal';
-import {
-    confirmNotify,
-    isWithinNotifyWindow,
-    NOTIFY_USERS_LABEL,
-    PUSH_WARNING,
-} from '@/features/schedule/notify-window';
+import { confirmNotify, isWithinNotifyWindow, PUSH_WARNING } from '@/features/schedule/notify-window';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError, type IAdminScheduleItem } from '@/shared/api';
 import { useConfirm } from '@/shared/components/ConfirmDialog';
@@ -69,7 +64,7 @@ export function ScheduleEditPage() {
             message: `${prefix}Занятие будет удалено безвозвратно. Продолжить?`,
             confirmLabel: 'Удалить',
             danger: true,
-            notifyToggle: willPush ? NOTIFY_USERS_LABEL : undefined,
+            notifyToggle: willPush,
         });
         if (!confirmed) return;
         setDeleteError(null);

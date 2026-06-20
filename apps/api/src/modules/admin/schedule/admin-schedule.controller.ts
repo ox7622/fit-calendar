@@ -55,7 +55,7 @@ export class AdminScheduleController {
     @ApiResponse({ status: 400, description: 'Invalid body or inactive coach/trainingType' })
     @ApiResponse({ status: 401 })
     async create(@Body() dto: CreateScheduleEntryDto): Promise<AdminScheduleItemDto> {
-        return this.scheduleService.create(dto);
+        return this.scheduleService.create(dto, dto.notify);
     }
 
     @Post('bulk')
@@ -123,7 +123,7 @@ export class AdminScheduleController {
         @Param('id', new ParseUUIDPipe()) id: string,
         @Body() dto: UpdateScheduleEntryDto,
     ): Promise<AdminScheduleItemDto> {
-        return this.scheduleService.update(id, dto);
+        return this.scheduleService.update(id, dto, dto.notify);
     }
 
     @Post(':id/cancel')
@@ -146,7 +146,7 @@ export class AdminScheduleController {
         @AdminUser('id') adminUserId: string,
         @Ip() ipAddress: string,
     ): Promise<AdminScheduleItemDto> {
-        return this.scheduleService.cancel(id, dto.reason ?? null, { adminUserId, ipAddress }, dto.notify ?? true);
+        return this.scheduleService.cancel(id, dto.reason ?? null, { adminUserId, ipAddress }, dto.notify);
     }
 
     @Delete(':id')
@@ -169,6 +169,6 @@ export class AdminScheduleController {
         @AdminUser('id') adminUserId: string,
         @Ip() ipAddress: string,
     ): Promise<void> {
-        await this.scheduleService.deleteEntry(id, { adminUserId, ipAddress }, query.notify ?? true);
+        await this.scheduleService.deleteEntry(id, { adminUserId, ipAddress }, query.notify);
     }
 }

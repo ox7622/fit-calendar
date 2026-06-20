@@ -3,6 +3,7 @@ export * from './status-codes.const';
 export * from './difficulty-levels.const';
 export * from './duration-options.const';
 export * from './impact-types.const';
+export * from './notify.const';
 export * from './taxonomy-colors.const';
 export * from './upload-limits.const';
 export * from './validation-messages.const';

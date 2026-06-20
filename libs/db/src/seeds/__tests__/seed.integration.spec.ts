@@ -212,11 +212,15 @@ describe('Seed Data Verification Tests', () => {
             });
         });
 
-        it('should have schedule entries with reasonable duration', async () => {
+        it('should have schedule entries with a valid duration', async () => {
             const entries = await scheduleEntryRepo.find();
             entries.forEach((entry) => {
-                expect(entry.durationMinutes).toBeGreaterThanOrEqual(30);
-                expect(entry.durationMinutes).toBeLessThanOrEqual(120);
+                // Bounds mirror the domain range DURATION_OPTION_MIN/MAX_MINUTES
+                // (5..480) in @fitcalendar/shared. The old 30..120 assertion was
+                // arbitrary and tripped on legitimate admin-created short classes
+                // (e.g. a 25-min slot), since this reads every row in the DB.
+                expect(entry.durationMinutes).toBeGreaterThanOrEqual(5);
+                expect(entry.durationMinutes).toBeLessThanOrEqual(480);
             });
         });
 

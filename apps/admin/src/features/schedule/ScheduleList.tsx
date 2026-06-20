@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
+
 import type { IAdminScheduleItem } from '@/shared/api';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Plus, SquarePen } from 'lucide-react';
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { findOverlappingIds } from './bulk/find-overlapping-ids';

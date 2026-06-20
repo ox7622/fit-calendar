@@ -1,5 +1,4 @@
 import { adminApiClient } from './client';
-
 import type { TTaxonomyMoveDirection } from './taxonomy.api';
 
 export { DURATION_OPTION_MAX_MINUTES, DURATION_OPTION_MIN_MINUTES } from '@fitcalendar/shared';

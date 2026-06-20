@@ -4,6 +4,8 @@ interface ICancelClassModalProps {
     className: string;
     startTimeLabel: string;
     affectedReminderHint?: string;
+    /** When true, show that cancelling pushes all bot users (class within 5 days). */
+    willPush?: boolean;
     onConfirm: (reason: string | null) => Promise<void>;
     onClose: () => void;
 }
@@ -14,6 +16,7 @@ export function CancelClassModal({
     className,
     startTimeLabel,
     affectedReminderHint,
+    willPush = false,
     onConfirm,
     onClose,
 }: ICancelClassModalProps) {
@@ -49,6 +52,11 @@ export function CancelClassModal({
                     {className} — {startTimeLabel}
                 </p>
                 {affectedReminderHint && <p className="text-body-secondary mb-4 text-sm">{affectedReminderHint}</p>}
+                {willPush && (
+                    <p className="text-amber-600 mb-4 text-sm">
+                        ⚠️ Занятие в ближайшие 5 дней. Все пользователи бота получат пуш об отмене.
+                    </p>
+                )}
 
                 <label htmlFor="cancel-reason" className="text-body mb-1 block">
                     Причина (необязательно)

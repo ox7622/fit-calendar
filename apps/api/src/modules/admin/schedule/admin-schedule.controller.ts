@@ -25,6 +25,7 @@ import { BulkCreateResponseDto, BulkCreateScheduleDto } from './dto/bulk-create-
 import { BulkDeleteResponseDto, BulkDeleteScheduleDto } from './dto/bulk-delete-schedule.dto';
 import { CancelClassDto } from './dto/cancel-class.dto';
 import { CreateScheduleEntryDto } from './dto/create-schedule-entry.dto';
+import { DeleteScheduleEntryQueryDto } from './dto/delete-schedule-entry-query.dto';
 import { UpdateScheduleEntryDto } from './dto/update-schedule-entry.dto';
 
 @ApiTags('Admin Schedule')
@@ -145,7 +146,7 @@ export class AdminScheduleController {
         @AdminUser('id') adminUserId: string,
         @Ip() ipAddress: string,
     ): Promise<AdminScheduleItemDto> {
-        return this.scheduleService.cancel(id, dto.reason ?? null, { adminUserId, ipAddress });
+        return this.scheduleService.cancel(id, dto.reason ?? null, { adminUserId, ipAddress }, dto.notify ?? true);
     }
 
     @Delete(':id')
@@ -164,9 +165,10 @@ export class AdminScheduleController {
     @ApiResponse({ status: 409, description: 'Class has reminders or is still in the future' })
     async deleteEntry(
         @Param('id', new ParseUUIDPipe()) id: string,
+        @Query() query: DeleteScheduleEntryQueryDto,
         @AdminUser('id') adminUserId: string,
         @Ip() ipAddress: string,
     ): Promise<void> {
-        await this.scheduleService.deleteEntry(id, { adminUserId, ipAddress });
+        await this.scheduleService.deleteEntry(id, { adminUserId, ipAddress }, query.notify ?? true);
     }
 }

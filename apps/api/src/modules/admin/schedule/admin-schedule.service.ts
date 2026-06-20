@@ -122,7 +122,10 @@ export class AdminScheduleService {
                 startTime: item.startTime,
             },
         };
-        this.eventEmitter.emit(SCHEDULE_CREATED_EVENT, createdPayload);
+        const notify = dto.notify ?? true;
+        if (notify) {
+            this.eventEmitter.emit(SCHEDULE_CREATED_EVENT, createdPayload);
+        }
         return toAdminScheduleItem(item);
     }
 
@@ -229,7 +232,8 @@ export class AdminScheduleService {
             relations: ['coach', 'trainingType'],
         });
 
-        if (startTimeChanged || durationChanged) {
+        const notify = dto.notify ?? true;
+        if (notify && (startTimeChanged || durationChanged)) {
             const payload: IScheduleChangedPayload = {
                 scheduleEntryId: id,
                 oldStartTime,
@@ -271,7 +275,12 @@ export class AdminScheduleService {
      * is either included in the event (their reminder existed at read time)
      * or skipped entirely (they inserted after the read, the row stays).
      */
-    async cancel(id: string, reason: string | null, audit?: IAuditContext): Promise<AdminScheduleItemDto> {
+    async cancel(
+        id: string,
+        reason: string | null,
+        audit?: IAuditContext,
+        notify = true,
+    ): Promise<AdminScheduleItemDto> {
         type TCancelResult = {
             entry: ScheduleEntry;
             wasAlreadyCancelled: boolean;
@@ -323,7 +332,9 @@ export class AdminScheduleService {
                 coachName: result.entry.coach.name,
             },
         };
-        this.eventEmitter.emit(SCHEDULE_CANCELLED_EVENT, payload);
+        if (notify) {
+            this.eventEmitter.emit(SCHEDULE_CANCELLED_EVENT, payload);
+        }
         this.logger.log(`Cancelled schedule entry ${id} (affected ${result.affectedCustomerIds.length} customer(s))`);
         await this.auditService.record({
             adminUserId: audit?.adminUserId ?? null,
@@ -346,7 +357,7 @@ export class AdminScheduleService {
      * class within the 5-day notify window now broadcasts a cancellation push to
      * all linked customers (via SCHEDULE_DELETED). Bulk delete keeps the guard.
      */
-    async deleteEntry(id: string, audit?: IAuditContext): Promise<void> {
+    async deleteEntry(id: string, audit?: IAuditContext, notify = true): Promise<void> {
         const entry = await this.scheduleRepo.findOne({
             where: { id },
             relations: ['coach', 'trainingType'],
@@ -363,7 +374,9 @@ export class AdminScheduleService {
         this.logger.log(`Deleted schedule entry ${id}`);
 
         const deletedPayload: IScheduleDeletedPayload = { scheduleEntryId: id, snapshot };
-        this.eventEmitter.emit(SCHEDULE_DELETED_EVENT, deletedPayload);
+        if (notify) {
+            this.eventEmitter.emit(SCHEDULE_DELETED_EVENT, deletedPayload);
+        }
 
         await this.auditService.record({
             adminUserId: audit?.adminUserId ?? null,

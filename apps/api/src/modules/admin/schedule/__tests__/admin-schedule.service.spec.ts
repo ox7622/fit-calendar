@@ -268,6 +268,21 @@ describe('AdminScheduleService', () => {
             await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
             expect(scheduleRepo.save).not.toHaveBeenCalled();
         });
+
+        it('does NOT emit SCHEDULE_CREATED when notify=false', async () => {
+            coachRepo.findOne.mockResolvedValueOnce({ id: 'c-1', isActive: true } as Coach);
+            trainingTypeRepo.findOne.mockResolvedValueOnce({ id: 't-1', isActive: true } as TrainingType);
+            scheduleRepo.save.mockResolvedValueOnce({
+                ...createDto,
+                id: 'sched-new',
+                status: 'scheduled',
+            } as ScheduleEntry);
+            scheduleRepo.findOne.mockResolvedValueOnce(buildEntry({ id: 'sched-new' }));
+
+            await service.create({ ...createDto, notify: false });
+
+            expect(eventEmitter.emit).not.toHaveBeenCalledWith(SCHEDULE_CREATED_EVENT, expect.anything());
+        });
     });
 
     describe('update (Story 6.3)', () => {
@@ -328,6 +343,14 @@ describe('AdminScheduleService', () => {
                     newDurationMinutes: 90,
                 }),
             );
+        });
+
+        it('does NOT emit SCHEDULE_CHANGED when notify=false (reminders still recompute)', async () => {
+            const newStartTime = new Date('2026-05-15T11:00:00Z');
+            await service.update('sched-edit', { startTime: newStartTime, notify: false });
+
+            expect(reminderService.recomputeNotifyAtForClass).toHaveBeenCalledWith('sched-edit', newStartTime);
+            expect(eventEmitter.emit).not.toHaveBeenCalledWith(SCHEDULE_CHANGED_EVENT, expect.anything());
         });
 
         it('does not crash if reminder recomputation throws — logs and continues', async () => {
@@ -463,6 +486,15 @@ describe('AdminScheduleService', () => {
             await expect(service.cancel('sched-tx-fail', 'reason')).rejects.toThrow('db unavailable');
             expect(eventEmitter.emit).not.toHaveBeenCalled();
         });
+
+        it('does NOT emit SCHEDULE_CANCELLED when notify=false', async () => {
+            const entry = buildEntry({ id: 'sched-cancel', status: 'scheduled' });
+            txScheduleRepo.findOne.mockResolvedValue(entry);
+            reminderService.findPendingCustomersByClass.mockResolvedValueOnce(['cust-a', 'cust-b']);
+
+            await service.cancel('sched-cancel', 'reason', undefined, false);
+            expect(eventEmitter.emit).not.toHaveBeenCalledWith(SCHEDULE_CANCELLED_EVENT, expect.anything());
+        });
     });
 
     describe('deleteEntry (Story 6.4)', () => {
@@ -517,6 +549,17 @@ describe('AdminScheduleService', () => {
                 SCHEDULE_DELETED_EVENT,
                 expect.objectContaining({ scheduleEntryId: 'sched-with-subs' }),
             );
+        });
+
+        it('does NOT emit SCHEDULE_DELETED when notify=false', async () => {
+            const entry = buildEntry({ id: 'sched-x', reminders: [] } as Partial<ScheduleEntry>);
+            scheduleRepo.findOne.mockResolvedValueOnce(entry);
+            scheduleRepo.remove.mockResolvedValueOnce(entry);
+
+            await service.deleteEntry('sched-x', undefined, false);
+
+            expect(scheduleRepo.remove).toHaveBeenCalledWith(entry);
+            expect(eventEmitter.emit).not.toHaveBeenCalledWith(SCHEDULE_DELETED_EVENT, expect.anything());
         });
     });
 

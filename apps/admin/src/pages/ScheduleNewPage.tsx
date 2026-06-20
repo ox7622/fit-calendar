@@ -1,9 +1,12 @@
+import { isWithinNotifyWindow, PUSH_WARNING } from '@/features/schedule/notify-window';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError } from '@/shared/api';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
 
 export function ScheduleNewPage() {
     const navigate = useNavigate();
+    const { confirm, dialog } = useConfirm();
 
     return (
         <div className="p-6">
@@ -11,8 +14,19 @@ export function ScheduleNewPage() {
             <ScheduleForm
                 submitLabel="Создать"
                 onSubmit={async (payload) => {
+                    let notify = true;
+                    if (isWithinNotifyWindow(payload.startTime)) {
+                        const res = await confirm({
+                            title: 'Создать занятие?',
+                            message: `${PUSH_WARNING} Продолжить?`,
+                            confirmLabel: 'Создать',
+                            notifyToggle: { label: 'Уведомить пользователей' },
+                        });
+                        if (!res.confirmed) return;
+                        notify = res.notify;
+                    }
                     try {
-                        await adminScheduleApi.create(payload);
+                        await adminScheduleApi.create(payload, notify);
                         navigate('/dashboard', { replace: true });
                     } catch (err) {
                         if (err instanceof ApiError) {
@@ -36,6 +50,7 @@ export function ScheduleNewPage() {
                 }}
                 onCancel={() => navigate('/dashboard')}
             />
+            {dialog}
         </div>
     );
 }

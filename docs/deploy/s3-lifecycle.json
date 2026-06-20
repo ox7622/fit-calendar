@@ -1,0 +1,28 @@
+{
+    "Rules": [
+        {
+            "ID": "expire-daily-7d",
+            "Status": "Enabled",
+            "Filter": { "Prefix": "daily/" },
+            "Expiration": { "Days": 7 }
+        },
+        {
+            "ID": "expire-weekly-35d",
+            "Status": "Enabled",
+            "Filter": { "Prefix": "weekly/" },
+            "Expiration": { "Days": 35 }
+        },
+        {
+            "ID": "expire-monthly-400d",
+            "Status": "Enabled",
+            "Filter": { "Prefix": "monthly/" },
+            "Expiration": { "Days": 400 }
+        },
+        {
+            "ID": "abort-incomplete-multipart-7d",
+            "Status": "Enabled",
+            "Filter": { "Prefix": "" },
+            "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+        }
+    ]
+}

@@ -1,0 +1,129 @@
+import { adminApiClient, ApiError } from './client';
+
+export type TMembershipStatus = 'active' | 'expired' | 'cancelled';
+export type TDurationUnit = 'day' | 'week' | 'month';
+
+export interface IAdminMembershipPlanSnapshot {
+    id: string;
+    name: string;
+    durationValue: number;
+    durationUnit: TDurationUnit;
+    features: string[];
+    guestVisitsAllowed: number;
+    freezeDaysAllowed: number;
+    priceRub: number;
+}
+
+export interface IAdminMembership {
+    id: string;
+    customerId: string;
+    startDate: string;
+    endDate: string;
+    daysRemaining: number;
+    guestVisitsRemaining: number;
+    freezeDaysRemaining: number;
+    status: TMembershipStatus;
+    notes: string | null;
+    plan: IAdminMembershipPlanSnapshot;
+    createdAt: string;
+}
+
+export interface IAssignMembershipPayload {
+    planId: string;
+    startDate: string; // YYYY-MM-DD
+    notes?: string;
+}
+
+export interface IUpdateMembershipPayload {
+    endDate?: string;
+    notes?: string;
+}
+
+export interface IActiveExistsError {
+    code: 'ACTIVE_MEMBERSHIP_EXISTS';
+    message: string;
+    existingActive: { id: string; endDate: string };
+}
+
+export function isActiveExistsError(data: unknown): data is IActiveExistsError {
+    return typeof data === 'object' && data !== null && (data as { code?: string }).code === 'ACTIVE_MEMBERSHIP_EXISTS';
+}
+
+export interface IGuestVisit {
+    id: string;
+    customerMembershipId: string;
+    visitedAt: string;
+    notes: string | null;
+    recordedByAdminId: string;
+    createdAt: string;
+}
+
+export interface IRecordGuestVisitPayload {
+    visitedAt?: string;
+    notes?: string;
+}
+
+export interface IGuestVisitResult {
+    visit: IGuestVisit;
+    remaining: number;
+}
+
+export interface IFreezeEvent {
+    id: string;
+    customerMembershipId: string;
+    startDate: string;
+    endDate: string;
+    durationDays: number;
+    notes: string | null;
+    recordedByAdminId: string;
+    createdAt: string;
+}
+
+export interface IRecordFreezePayload {
+    startDate: string;
+    durationDays: number;
+    notes?: string;
+}
+
+export interface IFreezeResult {
+    freeze: IFreezeEvent;
+    membership: IAdminMembership;
+}
+
+export interface IUndoFreezeResult {
+    membership: IAdminMembership;
+}
+
+export const adminMembershipsApi = {
+    listForCustomer: (customerId: string): Promise<IAdminMembership[]> =>
+        adminApiClient.get<IAdminMembership[]>(`/admin/customers/${customerId}/memberships`),
+
+    assign: (customerId: string, payload: IAssignMembershipPayload): Promise<IAdminMembership> =>
+        adminApiClient.post<IAdminMembership>(`/admin/customers/${customerId}/memberships`, payload),
+
+    update: (id: string, payload: IUpdateMembershipPayload): Promise<IAdminMembership> =>
+        adminApiClient.put<IAdminMembership>(`/admin/memberships/${id}`, payload),
+
+    cancel: (id: string): Promise<IAdminMembership> =>
+        adminApiClient.post<IAdminMembership>(`/admin/memberships/${id}/cancel`),
+
+    getGuestVisits: (membershipId: string): Promise<IGuestVisit[]> =>
+        adminApiClient.get<IGuestVisit[]>(`/admin/memberships/${membershipId}/guest-visits`),
+
+    recordGuestVisit: (membershipId: string, payload: IRecordGuestVisitPayload): Promise<IGuestVisitResult> =>
+        adminApiClient.post<IGuestVisitResult>(`/admin/memberships/${membershipId}/guest-visits`, payload),
+
+    undoGuestVisit: (visitId: string): Promise<{ remaining: number }> =>
+        adminApiClient.delete<{ remaining: number }>(`/admin/guest-visits/${visitId}`),
+
+    getFreezes: (membershipId: string): Promise<IFreezeEvent[]> =>
+        adminApiClient.get<IFreezeEvent[]>(`/admin/memberships/${membershipId}/freezes`),
+
+    recordFreeze: (membershipId: string, payload: IRecordFreezePayload): Promise<IFreezeResult> =>
+        adminApiClient.post<IFreezeResult>(`/admin/memberships/${membershipId}/freezes`, payload),
+
+    undoFreeze: (freezeId: string): Promise<IUndoFreezeResult> =>
+        adminApiClient.delete<IUndoFreezeResult>(`/admin/freezes/${freezeId}`),
+};
+
+export { ApiError };

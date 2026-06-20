@@ -28,6 +28,7 @@
         "strictPropertyInitialization": false,
         "jsx": "react-jsx",
         "paths": {
+            "@fitcalendar/bot-core": ["libs/bot-core/src/index.ts"],
             "@fitcalendar/db": ["libs/db/src/index.ts"],
             "@fitcalendar/nest-shared": ["libs/nest-shared/src/index.ts"],
             "@fitcalendar/sdk/*": ["libs/sdk/src/*"],

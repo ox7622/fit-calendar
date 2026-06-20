@@ -1,0 +1,26 @@
+# Builds the two Vite SPAs (mini-app, admin) and bakes them into a Caddy image
+# that serves them + reverse-proxies the API. VITE_API_URL is inlined at build
+# time, so it's passed as a build arg (the public API origin + /api).
+FROM node:22-slim AS build
+
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
+
+COPY . .
+RUN pnpm install --frozen-lockfile
+
+ARG VITE_API_URL
+ARG VITE_SENTRY_DSN_MINI
+ARG VITE_SENTRY_DSN_ADMIN
+ARG VITE_SENTRY_ENVIRONMENT
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_SENTRY_DSN_MINI=$VITE_SENTRY_DSN_MINI \
+    VITE_SENTRY_DSN_ADMIN=$VITE_SENTRY_DSN_ADMIN \
+    VITE_SENTRY_ENVIRONMENT=$VITE_SENTRY_ENVIRONMENT
+RUN pnpm nx build mini-app && pnpm nx build admin
+
+# ── Runtime: Caddy with the built static sites + the Caddyfile ───────────────
+FROM caddy:2-alpine
+COPY --from=build /app/dist/apps/mini-app /srv/mini-app
+COPY --from=build /app/dist/apps/admin /srv/admin
+COPY docker/Caddyfile /etc/caddy/Caddyfile

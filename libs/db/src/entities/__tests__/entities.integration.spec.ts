@@ -1,11 +1,12 @@
-import { DataSource, Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 
-import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser } from '../index';
 import { entities } from '../../data-source';
+import { AdminUser, Coach, ClubInfo, Customer, Reminder, ScheduleEntry, TrainingType } from '../index';
 
 describe('Entity Integration Tests', () => {
     let dataSource: DataSource;
-    let userRepo: Repository<User>;
+    let customerRepo: Repository<Customer>;
     let coachRepo: Repository<Coach>;
     let trainingTypeRepo: Repository<TrainingType>;
     let scheduleEntryRepo: Repository<ScheduleEntry>;
@@ -14,7 +15,6 @@ describe('Entity Integration Tests', () => {
     let adminUserRepo: Repository<AdminUser>;
 
     beforeAll(async () => {
-        // Use test database configuration
         dataSource = new DataSource({
             type: 'postgres',
             host: process.env['NX_DB_HOST'] || 'localhost',
@@ -30,7 +30,7 @@ describe('Entity Integration Tests', () => {
 
         await dataSource.initialize();
 
-        userRepo = dataSource.getRepository(User);
+        customerRepo = dataSource.getRepository(Customer);
         coachRepo = dataSource.getRepository(Coach);
         trainingTypeRepo = dataSource.getRepository(TrainingType);
         scheduleEntryRepo = dataSource.getRepository(ScheduleEntry);
@@ -45,68 +45,101 @@ describe('Entity Integration Tests', () => {
         }
     });
 
-    describe('User Entity', () => {
-        const testTelegramId = 999999999;
-        let createdUserId: string;
+    describe('Customer Entity', () => {
+        const testPhone = '+79999999991';
+        const testTelegramId = 999999991;
+        let createdCustomerId: string;
 
         afterAll(async () => {
-            // Cleanup test user
-            if (createdUserId) {
-                await userRepo.delete({ id: createdUserId });
+            if (createdCustomerId) {
+                await customerRepo.delete({ id: createdCustomerId });
             }
         });
 
-        it('should create a user with all fields', async () => {
-            const user = userRepo.create({
-                telegramId: testTelegramId,
+        it('should create a customer with all fields', async () => {
+            const customer = customerRepo.create({
                 firstName: 'Test',
-                lastName: 'User',
-                username: 'testuser',
+                lastName: 'Customer',
+                phone: testPhone,
+                email: 'test@example.com',
+                telegramId: testTelegramId,
+                telegramUsername: 'testcustomer',
+                isActive: true,
+                notes: 'Integration test fixture',
                 reminderMinutes: 45,
             });
 
-            const saved = await userRepo.save(user);
-            createdUserId = saved.id;
+            const saved = await customerRepo.save(customer);
+            createdCustomerId = saved.id;
 
             expect(saved.id).toBeDefined();
-            expect(saved.telegramId).toBe(testTelegramId);
             expect(saved.firstName).toBe('Test');
-            expect(saved.lastName).toBe('User');
-            expect(saved.username).toBe('testuser');
+            expect(saved.lastName).toBe('Customer');
+            expect(saved.phone).toBe(testPhone);
+            expect(saved.email).toBe('test@example.com');
+            // bigint columns deserialize as string from the pg driver
+            expect(Number(saved.telegramId)).toBe(testTelegramId);
+            expect(saved.telegramUsername).toBe('testcustomer');
             expect(saved.reminderMinutes).toBe(45);
             expect(saved.createdAt).toBeInstanceOf(Date);
             expect(saved.updatedAt).toBeInstanceOf(Date);
         });
 
         it('should apply default reminderMinutes of 30', async () => {
-            const uniqueTelegramId = 999999998;
-            const user = userRepo.create({
-                telegramId: uniqueTelegramId,
+            const customer = customerRepo.create({
                 firstName: 'Default',
+                phone: '+79999999992',
             });
 
-            const saved = await userRepo.save(user);
+            const saved = await customerRepo.save(customer);
 
             expect(saved.reminderMinutes).toBe(30);
 
-            // Cleanup
-            await userRepo.delete({ id: saved.id });
+            await customerRepo.delete({ id: saved.id });
         });
 
-        it('should enforce unique telegramId constraint', async () => {
-            const duplicateUser = userRepo.create({
-                telegramId: testTelegramId, // Same as existing user
+        it('should allow telegramId to be null (admin-created, not yet linked)', async () => {
+            const customer = customerRepo.create({
+                firstName: 'Unlinked',
+                phone: '+79999999993',
+                telegramId: null,
+            });
+
+            const saved = await customerRepo.save(customer);
+
+            expect(saved.telegramId).toBeNull();
+            expect(saved.telegramUsername).toBeNull();
+
+            await customerRepo.delete({ id: saved.id });
+        });
+
+        it('should enforce unique phone constraint', async () => {
+            const duplicate = customerRepo.create({
                 firstName: 'Duplicate',
+                phone: testPhone, // collides with the first fixture
             });
 
-            await expect(userRepo.save(duplicateUser)).rejects.toThrow();
+            await expect(customerRepo.save(duplicate)).rejects.toThrow();
         });
 
-        it('should find user by telegramId', async () => {
-            const found = await userRepo.findOne({
-                where: { telegramId: testTelegramId },
+        it('should enforce unique telegramId constraint when set', async () => {
+            const duplicate = customerRepo.create({
+                firstName: 'TgDuplicate',
+                phone: '+79999999994',
+                telegramId: testTelegramId, // collides with the first fixture
             });
 
+            await expect(customerRepo.save(duplicate)).rejects.toThrow();
+        });
+
+        it('should find customer by phone', async () => {
+            const found = await customerRepo.findOne({ where: { phone: testPhone } });
+            expect(found).not.toBeNull();
+            expect(found?.firstName).toBe('Test');
+        });
+
+        it('should find customer by telegramId', async () => {
+            const found = await customerRepo.findOne({ where: { telegramId: testTelegramId } });
             expect(found).not.toBeNull();
             expect(found?.firstName).toBe('Test');
         });
@@ -158,7 +191,6 @@ describe('Entity Integration Tests', () => {
 
             expect(entries.length).toBeGreaterThan(0);
 
-            // Check relations are loaded
             entries.forEach((entry) => {
                 expect(entry.coach).toBeDefined();
                 expect(entry.trainingType).toBeDefined();
@@ -178,12 +210,11 @@ describe('Entity Integration Tests', () => {
     });
 
     describe('Reminder Entity - CASCADE Delete', () => {
-        let testUser: User;
+        let testCustomer: Customer;
         let testScheduleEntry: ScheduleEntry;
         let testReminder: Reminder;
 
         beforeAll(async () => {
-            // Get existing coach and training type for creating schedule entry
             const coach = await coachRepo.findOne({ where: { isActive: true } });
             const trainingType = await trainingTypeRepo.findOne({ where: { isActive: true } });
 
@@ -191,15 +222,13 @@ describe('Entity Integration Tests', () => {
                 throw new Error('Seed data required for cascade delete test');
             }
 
-            // Create test user
-            testUser = await userRepo.save(
-                userRepo.create({
-                    telegramId: 888888888,
+            testCustomer = await customerRepo.save(
+                customerRepo.create({
                     firstName: 'CascadeTest',
+                    phone: '+78888888881',
                 }),
             );
 
-            // Create test schedule entry
             testScheduleEntry = await scheduleEntryRepo.save(
                 scheduleEntryRepo.create({
                     coachId: coach.id,
@@ -210,10 +239,9 @@ describe('Entity Integration Tests', () => {
                 }),
             );
 
-            // Create reminder linking user and schedule entry
             testReminder = await reminderRepo.save(
                 reminderRepo.create({
-                    userId: testUser.id,
+                    customerId: testCustomer.id,
                     scheduleEntryId: testScheduleEntry.id,
                     notifyAt: new Date(),
                     status: 'pending',
@@ -222,24 +250,23 @@ describe('Entity Integration Tests', () => {
         });
 
         afterAll(async () => {
-            // Cleanup - delete schedule entry (should cascade to reminder)
             if (testScheduleEntry?.id) {
                 await scheduleEntryRepo.delete({ id: testScheduleEntry.id });
             }
-            if (testUser?.id) {
-                await userRepo.delete({ id: testUser.id });
+            if (testCustomer?.id) {
+                await customerRepo.delete({ id: testCustomer.id });
             }
         });
 
-        it('should create reminder with user and schedule entry references', async () => {
+        it('should create reminder with customer and schedule entry references', async () => {
             expect(testReminder.id).toBeDefined();
-            expect(testReminder.userId).toBe(testUser.id);
+            expect(testReminder.customerId).toBe(testCustomer.id);
             expect(testReminder.scheduleEntryId).toBe(testScheduleEntry.id);
         });
 
-        it('should enforce unique constraint on (userId, scheduleEntryId)', async () => {
+        it('should enforce unique constraint on (customerId, scheduleEntryId)', async () => {
             const duplicateReminder = reminderRepo.create({
-                userId: testUser.id,
+                customerId: testCustomer.id,
                 scheduleEntryId: testScheduleEntry.id,
                 notifyAt: new Date(),
                 status: 'pending',
@@ -248,28 +275,25 @@ describe('Entity Integration Tests', () => {
             await expect(reminderRepo.save(duplicateReminder)).rejects.toThrow();
         });
 
-        it('should cascade delete reminder when user is deleted', async () => {
-            // Create another user and reminder for this specific test
-            const tempUser = await userRepo.save(
-                userRepo.create({
-                    telegramId: 777777777,
-                    firstName: 'TempUser',
+        it('should cascade delete reminder when customer is deleted', async () => {
+            const tempCustomer = await customerRepo.save(
+                customerRepo.create({
+                    firstName: 'TempCustomer',
+                    phone: '+77777777771',
                 }),
             );
 
             const tempReminder = await reminderRepo.save(
                 reminderRepo.create({
-                    userId: tempUser.id,
+                    customerId: tempCustomer.id,
                     scheduleEntryId: testScheduleEntry.id,
                     notifyAt: new Date(),
                     status: 'pending',
                 }),
             );
 
-            // Delete user - should cascade to reminder
-            await userRepo.delete({ id: tempUser.id });
+            await customerRepo.delete({ id: tempCustomer.id });
 
-            // Verify reminder was deleted
             const deletedReminder = await reminderRepo.findOne({
                 where: { id: tempReminder.id },
             });
@@ -289,7 +313,6 @@ describe('Entity Integration Tests', () => {
             expect(club?.workingHours).toBeDefined();
             expect(typeof club?.workingHours).toBe('object');
 
-            // Check for day entries
             if (club?.workingHours.monday) {
                 expect(club.workingHours.monday.open).toBeDefined();
                 expect(club.workingHours.monday.close).toBeDefined();
@@ -309,12 +332,12 @@ describe('Entity Integration Tests', () => {
             expect(admin?.passwordHash).toMatch(/^\$2[aby]\$\d+\$/);
         });
 
-        it('should enforce unique email constraint', async () => {
+        it('should enforce unique login constraint', async () => {
             const existingAdmin = await adminUserRepo.findOne({ where: {} });
             if (!existingAdmin) return;
 
             const duplicateAdmin = adminUserRepo.create({
-                email: existingAdmin.email, // Same email
+                login: existingAdmin.login,
                 passwordHash: '$2b$10$test',
                 name: 'Duplicate',
             });
@@ -329,7 +352,7 @@ describe('Entity Integration Tests', () => {
             if (!trainingType) return;
 
             const invalidEntry = scheduleEntryRepo.create({
-                coachId: '00000000-0000-0000-0000-000000000000', // Non-existent
+                coachId: '00000000-0000-0000-0000-000000000000',
                 trainingTypeId: trainingType.id,
                 startTime: new Date(),
                 durationMinutes: 60,
@@ -345,7 +368,7 @@ describe('Entity Integration Tests', () => {
 
             const invalidEntry = scheduleEntryRepo.create({
                 coachId: coach.id,
-                trainingTypeId: '00000000-0000-0000-0000-000000000000', // Non-existent
+                trainingTypeId: '00000000-0000-0000-0000-000000000000',
                 startTime: new Date(),
                 durationMinutes: 60,
                 status: 'scheduled',

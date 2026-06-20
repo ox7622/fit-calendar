@@ -2,7 +2,14 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "outDir": "../../dist/out-tsc",
-        "types": ["node", "typelevel"]
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "@fitcalendar/shared": ["../../libs/shared/src/index.ts"]
+        },
+        "types": ["node"]
     },
     "exclude": [
         "src/**/*.spec.ts",

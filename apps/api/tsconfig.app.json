@@ -3,10 +3,11 @@
     "compilerOptions": {
         "outDir": "../../dist/out-tsc",
         "module": "commonjs",
-        "types": ["node"],
+        "types": ["node", "multer"],
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "target": "es2021"
     },
-    "include": ["src/**/*.ts", "scripts/**/*.ts"]
+    "include": ["src/**/*.ts", "scripts/**/*.ts"],
+    "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
 }

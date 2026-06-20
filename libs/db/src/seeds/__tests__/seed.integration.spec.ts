@@ -1,7 +1,17 @@
-import { DataSource, Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 
-import { User, Coach, TrainingType, ScheduleEntry, Reminder, ClubInfo, AdminUser } from '../../entities';
 import { entities } from '../../data-source';
+import {
+    AdminUser,
+    Coach,
+    ClubInfo,
+    Customer,
+    MembershipPlan,
+    Reminder,
+    ScheduleEntry,
+    TrainingType,
+} from '../../entities';
 
 describe('Seed Data Verification Tests', () => {
     let dataSource: DataSource;
@@ -10,6 +20,8 @@ describe('Seed Data Verification Tests', () => {
     let scheduleEntryRepo: Repository<ScheduleEntry>;
     let clubInfoRepo: Repository<ClubInfo>;
     let adminUserRepo: Repository<AdminUser>;
+    let membershipPlanRepo: Repository<MembershipPlan>;
+    let customerRepo: Repository<Customer>;
 
     beforeAll(async () => {
         dataSource = new DataSource({
@@ -32,6 +44,8 @@ describe('Seed Data Verification Tests', () => {
         scheduleEntryRepo = dataSource.getRepository(ScheduleEntry);
         clubInfoRepo = dataSource.getRepository(ClubInfo);
         adminUserRepo = dataSource.getRepository(AdminUser);
+        membershipPlanRepo = dataSource.getRepository(MembershipPlan);
+        customerRepo = dataSource.getRepository(Customer);
     });
 
     afterAll(async () => {
@@ -75,9 +89,9 @@ describe('Seed Data Verification Tests', () => {
             expect(count).toBeGreaterThanOrEqual(1);
         });
 
-        it('should have admin with correct email', async () => {
+        it('should have admin with correct login', async () => {
             const admin = await adminUserRepo.findOne({
-                where: { email: 'admin@fitcalendar.ru' },
+                where: { login: 'admin' },
             });
             expect(admin).not.toBeNull();
             expect(admin?.name).toBe('Admin');
@@ -173,9 +187,11 @@ describe('Seed Data Verification Tests', () => {
     });
 
     describe('ScheduleEntry Seed Data', () => {
-        it('should have 19 schedule entries', async () => {
+        it('should have at least 15 schedule entries', async () => {
+            // Exact count depends on the week the seed runs (weekends drop the evening
+            // session — see seed.ts:215). Just sanity-check the lower bound.
             const count = await scheduleEntryRepo.count();
-            expect(count).toBe(19);
+            expect(count).toBeGreaterThanOrEqual(15);
         });
 
         it('should have all schedule entries with scheduled status', async () => {
@@ -196,11 +212,15 @@ describe('Seed Data Verification Tests', () => {
             });
         });
 
-        it('should have schedule entries with reasonable duration', async () => {
+        it('should have schedule entries with a valid duration', async () => {
             const entries = await scheduleEntryRepo.find();
             entries.forEach((entry) => {
-                expect(entry.durationMinutes).toBeGreaterThanOrEqual(30);
-                expect(entry.durationMinutes).toBeLessThanOrEqual(120);
+                // Bounds mirror the domain range DURATION_OPTION_MIN/MAX_MINUTES
+                // (5..480) in @fitcalendar/shared. The old 30..120 assertion was
+                // arbitrary and tripped on legitimate admin-created short classes
+                // (e.g. a 25-min slot), since this reads every row in the DB.
+                expect(entry.durationMinutes).toBeGreaterThanOrEqual(5);
+                expect(entry.durationMinutes).toBeLessThanOrEqual(480);
             });
         });
 
@@ -229,6 +249,46 @@ describe('Seed Data Verification Tests', () => {
         });
     });
 
+    describe('MembershipPlan Seed Data (Story 7.1)', () => {
+        it('should have 6 default plans', async () => {
+            const count = await membershipPlanRepo.count();
+            expect(count).toBe(6);
+        });
+
+        it('should have at least one plan per duration unit', async () => {
+            const plans = await membershipPlanRepo.find();
+            const units = new Set(plans.map((p) => p.durationUnit));
+            expect(units).toContain('day');
+            expect(units).toContain('week');
+            expect(units).toContain('month');
+        });
+
+        it('should have positive prices on every plan', async () => {
+            const plans = await membershipPlanRepo.find();
+            plans.forEach((plan) => {
+                expect(plan.priceRub).toBeGreaterThan(0);
+            });
+        });
+    });
+
+    describe('Customer Seed Data (Story 7.2)', () => {
+        it('should have the 2 demo customers from seed', async () => {
+            // Use the seeded phones as a stable lookup. Other tests may have left
+            // additional fixtures behind, so check by phone rather than total count.
+            const anna = await customerRepo.findOne({ where: { phone: '+79001234567' } });
+            const boris = await customerRepo.findOne({ where: { phone: '+79007654321' } });
+            expect(anna).not.toBeNull();
+            expect(boris).not.toBeNull();
+        });
+
+        it('should have one linked and one unlinked demo customer', async () => {
+            const linked = await customerRepo.findOne({ where: { phone: '+79001234567' } });
+            const unlinked = await customerRepo.findOne({ where: { phone: '+79007654321' } });
+            expect(linked?.telegramId).not.toBeNull();
+            expect(unlinked?.telegramId).toBeNull();
+        });
+    });
+
     describe('Seed Data Integrity', () => {
         it('should have no orphaned schedule entries', async () => {
             // All schedule entries should have valid coach and training type
@@ -243,19 +303,8 @@ describe('Seed Data Verification Tests', () => {
             expect(orphanedEntries.length).toBe(0);
         });
 
-        it('should have no users created by seed (users come from Telegram)', async () => {
-            const userRepo = dataSource.getRepository(User);
-            const userCount = await userRepo.count();
-
-            // Seed should not create any users - they come from Telegram auth
-            // Note: If integration tests created users, this may fail
-            // This test verifies seed script behavior specifically
-            expect(userCount).toBeLessThanOrEqual(5); // Allow for test-created users
-        });
-
         it('should have no reminders created by seed (reminders are user-created)', async () => {
-            const reminderRepo = dataSource.getRepository(Reminder);
-            const reminderCount = await reminderRepo.count();
+            const reminderCount = await dataSource.getRepository(Reminder).count();
 
             // Seed should not create any reminders - they're created when users subscribe
             // Note: If integration tests created reminders, this may fail

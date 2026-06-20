@@ -1,20 +1,12 @@
-// @ts-nocheck
-// TODO: fix this
-import styled from '@emotion/styled';
+import { ThemeProvider } from './providers/ThemeProvider';
+import { AppRouter } from './Router';
 
-const StyledApp = styled.div`
-    // Your style here
-`;
-
-export const App = () => {
+export function App() {
     return (
-        <StyledApp>
-            <h1>
-                <span> Hello there, </span>
-                Welcome fe-main 👋
-            </h1>
-        </StyledApp>
+        <ThemeProvider>
+            <AppRouter />
+        </ThemeProvider>
     );
-};
+}
 
 export default App;

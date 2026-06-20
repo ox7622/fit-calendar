@@ -1,9 +1,10 @@
 import { AppDataSource } from '../data-source';
-import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser } from '../entities';
+import { Coach, TrainingType, ScheduleEntry, ClubInfo, AdminUser, MembershipPlan, Customer } from '../entities';
 
-// Pre-computed bcrypt hash for 'admin123' with 10 rounds
+// Pre-computed bcrypt hash for 'admin123' with 10 rounds.
 // Generated with: bcrypt.hashSync('admin123', 10)
-const ADMIN_PASSWORD_HASH = '$2b$10$rQZ8K8H8H8H8H8H8H8H8H.8H8H8H8H8H8H8H8H8H8H8H8H8H8H8H8';
+// Verified: bcrypt.compareSync('admin123', ADMIN_PASSWORD_HASH) === true.
+const ADMIN_PASSWORD_HASH = '$2b$10$wLyEbcqjO2XRX43gDQ/xyOKG/RutZ8AODjJ7KfbBDS6PZq6nrOdKO';
 
 async function seed(): Promise<void> {
     await AppDataSource.initialize();
@@ -39,17 +40,25 @@ async function seed(): Promise<void> {
         }
 
         // 2. Seed AdminUser (default admin)
+        // Self-heals an existing row whose passwordHash or isActive drifted from the
+        // canonical seed values — earlier seed revisions wrote a placeholder hash that
+        // blocked login, and a plain insert-if-missing guard couldn't recover from it.
         const adminRepo = queryRunner.manager.getRepository(AdminUser);
-        const existingAdmin = await adminRepo.findOne({ where: { email: 'admin@fitcalendar.ru' } });
+        const existingAdmin = await adminRepo.findOne({ where: { login: 'admin' } });
         if (!existingAdmin) {
             const admin = adminRepo.create({
-                email: 'admin@fitcalendar.ru',
+                login: 'admin',
                 passwordHash: ADMIN_PASSWORD_HASH,
                 name: 'Admin',
                 isActive: true,
             });
             await adminRepo.save(admin);
             console.log('AdminUser seeded');
+        } else if (existingAdmin.passwordHash !== ADMIN_PASSWORD_HASH || !existingAdmin.isActive) {
+            existingAdmin.passwordHash = ADMIN_PASSWORD_HASH;
+            existingAdmin.isActive = true;
+            await adminRepo.save(existingAdmin);
+            console.log('AdminUser password/activation reset to seed defaults');
         }
 
         // 3. Seed Coaches
@@ -229,6 +238,105 @@ async function seed(): Promise<void> {
                 await scheduleRepo.save(entry);
             }
             console.log(`${scheduleData.length} ScheduleEntries seeded`);
+        }
+
+        // 6. Seed MembershipPlans
+        const planRepo = queryRunner.manager.getRepository(MembershipPlan);
+        const existingPlans = await planRepo.find();
+        if (existingPlans.length === 0) {
+            const planData: Array<Partial<MembershipPlan>> = [
+                {
+                    name: '12-месячный',
+                    durationValue: 12,
+                    durationUnit: 'month',
+                    priceRub: 30000,
+                    features: ['2 гостевых визита', '1 месяц заморозки'],
+                    guestVisitsAllowed: 2,
+                    freezeDaysAllowed: 30,
+                },
+                {
+                    name: '6-месячный',
+                    durationValue: 6,
+                    durationUnit: 'month',
+                    priceRub: 18000,
+                    features: ['1 гостевой визит', '2 недели заморозки'],
+                    guestVisitsAllowed: 1,
+                    freezeDaysAllowed: 14,
+                },
+                {
+                    name: '3-месячный',
+                    durationValue: 3,
+                    durationUnit: 'month',
+                    priceRub: 10000,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+                {
+                    name: '1-месячный',
+                    durationValue: 1,
+                    durationUnit: 'month',
+                    priceRub: 4500,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+                {
+                    name: '1-недельный',
+                    durationValue: 1,
+                    durationUnit: 'week',
+                    priceRub: 1500,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+                {
+                    name: '1-дневный',
+                    durationValue: 1,
+                    durationUnit: 'day',
+                    priceRub: 500,
+                    features: [],
+                    guestVisitsAllowed: 0,
+                    freezeDaysAllowed: 0,
+                },
+            ];
+
+            for (const data of planData) {
+                const plan = planRepo.create({ ...data, isActive: true });
+                await planRepo.save(plan);
+            }
+            console.log(`${planData.length} MembershipPlans seeded`);
+        }
+
+        // 7. Seed Customers (demo records for development/smoke testing)
+        const customerRepo = queryRunner.manager.getRepository(Customer);
+        const existingCustomers = await customerRepo.find();
+        if (existingCustomers.length === 0) {
+            const customerData: Array<Partial<Customer>> = [
+                {
+                    firstName: 'Анна',
+                    lastName: 'Кузнецова',
+                    phone: '+79001234567',
+                    email: 'anna@example.com',
+                    telegramId: 111111111,
+                    telegramUsername: 'anna_demo',
+                    isActive: true,
+                    notes: 'Linked demo customer — phone matches Telegram id 111111111',
+                },
+                {
+                    firstName: 'Борис',
+                    lastName: 'Лебедев',
+                    phone: '+79007654321',
+                    isActive: true,
+                    notes: 'Unlinked demo customer — opens Mini App and links via phone',
+                },
+            ];
+
+            for (const data of customerData) {
+                const customer = customerRepo.create(data);
+                await customerRepo.save(customer);
+            }
+            console.log(`${customerData.length} Customers seeded`);
         }
 
         await queryRunner.commitTransaction();

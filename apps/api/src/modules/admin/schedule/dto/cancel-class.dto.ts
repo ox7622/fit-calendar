@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CancelClassDto {
     @ApiPropertyOptional({
@@ -11,4 +11,11 @@ export class CancelClassDto {
     @IsString()
     @MaxLength(500)
     reason?: string;
+
+    @ApiPropertyOptional({
+        description: 'When false, cancel without pushing a notification to users. Default true.',
+    })
+    @IsOptional()
+    @IsBoolean()
+    notify?: boolean;
 }

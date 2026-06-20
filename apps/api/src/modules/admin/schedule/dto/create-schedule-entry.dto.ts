@@ -1,7 +1,7 @@
 import { DURATION_OPTION_MAX_MINUTES, DURATION_OPTION_MIN_MINUTES } from '@fitcalendar/shared';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsInt, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsDate, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 export class CreateScheduleEntryDto {
     @ApiProperty({ description: 'TrainingType UUID — must be active' })
@@ -28,4 +28,11 @@ export class CreateScheduleEntryDto {
     @Min(DURATION_OPTION_MIN_MINUTES)
     @Max(DURATION_OPTION_MAX_MINUTES)
     durationMinutes: number;
+
+    @ApiPropertyOptional({
+        description: 'When false, save the change without pushing a notification to users. Default true.',
+    })
+    @IsOptional()
+    @IsBoolean()
+    notify?: boolean;
 }

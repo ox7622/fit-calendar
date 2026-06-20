@@ -6,4 +6,5 @@ export * from './dto/admin-schedule-list.dto';
 export * from './dto/create-schedule-entry.dto';
 export * from './dto/update-schedule-entry.dto';
 export * from './dto/cancel-class.dto';
+export * from './dto/delete-schedule-entry-query.dto';
 export * from './schedule.events';

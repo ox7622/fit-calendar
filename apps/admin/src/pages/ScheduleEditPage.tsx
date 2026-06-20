@@ -162,10 +162,10 @@ export function ScheduleEditPage() {
                     className={entry.trainingType.name}
                     startTimeLabel={startLabel}
                     willPush={isWithinNotifyWindow(entry.startTime)}
-                    onConfirm={async (reason) => {
+                    onConfirm={async (reason, notify) => {
                         if (!id) return;
                         try {
-                            const updated = await adminScheduleApi.cancel(id, reason);
+                            const updated = await adminScheduleApi.cancel(id, reason, notify);
                             setEntry(updated);
                         } catch (err) {
                             if (err instanceof ApiError) {

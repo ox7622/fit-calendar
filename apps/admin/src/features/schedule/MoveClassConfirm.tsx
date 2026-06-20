@@ -23,13 +23,14 @@ function fmt(iso: string): string {
 export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMoveClassConfirmProps): JSX.Element {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [notify, setNotify] = useState(true);
 
     const handleConfirm = async (): Promise<void> => {
         if (submitting) return;
         setSubmitting(true);
         setError(null);
         try {
-            await adminScheduleApi.update(item.id, { startTime: newStartTime });
+            await adminScheduleApi.update(item.id, { startTime: newStartTime }, notify);
             onMoved();
             onClose();
         } catch (err) {
@@ -44,7 +45,20 @@ export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMove
                 Перенести «{item.trainingType.name}» с <strong>{fmt(item.startTime)}</strong> на{' '}
                 <strong>{fmt(newStartTime)}</strong>?
             </p>
-            {isWithinNotifyWindow(newStartTime) && <p className="text-amber-600 mb-4 text-sm">⚠️ {PUSH_WARNING}</p>}
+            {isWithinNotifyWindow(newStartTime) && (
+                <>
+                    <p className="text-amber-600 mb-2 text-sm">⚠️ {PUSH_WARNING}</p>
+                    <label className="text-body mb-4 flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={notify}
+                            onChange={(e) => setNotify(e.target.checked)}
+                            className="h-4 w-4"
+                        />
+                        Уведомить пользователей
+                    </label>
+                </>
+            )}
             {error && (
                 <p role="alert" className="text-destructive mb-3 text-sm">
                     {error}

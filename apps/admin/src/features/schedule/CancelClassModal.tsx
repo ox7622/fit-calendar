@@ -6,7 +6,7 @@ interface ICancelClassModalProps {
     affectedReminderHint?: string;
     /** When true, show that cancelling pushes all bot users (class within 5 days). */
     willPush?: boolean;
-    onConfirm: (reason: string | null) => Promise<void>;
+    onConfirm: (reason: string | null, notify: boolean) => Promise<void>;
     onClose: () => void;
 }
 
@@ -23,13 +23,14 @@ export function CancelClassModal({
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [notify, setNotify] = useState(true);
 
     const handleConfirm = async () => {
         setSubmitting(true);
         setError(null);
         try {
             const trimmed = reason.trim();
-            await onConfirm(trimmed.length === 0 ? null : trimmed);
+            await onConfirm(trimmed.length === 0 ? null : trimmed, notify);
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Не удалось отменить занятие');
@@ -56,6 +57,17 @@ export function CancelClassModal({
                     <p className="text-amber-600 mb-4 text-sm">
                         ⚠️ Занятие в ближайшие 5 дней. Все пользователи бота получат пуш об отмене.
                     </p>
+                )}
+                {willPush && (
+                    <label className="text-body mb-4 flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={notify}
+                            onChange={(e) => setNotify(e.target.checked)}
+                            className="h-4 w-4"
+                        />
+                        Уведомить пользователей
+                    </label>
                 )}
 
                 <label htmlFor="cancel-reason" className="text-body mb-1 block">

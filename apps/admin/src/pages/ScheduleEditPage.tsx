@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 
 import { DuplicateClassDialog } from '@/features/schedule/bulk/DuplicateClassDialog';
 import { CancelClassModal } from '@/features/schedule/CancelClassModal';
+import { isWithinNotifyWindow, PUSH_WARNING } from '@/features/schedule/notify-window';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError, type IAdminScheduleItem } from '@/shared/api';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export function ScheduleEditPage() {
@@ -16,6 +18,7 @@ export function ScheduleEditPage() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [dupOpen, setDupOpen] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     useEffect(() => {
         if (!id) return;
@@ -53,8 +56,17 @@ export function ScheduleEditPage() {
     });
 
     const handleDelete = async () => {
-        if (!id) return;
-        if (!window.confirm('Удалить занятие безвозвратно?')) return;
+        if (!id || !entry) return;
+        const willPush = isWithinNotifyWindow(entry.startTime);
+        const ok = await confirm({
+            title: 'Удалить занятие?',
+            message: willPush
+                ? `${PUSH_WARNING} Занятие будет удалено безвозвратно. Продолжить?`
+                : 'Занятие будет удалено безвозвратно. Продолжить?',
+            confirmLabel: 'Удалить',
+            danger: true,
+        });
+        if (!ok) return;
         setDeleteError(null);
         try {
             await adminScheduleApi.delete(id);
@@ -94,7 +106,7 @@ export function ScheduleEditPage() {
                         type="button"
                         onClick={handleDelete}
                         className="rounded border border-border px-3 py-1 text-body hover:bg-surface-hover"
-                        title="Удаление доступно, только если на занятие никто не записан. Если есть записи — используйте отмену."
+                        title="Удаление занятия в ближайшие 5 дней отправит пуш всем пользователям бота."
                     >
                         Удалить
                     </button>
@@ -120,6 +132,14 @@ export function ScheduleEditPage() {
                 submitLabel="Сохранить"
                 onSubmit={async (payload) => {
                     if (!id) return;
+                    if (isWithinNotifyWindow(payload.startTime)) {
+                        const ok = await confirm({
+                            title: 'Сохранить изменения?',
+                            message: `${PUSH_WARNING} Продолжить?`,
+                            confirmLabel: 'Сохранить',
+                        });
+                        if (!ok) return;
+                    }
                     try {
                         await adminScheduleApi.update(id, payload);
                         navigate('/dashboard', { replace: true });
@@ -138,6 +158,7 @@ export function ScheduleEditPage() {
                 <CancelClassModal
                     className={entry.trainingType.name}
                     startTimeLabel={startLabel}
+                    willPush={isWithinNotifyWindow(entry.startTime)}
                     onConfirm={async (reason) => {
                         if (!id) return;
                         try {
@@ -162,6 +183,8 @@ export function ScheduleEditPage() {
                     onCreated={() => setDupOpen(false)}
                 />
             )}
+
+            {confirmDialog}
         </div>
     );
 }

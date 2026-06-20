@@ -309,6 +309,9 @@ export function ScheduleForm({
                             <p className="text-sm text-body-secondary">
                                 Будет создано занятий: {recurringEntries.length}
                             </p>
+                            <p className="text-body-secondary text-xs">
+                                ℹ️ При создании с повторениями уведомления пользователям не отправляются.
+                            </p>
                         </>
                     )}
                 </div>

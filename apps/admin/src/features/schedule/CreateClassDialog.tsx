@@ -1,5 +1,7 @@
+import { isWithinNotifyWindow, PUSH_WARNING } from '@/features/schedule/notify-window';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, extractApiMessage } from '@/shared/api';
+import { useConfirm } from '@/shared/components/ConfirmDialog';
 import { Modal } from '@/shared/components/Modal';
 
 interface ICreateClassDialogProps {
@@ -18,12 +20,21 @@ function dayAtNineISO(day: Date): string {
 }
 
 export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialogProps): JSX.Element {
+    const { confirm, dialog } = useConfirm();
     return (
         <Modal title="Новое занятие" onClose={onClose} panelClassName="max-h-[90vh] overflow-y-auto">
             <ScheduleForm
                 initial={{ startTime: dayAtNineISO(day) }}
                 submitLabel="Создать"
                 onSubmit={async (payload) => {
+                    if (isWithinNotifyWindow(payload.startTime)) {
+                        const ok = await confirm({
+                            title: 'Создать занятие?',
+                            message: `${PUSH_WARNING} Продолжить?`,
+                            confirmLabel: 'Создать',
+                        });
+                        if (!ok) return;
+                    }
                     try {
                         await adminScheduleApi.create(payload);
                         onCreated(1);
@@ -43,6 +54,7 @@ export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialo
                 }}
                 onCancel={onClose}
             />
+            {dialog}
         </Modal>
     );
 }

@@ -1,5 +1,5 @@
 import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -9,7 +9,12 @@ import type { DataSource } from 'typeorm';
 import { ReminderService } from '../../../reminder/reminder.service';
 import { AdminAuditService } from '../../audit';
 import { AdminScheduleService } from '../admin-schedule.service';
-import { SCHEDULE_CANCELLED_EVENT, SCHEDULE_CHANGED_EVENT } from '../schedule.events';
+import {
+    SCHEDULE_CANCELLED_EVENT,
+    SCHEDULE_CHANGED_EVENT,
+    SCHEDULE_CREATED_EVENT,
+    SCHEDULE_DELETED_EVENT,
+} from '../schedule.events';
 
 const mockAuditService = { record: jest.fn().mockResolvedValue(undefined) };
 
@@ -223,6 +228,30 @@ describe('AdminScheduleService', () => {
 
             expect(scheduleRepo.save).toHaveBeenCalled();
             expect(result.id).toBe('sched-new');
+        });
+
+        it('emits SCHEDULE_CREATED with a snapshot', async () => {
+            coachRepo.findOne.mockResolvedValueOnce({ id: 'c-1', isActive: true } as Coach);
+            trainingTypeRepo.findOne.mockResolvedValueOnce({ id: 't-1', isActive: true } as TrainingType);
+            scheduleRepo.save.mockResolvedValueOnce({
+                ...createDto,
+                id: 'sched-new',
+                status: 'scheduled',
+            } as ScheduleEntry);
+            scheduleRepo.findOne.mockResolvedValueOnce(buildEntry({ id: 'sched-new' }));
+
+            await service.create(createDto);
+
+            expect(eventEmitter.emit).toHaveBeenCalledWith(
+                SCHEDULE_CREATED_EVENT,
+                expect.objectContaining({
+                    scheduleEntryId: 'sched-new',
+                    snapshot: expect.objectContaining({
+                        className: expect.any(String),
+                        coachName: expect.any(String),
+                    }),
+                }),
+            );
         });
 
         it('rejects 400 when coach is inactive', async () => {
@@ -448,6 +477,7 @@ describe('AdminScheduleService', () => {
             await service.deleteEntry('sched-old');
 
             expect(scheduleRepo.remove).toHaveBeenCalledWith(entry);
+            expect(eventEmitter.emit).toHaveBeenCalledWith(SCHEDULE_DELETED_EVENT, expect.anything());
         });
 
         it('throws 404 when the entry does not exist', async () => {
@@ -469,18 +499,24 @@ describe('AdminScheduleService', () => {
             await service.deleteEntry('sched-future');
 
             expect(scheduleRepo.remove).toHaveBeenCalledWith(entry);
+            expect(eventEmitter.emit).toHaveBeenCalledWith(SCHEDULE_DELETED_EVENT, expect.anything());
         });
 
-        it('throws 409 when class has any reminders (subscribers must be cancelled, not deleted)', async () => {
+        it('deletes a class that has reminders and emits SCHEDULE_DELETED (block lifted)', async () => {
             const entry = buildEntry({
-                id: 'sched-audit',
-                startTime: new Date('2020-01-01T10:00:00Z'),
+                id: 'sched-with-subs',
                 reminders: [{ id: 'rem-1' }],
             } as Partial<ScheduleEntry>);
             scheduleRepo.findOne.mockResolvedValueOnce(entry);
+            scheduleRepo.remove.mockResolvedValueOnce(entry);
 
-            await expect(service.deleteEntry('sched-audit')).rejects.toThrow(ConflictException);
-            expect(scheduleRepo.remove).not.toHaveBeenCalled();
+            await expect(service.deleteEntry('sched-with-subs')).resolves.toBeUndefined();
+
+            expect(scheduleRepo.remove).toHaveBeenCalledWith(entry);
+            expect(eventEmitter.emit).toHaveBeenCalledWith(
+                SCHEDULE_DELETED_EVENT,
+                expect.objectContaining({ scheduleEntryId: 'sched-with-subs' }),
+            );
         });
     });
 

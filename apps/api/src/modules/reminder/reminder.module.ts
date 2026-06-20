@@ -4,8 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { BotModule } from '../bot/bot.module';
 
-import { ScheduleCancellationListener } from './listeners/schedule-cancellation.listener';
-import { ScheduleChangeNotificationListener } from './listeners/schedule-change.listener';
+import { ScheduleNotificationListener } from './listeners/schedule-notification.listener';
 import { NotificationOutboxDispatcher } from './notification-outbox-dispatcher.service';
 import { NotificationOutboxService } from './notification-outbox.service';
 import { ReminderDispatcherService } from './reminder-dispatcher.service';
@@ -20,8 +19,7 @@ import { ReminderService } from './reminder.service';
         ReminderDispatcherService,
         NotificationOutboxService,
         NotificationOutboxDispatcher,
-        ScheduleChangeNotificationListener,
-        ScheduleCancellationListener,
+        ScheduleNotificationListener,
     ],
     exports: [ReminderService],
 })

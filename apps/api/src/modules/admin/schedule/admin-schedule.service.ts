@@ -1,5 +1,5 @@
 import { Coach, ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { addDays, startOfWeek } from 'date-fns';
@@ -18,8 +18,12 @@ import { UpdateScheduleEntryDto } from './dto/update-schedule-entry.dto';
 import {
     IScheduleCancelledPayload,
     IScheduleChangedPayload,
+    IScheduleCreatedPayload,
+    IScheduleDeletedPayload,
     SCHEDULE_CANCELLED_EVENT,
     SCHEDULE_CHANGED_EVENT,
+    SCHEDULE_CREATED_EVENT,
+    SCHEDULE_DELETED_EVENT,
 } from './schedule.events';
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -109,7 +113,17 @@ export class AdminScheduleService {
         this.logger.log(`Created schedule entry ${saved.id}`);
         // Reload guaranteed because we just saved it.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return toAdminScheduleItem(reloaded!);
+        const item = reloaded!;
+        const createdPayload: IScheduleCreatedPayload = {
+            scheduleEntryId: item.id,
+            snapshot: {
+                className: item.trainingType.name,
+                coachName: item.coach.name,
+                startTime: item.startTime,
+            },
+        };
+        this.eventEmitter.emit(SCHEDULE_CREATED_EVENT, createdPayload);
+        return toAdminScheduleItem(item);
     }
 
     /**
@@ -210,6 +224,11 @@ export class AdminScheduleService {
             }
         }
 
+        const reloaded = await this.scheduleRepo.findOne({
+            where: { id },
+            relations: ['coach', 'trainingType'],
+        });
+
         if (startTimeChanged || durationChanged) {
             const payload: IScheduleChangedPayload = {
                 scheduleEntryId: id,
@@ -217,14 +236,17 @@ export class AdminScheduleService {
                 newStartTime,
                 oldDurationMinutes,
                 newDurationMinutes,
+                snapshot: {
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    className: reloaded!.trainingType.name,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    coachName: reloaded!.coach.name,
+                    startTime: newStartTime,
+                },
             };
             this.eventEmitter.emit(SCHEDULE_CHANGED_EVENT, payload);
         }
 
-        const reloaded = await this.scheduleRepo.findOne({
-            where: { id },
-            relations: ['coach', 'trainingType'],
-        });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return toAdminScheduleItem(reloaded!);
     }
@@ -320,37 +342,36 @@ export class AdminScheduleService {
     }
 
     /**
-     * Story 6.4 — hard delete. Safe only for classes with NO reminders at all
-     * (pending = active subscribers who must be notified via cancel; sent/failed
-     * = audit trail). Past or future doesn't matter: a freshly-duplicated future
-     * class has no subscribers and is fine to remove. A class anyone signed up
-     * for returns 409 pointing the admin at cancel instead.
+     * Story 6.4 — hard delete. The "has subscribers" block was lifted: deleting a
+     * class within the 5-day notify window now broadcasts a cancellation push to
+     * all linked customers (via SCHEDULE_DELETED). Bulk delete keeps the guard.
      */
     async deleteEntry(id: string, audit?: IAuditContext): Promise<void> {
         const entry = await this.scheduleRepo.findOne({
             where: { id },
-            relations: ['reminders', 'coach', 'trainingType'],
+            relations: ['coach', 'trainingType'],
         });
         if (!entry) {
             throw new NotFoundException(`Schedule entry ${id} not found`);
         }
-        if (entry.reminders.length > 0) {
-            throw new ConflictException('Класс нельзя удалить: на него записаны клиенты. Используйте отмену.');
-        }
         const snapshot = {
+            className: entry.trainingType?.name ?? 'Занятие',
+            coachName: entry.coach?.name ?? '—',
             startTime: entry.startTime,
-            coachName: entry.coach?.name,
-            className: entry.trainingType?.name,
         };
         await this.scheduleRepo.remove(entry);
         this.logger.log(`Deleted schedule entry ${id}`);
+
+        const deletedPayload: IScheduleDeletedPayload = { scheduleEntryId: id, snapshot };
+        this.eventEmitter.emit(SCHEDULE_DELETED_EVENT, deletedPayload);
+
         await this.auditService.record({
             adminUserId: audit?.adminUserId ?? null,
             ipAddress: audit?.ipAddress ?? null,
             action: 'delete_schedule_entry',
             resourceType: 'schedule_entry',
             resourceId: id,
-            metadata: snapshot,
+            metadata: { startTime: snapshot.startTime, coachName: snapshot.coachName, className: snapshot.className },
         });
     }
 

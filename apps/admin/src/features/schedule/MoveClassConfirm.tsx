@@ -5,6 +5,8 @@ import { Modal } from '@/shared/components/Modal';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+import { isWithinNotifyWindow, PUSH_WARNING } from './notify-window';
+
 interface IMoveClassConfirmProps {
     item: IAdminScheduleItem;
     /** New ISO start time (date swapped, time-of-day preserved). */
@@ -42,7 +44,7 @@ export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMove
                 Перенести «{item.trainingType.name}» с <strong>{fmt(item.startTime)}</strong> на{' '}
                 <strong>{fmt(newStartTime)}</strong>?
             </p>
-            <p className="text-body-secondary mb-4 text-sm">Записанные клиенты получат уведомление.</p>
+            {isWithinNotifyWindow(newStartTime) && <p className="text-amber-600 mb-4 text-sm">⚠️ {PUSH_WARNING}</p>}
             {error && (
                 <p role="alert" className="text-destructive mb-3 text-sm">
                     {error}

@@ -57,17 +57,19 @@ export function ScheduleEditPage() {
 
     const handleDelete = async () => {
         if (!id || !entry) return;
-        const prefix = isWithinNotifyWindow(entry.startTime) ? `${PUSH_WARNING} ` : '';
-        const ok = await confirm({
+        const willPush = isWithinNotifyWindow(entry.startTime);
+        const prefix = willPush ? `${PUSH_WARNING} ` : '';
+        const { confirmed, notify } = await confirm({
             title: 'Удалить занятие?',
             message: `${prefix}Занятие будет удалено безвозвратно. Продолжить?`,
             confirmLabel: 'Удалить',
             danger: true,
+            notifyToggle: willPush ? { label: 'Уведомить пользователей' } : undefined,
         });
-        if (!ok) return;
+        if (!confirmed) return;
         setDeleteError(null);
         try {
-            await adminScheduleApi.delete(id);
+            await adminScheduleApi.delete(id, notify);
             navigate('/dashboard', { replace: true });
         } catch (err) {
             if (err instanceof ApiError) {
@@ -130,16 +132,19 @@ export function ScheduleEditPage() {
                 submitLabel="Сохранить"
                 onSubmit={async (payload) => {
                     if (!id) return;
+                    let notify = true;
                     if (isWithinNotifyWindow(payload.startTime)) {
-                        const ok = await confirm({
+                        const res = await confirm({
                             title: 'Сохранить изменения?',
                             message: `${PUSH_WARNING} Продолжить?`,
                             confirmLabel: 'Сохранить',
+                            notifyToggle: { label: 'Уведомить пользователей' },
                         });
-                        if (!ok) return;
+                        if (!res.confirmed) return;
+                        notify = res.notify;
                     }
                     try {
-                        await adminScheduleApi.update(id, payload);
+                        await adminScheduleApi.update(id, payload, notify);
                         navigate('/dashboard', { replace: true });
                     } catch (err) {
                         if (err instanceof ApiError) {

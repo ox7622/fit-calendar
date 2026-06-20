@@ -27,16 +27,19 @@ export function CreateClassDialog({ day, onClose, onCreated }: ICreateClassDialo
                 initial={{ startTime: dayAtNineISO(day) }}
                 submitLabel="Создать"
                 onSubmit={async (payload) => {
+                    let notify = true;
                     if (isWithinNotifyWindow(payload.startTime)) {
-                        const ok = await confirm({
+                        const res = await confirm({
                             title: 'Создать занятие?',
                             message: `${PUSH_WARNING} Продолжить?`,
                             confirmLabel: 'Создать',
+                            notifyToggle: { label: 'Уведомить пользователей' },
                         });
-                        if (!ok) return;
+                        if (!res.confirmed) return;
+                        notify = res.notify;
                     }
                     try {
-                        await adminScheduleApi.create(payload);
+                        await adminScheduleApi.create(payload, notify);
                         onCreated(1);
                         onClose();
                     } catch (err) {

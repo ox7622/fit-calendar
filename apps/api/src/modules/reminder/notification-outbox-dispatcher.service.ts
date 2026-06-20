@@ -7,8 +7,12 @@ import { BotNotInitializedError, BotService } from '../bot/bot.service';
 
 import { NotificationOutboxService } from './notification-outbox.service';
 
-/** Max rows processed per dispatcher tick. Keeps the loop bounded. */
-const TICK_BATCH = 50;
+/**
+ * Max rows processed per dispatcher tick. Sized for broadcast volume: a single
+ * schedule change now enqueues one row per linked customer, so 50/min would
+ * trickle. 300/min ≈ 5 sends/s — well under Telegram's ~30/s global cap.
+ */
+const TICK_BATCH = 300;
 
 /** Max concurrent sends per tick. Same cap as the 5.3 reminder dispatcher. */
 const SEND_CONCURRENCY = 5;

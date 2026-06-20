@@ -64,7 +64,7 @@ jobs:
 
       - name: Verify Docker image build (api) — no push
         if: ${{ contains(env.NX_AFFECTED_APPS, 'api') || github.event_name == 'push' }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/apps/Dockerfile.api
@@ -73,7 +73,7 @@ jobs:
 
       - name: Verify Docker image build (bot) — no push
         if: ${{ contains(env.NX_AFFECTED_APPS, 'bot') || github.event_name == 'push' }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/apps/Dockerfile.bot

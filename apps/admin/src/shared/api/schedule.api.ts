@@ -76,19 +76,23 @@ export const adminScheduleApi = {
     getById: (id: string): Promise<IAdminScheduleItem> =>
         adminApiClient.get<IAdminScheduleItem>(`/admin/schedule/${id}`),
 
-    create: (payload: IScheduleFormPayload): Promise<IAdminScheduleItem> =>
-        adminApiClient.post<IAdminScheduleItem>('/admin/schedule', payload),
+    create: (payload: IScheduleFormPayload, notify = true): Promise<IAdminScheduleItem> =>
+        adminApiClient.post<IAdminScheduleItem>('/admin/schedule', { ...payload, notify }),
 
     bulkCreate: (entries: IScheduleFormPayload[]): Promise<IBulkCreateResponse> =>
         adminApiClient.post<IBulkCreateResponse>('/admin/schedule/bulk', { entries }),
 
-    update: (id: string, payload: Partial<IScheduleFormPayload>): Promise<IAdminScheduleItem> =>
-        adminApiClient.put<IAdminScheduleItem>(`/admin/schedule/${id}`, payload),
+    update: (id: string, payload: Partial<IScheduleFormPayload>, notify = true): Promise<IAdminScheduleItem> =>
+        adminApiClient.put<IAdminScheduleItem>(`/admin/schedule/${id}`, { ...payload, notify }),
 
-    cancel: (id: string, reason: string | null): Promise<IAdminScheduleItem> =>
-        adminApiClient.post<IAdminScheduleItem>(`/admin/schedule/${id}/cancel`, { reason: reason ?? undefined }),
+    cancel: (id: string, reason: string | null, notify = true): Promise<IAdminScheduleItem> =>
+        adminApiClient.post<IAdminScheduleItem>(`/admin/schedule/${id}/cancel`, {
+            reason: reason ?? undefined,
+            notify,
+        }),
 
-    delete: (id: string): Promise<void> => adminApiClient.delete<void>(`/admin/schedule/${id}`),
+    delete: (id: string, notify = true): Promise<void> =>
+        adminApiClient.delete<void>(`/admin/schedule/${id}`, notify ? undefined : { params: { notify: 'false' } }),
 
     bulkDelete: (ids: string[]): Promise<IBulkDeleteResponse> =>
         adminApiClient.post<IBulkDeleteResponse>('/admin/schedule/bulk-delete', { ids }),

@@ -69,8 +69,8 @@ interface IConfirmRequest {
     message: ReactNode;
     confirmLabel?: string;
     danger?: boolean;
-    /** Show a "notify users" checkbox with this label. */
-    notifyToggle?: { label: string };
+    /** When set, show a "notify users" checkbox with this label. */
+    notifyToggle?: string;
 }
 
 export interface IConfirmResult {
@@ -106,7 +106,7 @@ export function useConfirm(): {
             message={state.req.message}
             confirmLabel={state.req.confirmLabel}
             danger={state.req.danger}
-            notifyLabel={state.req.notifyToggle?.label}
+            notifyLabel={state.req.notifyToggle}
             onConfirm={(notify) => settle({ confirmed: true, notify })}
             onClose={() => settle({ confirmed: false, notify: true })}
         />

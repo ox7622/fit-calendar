@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 
 import { DuplicateClassDialog } from '@/features/schedule/bulk/DuplicateClassDialog';
 import { CancelClassModal } from '@/features/schedule/CancelClassModal';
-import { isWithinNotifyWindow, PUSH_WARNING } from '@/features/schedule/notify-window';
+import {
+    confirmNotify,
+    isWithinNotifyWindow,
+    NOTIFY_USERS_LABEL,
+    PUSH_WARNING,
+} from '@/features/schedule/notify-window';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError, type IAdminScheduleItem } from '@/shared/api';
 import { useConfirm } from '@/shared/components/ConfirmDialog';
@@ -64,7 +69,7 @@ export function ScheduleEditPage() {
             message: `${prefix}Занятие будет удалено безвозвратно. Продолжить?`,
             confirmLabel: 'Удалить',
             danger: true,
-            notifyToggle: willPush ? { label: 'Уведомить пользователей' } : undefined,
+            notifyToggle: willPush ? NOTIFY_USERS_LABEL : undefined,
         });
         if (!confirmed) return;
         setDeleteError(null);
@@ -132,17 +137,11 @@ export function ScheduleEditPage() {
                 submitLabel="Сохранить"
                 onSubmit={async (payload) => {
                     if (!id) return;
-                    let notify = true;
-                    if (isWithinNotifyWindow(payload.startTime)) {
-                        const res = await confirm({
-                            title: 'Сохранить изменения?',
-                            message: `${PUSH_WARNING} Продолжить?`,
-                            confirmLabel: 'Сохранить',
-                            notifyToggle: { label: 'Уведомить пользователей' },
-                        });
-                        if (!res.confirmed) return;
-                        notify = res.notify;
-                    }
+                    const { proceed, notify } = await confirmNotify(confirm, payload.startTime, {
+                        title: 'Сохранить изменения?',
+                        confirmLabel: 'Сохранить',
+                    });
+                    if (!proceed) return;
                     try {
                         await adminScheduleApi.update(id, payload, notify);
                         navigate('/dashboard', { replace: true });

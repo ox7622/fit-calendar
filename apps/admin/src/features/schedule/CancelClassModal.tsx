@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { NOTIFY_USERS_LABEL } from './notify-window';
+
 interface ICancelClassModalProps {
     className: string;
     startTimeLabel: string;
@@ -54,20 +56,20 @@ export function CancelClassModal({
                 </p>
                 {affectedReminderHint && <p className="text-body-secondary mb-4 text-sm">{affectedReminderHint}</p>}
                 {willPush && (
-                    <p className="text-amber-600 mb-4 text-sm">
-                        ⚠️ Занятие в ближайшие 5 дней. Все пользователи бота получат пуш об отмене.
-                    </p>
-                )}
-                {willPush && (
-                    <label className="text-body mb-4 flex items-center gap-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={notify}
-                            onChange={(e) => setNotify(e.target.checked)}
-                            className="h-4 w-4"
-                        />
-                        Уведомить пользователей
-                    </label>
+                    <>
+                        <p className="text-amber-600 mb-4 text-sm">
+                            ⚠️ Занятие в ближайшие 5 дней. Все пользователи бота получат пуш об отмене.
+                        </p>
+                        <label className="text-body mb-4 flex items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={notify}
+                                onChange={(e) => setNotify(e.target.checked)}
+                                className="h-4 w-4"
+                            />
+                            {NOTIFY_USERS_LABEL}
+                        </label>
+                    </>
                 )}
 
                 <label htmlFor="cancel-reason" className="text-body mb-1 block">

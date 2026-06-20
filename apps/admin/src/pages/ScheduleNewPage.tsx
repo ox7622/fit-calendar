@@ -1,4 +1,4 @@
-import { isWithinNotifyWindow, PUSH_WARNING } from '@/features/schedule/notify-window';
+import { confirmNotify } from '@/features/schedule/notify-window';
 import { ScheduleForm } from '@/features/schedule/ScheduleForm';
 import { adminScheduleApi, ApiError } from '@/shared/api';
 import { useConfirm } from '@/shared/components/ConfirmDialog';
@@ -14,17 +14,11 @@ export function ScheduleNewPage() {
             <ScheduleForm
                 submitLabel="Создать"
                 onSubmit={async (payload) => {
-                    let notify = true;
-                    if (isWithinNotifyWindow(payload.startTime)) {
-                        const res = await confirm({
-                            title: 'Создать занятие?',
-                            message: `${PUSH_WARNING} Продолжить?`,
-                            confirmLabel: 'Создать',
-                            notifyToggle: { label: 'Уведомить пользователей' },
-                        });
-                        if (!res.confirmed) return;
-                        notify = res.notify;
-                    }
+                    const { proceed, notify } = await confirmNotify(confirm, payload.startTime, {
+                        title: 'Создать занятие?',
+                        confirmLabel: 'Создать',
+                    });
+                    if (!proceed) return;
                     try {
                         await adminScheduleApi.create(payload, notify);
                         navigate('/dashboard', { replace: true });

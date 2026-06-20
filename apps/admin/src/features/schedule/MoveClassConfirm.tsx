@@ -5,7 +5,7 @@ import { Modal } from '@/shared/components/Modal';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
-import { isWithinNotifyWindow, PUSH_WARNING } from './notify-window';
+import { isWithinNotifyWindow, NOTIFY_USERS_LABEL, PUSH_WARNING } from './notify-window';
 
 interface IMoveClassConfirmProps {
     item: IAdminScheduleItem;
@@ -55,7 +55,7 @@ export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMove
                             onChange={(e) => setNotify(e.target.checked)}
                             className="h-4 w-4"
                         />
-                        Уведомить пользователей
+                        {NOTIFY_USERS_LABEL}
                     </label>
                 </>
             )}

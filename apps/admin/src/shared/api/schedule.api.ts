@@ -92,7 +92,7 @@ export const adminScheduleApi = {
         }),
 
     delete: (id: string, notify = true): Promise<void> =>
-        adminApiClient.delete<void>(`/admin/schedule/${id}`, notify ? undefined : { params: { notify: 'false' } }),
+        adminApiClient.delete<void>(`/admin/schedule/${id}`, { params: { notify: String(notify) } }),
 
     bulkDelete: (ids: string[]): Promise<IBulkDeleteResponse> =>
         adminApiClient.post<IBulkDeleteResponse>('/admin/schedule/bulk-delete', { ids }),

@@ -10,8 +10,8 @@ import { NotificationOutboxService } from './notification-outbox.service';
 
 /**
  * Max rows processed per dispatcher tick. Sized for broadcast volume: a single
- * schedule change now enqueues one row per linked customer, so 50/min would
- * trickle. 300/min ≈ 5 sends/s — well under Telegram's ~30/s global cap.
+ * schedule change now enqueues one row per active bot subscriber, so 50/min
+ * would trickle. 300/min ≈ 5 sends/s — well under Telegram's ~30/s global cap.
  */
 const TICK_BATCH = 300;
 

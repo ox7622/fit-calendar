@@ -34,6 +34,7 @@ export class AddBotSubscribers1780800000000 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP INDEX "public"."idx_bot_subscribers_active"`);
         await queryRunner.query(`DROP TABLE "bot_subscribers"`);
     }
 }

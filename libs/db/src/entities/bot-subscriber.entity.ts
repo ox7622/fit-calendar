@@ -27,8 +27,8 @@ export class BotSubscriber {
     @Column({ type: 'text' })
     source: TBotSubscriberSource;
 
-    @Column({ type: 'boolean', default: true })
     @Index('idx_bot_subscribers_active')
+    @Column({ type: 'boolean', default: true })
     isActive: boolean;
 
     @CreateDateColumn({ type: 'timestamptz' })

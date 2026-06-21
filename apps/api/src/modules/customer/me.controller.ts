@@ -20,6 +20,7 @@ import { TelegramIdentity } from '../../common/decorators/telegram-identity.deco
 import { RequiresLinkedCustomer } from '../../common/guards/requires-linked-customer.guard';
 import { TelegramAuthGuard } from '../../common/guards/telegram-auth.guard';
 import type { ITelegramUserData } from '../../common/guards/telegram-auth.guard';
+import { BotSubscriberService } from '../bot-subscriber/bot-subscriber.service';
 
 import { CustomerService } from './customer.service';
 import { CustomerResponseDto, toCustomerResponse } from './dto/customer-response.dto';
@@ -36,7 +37,10 @@ import { SettingsResponseDto, UpdateSettingsDto } from './dto/settings.dto';
     required: true,
 })
 export class MeController {
-    constructor(private readonly customerService: CustomerService) {}
+    constructor(
+        private readonly customerService: CustomerService,
+        private readonly botSubscribers: BotSubscriberService,
+    ) {}
 
     @Get()
     @ApiOperation({
@@ -51,6 +55,15 @@ export class MeController {
         @CustomerDecorator() customer: CustomerEntity | null,
         @TelegramIdentity() identity: ITelegramUserData,
     ): MeLinkedDto | MeUnlinkedDto {
+        void this.botSubscribers
+            .upsert({
+                telegramId: identity.id,
+                firstName: identity.first_name ?? null,
+                username: identity.username ?? null,
+                source: 'mini_app',
+            })
+            .catch(() => undefined);
+
         if (customer) {
             return { linked: true, customer: toCustomerResponse(customer) };
         }

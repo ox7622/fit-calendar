@@ -31,7 +31,7 @@ describe('buildWeekMessage', () => {
         const { text } = buildWeekMessage(week, 0);
         expect(text.startsWith('📅 Неделя 12–18 июня')).toBe(true);
         expect(text).toContain('Пятница, 12 июня');
-        expect(text).toContain('⏰ 10:00 — Йога');
+        expect(text).toContain('⏰ 13:00 — Йога');
         expect(text).not.toContain('Суббота'); // empty day omitted
     });
 

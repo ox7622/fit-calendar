@@ -2,8 +2,8 @@ import { classLine, formatDayHeader, formatTime, formatWeekRange, tomorrowDateKe
 import type { IClassEntry } from '../types';
 
 describe('formatTime', () => {
-    it('renders UTC HH:MM', () => {
-        expect(formatTime('2026-06-12T10:05:00.000Z')).toBe('10:05');
+    it('renders club-local (Europe/Moscow, +3) HH:MM', () => {
+        expect(formatTime('2026-06-12T10:05:00.000Z')).toBe('13:05');
     });
 });
 
@@ -22,8 +22,8 @@ describe('classLine', () => {
         coachName: 'Анна',
     };
 
-    it('renders a scheduled class', () => {
-        expect(classLine(base)).toBe('⏰ 10:00 — Йога (Анна, 60мин)');
+    it('renders a scheduled class (time in Europe/Moscow)', () => {
+        expect(classLine(base)).toBe('⏰ 13:00 — Йога (Анна, 60мин)');
     });
 
     it('marks cancelled classes', () => {

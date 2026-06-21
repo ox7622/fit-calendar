@@ -17,12 +17,17 @@ export function formatDayHeader(isoDate: string): string {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-/** UTC HH:MM from an ISO timestamp. */
+/** The club's timezone — class times are displayed in it, not UTC. */
+const CLUB_TIME_ZONE = 'Europe/Moscow';
+
+/** Club-local (Europe/Moscow) HH:MM from an ISO timestamp. */
 export function formatTime(isoString: string): string {
-    const date = new Date(isoString);
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
+    return new Date(isoString).toLocaleTimeString('ru-RU', {
+        timeZone: CLUB_TIME_ZONE,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
 }
 
 /** "12–18 июня" within a month, or "30 июня – 6 июля" across a boundary. */

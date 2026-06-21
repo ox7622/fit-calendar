@@ -2,6 +2,7 @@ import { NotificationOutbox, Reminder, ScheduleEntry } from '@fitcalendar/db';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { BotSubscriberModule } from '../bot-subscriber/bot-subscriber.module';
 import { BotModule } from '../bot/bot.module';
 
 import { ScheduleNotificationListener } from './listeners/schedule-notification.listener';
@@ -12,7 +13,7 @@ import { ReminderController } from './reminder.controller';
 import { ReminderService } from './reminder.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Reminder, ScheduleEntry, NotificationOutbox]), BotModule],
+    imports: [TypeOrmModule.forFeature([Reminder, ScheduleEntry, NotificationOutbox]), BotModule, BotSubscriberModule],
     controllers: [ReminderController],
     providers: [
         ReminderService,

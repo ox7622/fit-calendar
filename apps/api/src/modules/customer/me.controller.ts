@@ -58,12 +58,7 @@ export class MeController {
         // Record the Mini-App open as a subscriber. Best-effort, intentionally not
         // awaited — capture must never slow or fail the bootstrap response.
         void this.botSubscribers
-            .upsert({
-                telegramId: identity.id,
-                firstName: identity.first_name ?? null,
-                username: identity.username ?? null,
-                source: 'mini_app',
-            })
+            .upsert({ telegramId: identity.id, firstName: identity.first_name ?? null })
             .catch(() => undefined);
 
         if (customer) {

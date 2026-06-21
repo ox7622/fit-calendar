@@ -12,14 +12,7 @@ export function registerContactCapture(bot: Bot<Context>, subscribers: BotSubscr
         const from = ctx.from;
         if (from && !from.is_bot) {
             // Fire-and-forget: capture must not add latency to or block update handling.
-            void subscribers
-                .upsert({
-                    telegramId: from.id,
-                    firstName: from.first_name ?? null,
-                    username: from.username ?? null,
-                    source: 'bot',
-                })
-                .catch(() => undefined);
+            void subscribers.upsert({ telegramId: from.id, firstName: from.first_name ?? null }).catch(() => undefined);
         }
         await next();
     });

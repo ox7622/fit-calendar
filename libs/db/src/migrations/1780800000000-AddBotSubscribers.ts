@@ -14,8 +14,6 @@ export class AddBotSubscribers1780800000000 implements MigrationInterface {
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "telegramId" bigint NOT NULL,
                 "firstName" varchar(255),
-                "username" varchar(255),
-                "source" text NOT NULL,
                 "isActive" boolean NOT NULL DEFAULT true,
                 "createdAt" timestamptz NOT NULL DEFAULT now(),
                 "updatedAt" timestamptz NOT NULL DEFAULT now(),
@@ -23,10 +21,9 @@ export class AddBotSubscribers1780800000000 implements MigrationInterface {
                 CONSTRAINT "uq_bot_subscribers_telegram_id" UNIQUE ("telegramId")
             )
         `);
-        await queryRunner.query(`CREATE INDEX "idx_bot_subscribers_active" ON "bot_subscribers" ("isActive")`);
         await queryRunner.query(`
-            INSERT INTO "bot_subscribers" ("telegramId", "firstName", "source", "isActive")
-            SELECT "telegramId", "firstName", 'bot', true
+            INSERT INTO "bot_subscribers" ("telegramId", "firstName", "isActive")
+            SELECT "telegramId", "firstName", true
             FROM "customers"
             WHERE "telegramId" IS NOT NULL
             ON CONFLICT ("telegramId") DO NOTHING
@@ -34,7 +31,6 @@ export class AddBotSubscribers1780800000000 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP INDEX "public"."idx_bot_subscribers_active"`);
         await queryRunner.query(`DROP TABLE "bot_subscribers"`);
     }
 }

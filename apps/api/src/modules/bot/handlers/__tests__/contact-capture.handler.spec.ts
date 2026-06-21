@@ -21,9 +21,7 @@ describe('registerContactCapture', () => {
             { from: { id: 5, first_name: 'Ия', username: 'iya', is_bot: false } } as unknown as Context,
             next,
         );
-        expect(subscribers.upsert).toHaveBeenCalledWith(
-            expect.objectContaining({ telegramId: 5, source: 'bot', firstName: 'Ия', username: 'iya' }),
-        );
+        expect(subscribers.upsert).toHaveBeenCalledWith(expect.objectContaining({ telegramId: 5, firstName: 'Ия' }));
         expect(next).toHaveBeenCalled();
     });
 

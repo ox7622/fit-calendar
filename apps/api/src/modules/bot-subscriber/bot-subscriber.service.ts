@@ -1,4 +1,4 @@
-import { BotSubscriber, type TBotSubscriberSource } from '@fitcalendar/db';
+import { BotSubscriber } from '@fitcalendar/db';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,8 +6,6 @@ import { Repository } from 'typeorm';
 export interface IUpsertSubscriberInput {
     telegramId: number;
     firstName?: string | null;
-    username?: string | null;
-    source: TBotSubscriberSource;
 }
 
 @Injectable()
@@ -23,8 +21,6 @@ export class BotSubscriberService {
             {
                 telegramId: input.telegramId,
                 firstName: input.firstName ?? null,
-                username: input.username ?? null,
-                source: input.source,
                 isActive: true,
             },
             ['telegramId'],
@@ -36,12 +32,7 @@ export class BotSubscriberService {
     }
 
     /** Active broadcast audience: telegram ids of every subscriber who hasn't opted out. */
-    async findActiveRecipients(): Promise<{ telegramId: number }[]> {
-        const rows = await this.repo
-            .createQueryBuilder('s')
-            .select('s.telegramId', 'telegramId')
-            .where('s.isActive = true')
-            .getRawMany<{ telegramId: string }>();
-        return rows.map((r) => ({ telegramId: Number(r.telegramId) }));
+    findActiveRecipients(): Promise<Pick<BotSubscriber, 'telegramId'>[]> {
+        return this.repo.find({ where: { isActive: true }, select: { telegramId: true } });
     }
 }

@@ -16,14 +16,14 @@ import {
     SCHEDULE_CREATED_EVENT,
     SCHEDULE_DELETED_EVENT,
 } from '../../admin/schedule/schedule.events';
-import { CustomerService } from '../../customer/customer.service';
+import { BotSubscriberService } from '../../bot-subscriber/bot-subscriber.service';
 import { escapeHtml, formatTimingRu } from '../notification-format';
 import { NotificationOutboxService } from '../notification-outbox.service';
 import { isWithinNotifyWindow } from '../notify-window';
 
 /**
  * Single subscriber for all admin schedule mutations. Replaces the per-action
- * Story 5.4/5.5 listeners. Broadcasts to ALL linked customers (not subscribers),
+ * Story 5.4/5.5 listeners. Broadcasts to ALL active bot subscribers,
  * gated to the 5-day notify window. Snapshot-driven — never reads the DB.
  */
 @Injectable()
@@ -32,7 +32,7 @@ export class ScheduleNotificationListener {
     private readonly miniAppUrl: string | undefined;
 
     constructor(
-        private readonly customerService: CustomerService,
+        private readonly botSubscribers: BotSubscriberService,
         private readonly outboxService: NotificationOutboxService,
         configService: ConfigService,
     ) {
@@ -88,7 +88,7 @@ export class ScheduleNotificationListener {
     }): Promise<void> {
         if (!isWithinNotifyWindow(opts.gateStartTime, new Date())) return;
 
-        const recipients = await this.customerService.findBroadcastRecipients();
+        const recipients = await this.botSubscribers.findActiveRecipients();
         if (recipients.length === 0) return;
 
         const webAppUrl = this.miniAppUrl ? `${this.miniAppUrl}/schedule/${opts.scheduleEntryId}` : undefined;
@@ -97,7 +97,7 @@ export class ScheduleNotificationListener {
             recipients.map((recipient) =>
                 this.outboxService
                     .enqueue({
-                        customerId: recipient.id,
+                        customerId: null,
                         type: opts.type,
                         payload: {
                             telegramId: recipient.telegramId,

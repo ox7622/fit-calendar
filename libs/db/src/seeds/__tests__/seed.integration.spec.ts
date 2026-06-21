@@ -194,10 +194,13 @@ describe('Seed Data Verification Tests', () => {
             expect(count).toBeGreaterThanOrEqual(15);
         });
 
-        it('should have all schedule entries with scheduled status', async () => {
+        it('should have schedule entries with a valid status', async () => {
+            // Reads every row in the DB, which includes admin-cancelled classes —
+            // cancellation is a real feature, so assert the value is a known status
+            // rather than requiring all entries to be 'scheduled'.
             const entries = await scheduleEntryRepo.find();
             entries.forEach((entry) => {
-                expect(entry.status).toBe('scheduled');
+                expect(['scheduled', 'cancelled']).toContain(entry.status);
             });
         });
 

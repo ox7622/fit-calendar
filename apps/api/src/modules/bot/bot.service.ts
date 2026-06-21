@@ -5,6 +5,7 @@ import type { BotError, Context, InlineKeyboard } from 'grammy';
 import { Bot, GrammyError } from 'grammy';
 import type { Update } from 'grammy/types';
 
+import { BotSubscriberService } from '../bot-subscriber/bot-subscriber.service';
 import { ClubService } from '../club/club.service';
 import { ScheduleService } from '../schedule/schedule.service';
 
@@ -20,8 +21,10 @@ export interface ISendNotificationOptions {
 }
 
 import { registerClubCommand } from './handlers/club.handler';
+import { registerContactCapture } from './handlers/contact-capture.handler';
 import { BOT_COMMANDS, registerScheduleCommands } from './handlers/schedule.handler';
 import { registerStartCommand } from './handlers/start.handler';
+import { registerStopCommand } from './handlers/stop.handler';
 
 export interface IWebhookUpdate {
     update_id: number;
@@ -59,6 +62,7 @@ export class BotService implements OnModuleInit {
         private readonly configService: ConfigService,
         private readonly scheduleService: ScheduleService,
         private readonly clubService: ClubService,
+        private readonly botSubscribers: BotSubscriberService,
     ) {}
 
     async onModuleInit(): Promise<void> {
@@ -90,10 +94,14 @@ export class BotService implements OnModuleInit {
             );
         });
 
+        // Record every human contact as a subscriber. BEFORE commands so /start re-activates.
+        registerContactCapture(this.bot, this.botSubscribers);
+
         // Register commands
         registerStartCommand(this.bot, this.clubService, miniAppUrl);
         registerScheduleCommands(this.bot, this.scheduleService, miniAppUrl);
         registerClubCommand(this.bot, this.clubService);
+        registerStopCommand(this.bot, this.botSubscribers);
 
         // Catch-all for unrecognized text — must be registered after all commands.
         registerFallbackHandler(this.bot, miniAppUrl);

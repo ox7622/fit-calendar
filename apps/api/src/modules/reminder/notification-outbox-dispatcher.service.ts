@@ -3,14 +3,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { GrammyError, InlineKeyboard } from 'grammy';
 
+import { BotSubscriberService } from '../bot-subscriber/bot-subscriber.service';
 import { BotNotInitializedError, BotService } from '../bot/bot.service';
 
 import { NotificationOutboxService } from './notification-outbox.service';
 
 /**
  * Max rows processed per dispatcher tick. Sized for broadcast volume: a single
- * schedule change now enqueues one row per linked customer, so 50/min would
- * trickle. 300/min ≈ 5 sends/s — well under Telegram's ~30/s global cap.
+ * schedule change now enqueues one row per active bot subscriber, so 50/min
+ * would trickle. 300/min ≈ 5 sends/s — well under Telegram's ~30/s global cap.
  */
 const TICK_BATCH = 300;
 
@@ -30,7 +31,11 @@ export class NotificationOutboxDispatcher {
     private readonly logger = new Logger(NotificationOutboxDispatcher.name);
     private isProcessing = false;
 
-    constructor(private readonly outboxService: NotificationOutboxService, private readonly botService: BotService) {}
+    constructor(
+        private readonly outboxService: NotificationOutboxService,
+        private readonly botService: BotService,
+        private readonly botSubscribers: BotSubscriberService,
+    ) {}
 
     @Cron(CronExpression.EVERY_MINUTE)
     async tick(): Promise<void> {
@@ -88,8 +93,13 @@ export class NotificationOutboxDispatcher {
         );
 
         if (isPermanent) {
-            // User blocked the bot or chat doesn't exist — short-circuit retries.
-            // Force the row to terminal 'failed' regardless of attempt count.
+            // Permanent (403/400): short-circuit retries — force the row to terminal 'failed'.
+            // Only DEACTIVATE the subscriber on a 403 (bot blocked / user deactivated).
+            // A 400 means this specific payload was rejected (e.g. a template bug); the
+            // user is fine, so don't unsubscribe them over a bad message.
+            if (err instanceof GrammyError && err.error_code === 403) {
+                await this.botSubscribers.deactivate(row.payload.telegramId);
+            }
             await this.outboxService.recordFailure(row.id, Number.MAX_SAFE_INTEGER, err);
             return;
         }

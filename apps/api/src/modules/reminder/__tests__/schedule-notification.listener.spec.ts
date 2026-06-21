@@ -8,7 +8,7 @@ import type {
     IScheduleDeletedPayload,
     IScheduleSnapshot,
 } from '../../admin/schedule/schedule.events';
-import { CustomerService } from '../../customer/customer.service';
+import { BotSubscriberService } from '../../bot-subscriber/bot-subscriber.service';
 import { ScheduleNotificationListener } from '../listeners/schedule-notification.listener';
 import { NotificationOutboxService } from '../notification-outbox.service';
 
@@ -21,23 +21,20 @@ const snapshot = (startTime: Date): IScheduleSnapshot => ({ className: 'Йога
 
 describe('ScheduleNotificationListener', () => {
     let listener: ScheduleNotificationListener;
-    let customerService: { findBroadcastRecipients: jest.Mock };
+    let botSubscriberService: { findActiveRecipients: jest.Mock };
     let outboxService: { enqueue: jest.Mock };
 
     beforeEach(async () => {
         jest.useFakeTimers().setSystemTime(NOW);
-        customerService = {
-            findBroadcastRecipients: jest.fn().mockResolvedValue([
-                { id: 'c1', telegramId: 111 },
-                { id: 'c2', telegramId: 222 },
-            ]),
+        botSubscriberService = {
+            findActiveRecipients: jest.fn().mockResolvedValue([{ telegramId: 111 }, { telegramId: 222 }]),
         };
         outboxService = { enqueue: jest.fn().mockResolvedValue(undefined) };
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 ScheduleNotificationListener,
-                { provide: CustomerService, useValue: customerService },
+                { provide: BotSubscriberService, useValue: botSubscriberService },
                 { provide: NotificationOutboxService, useValue: outboxService },
                 { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('https://app.example.com') } },
             ],
@@ -53,7 +50,7 @@ describe('ScheduleNotificationListener', () => {
         await listener.handleCreated(payload);
         expect(outboxService.enqueue).toHaveBeenCalledTimes(2);
         const first = outboxService.enqueue.mock.calls[0][0];
-        expect(first).toMatchObject({ customerId: 'c1', type: 'schedule_created' });
+        expect(first).toMatchObject({ customerId: null, type: 'schedule_created' });
         expect(first.payload.telegramId).toBe(111);
         expect(first.payload.text).toContain('Новое занятие');
         expect(first.payload.webAppUrl).toBe('https://app.example.com/schedule/s1');
@@ -61,7 +58,7 @@ describe('ScheduleNotificationListener', () => {
 
     it('created: no-op when out of window', async () => {
         await listener.handleCreated({ scheduleEntryId: 's1', snapshot: snapshot(outWindow) });
-        expect(customerService.findBroadcastRecipients).not.toHaveBeenCalled();
+        expect(botSubscriberService.findActiveRecipients).not.toHaveBeenCalled();
         expect(outboxService.enqueue).not.toHaveBeenCalled();
     });
 
@@ -120,7 +117,7 @@ describe('ScheduleNotificationListener', () => {
     });
 
     it('no-op when there are no recipients', async () => {
-        customerService.findBroadcastRecipients.mockResolvedValueOnce([]);
+        botSubscriberService.findActiveRecipients.mockResolvedValueOnce([]);
         await listener.handleCreated({ scheduleEntryId: 's1', snapshot: snapshot(inWindow) });
         expect(outboxService.enqueue).not.toHaveBeenCalled();
     });

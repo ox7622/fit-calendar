@@ -3,6 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminAuthModule } from '../admin/auth';
+import { BotSubscriberModule } from '../bot-subscriber/bot-subscriber.module';
 
 import { AdminCustomerController } from './admin-customer.controller';
 import { CustomerImportService } from './customer-import.service';
@@ -16,7 +17,7 @@ import { MeController } from './me.controller';
  */
 @Global()
 @Module({
-    imports: [TypeOrmModule.forFeature([Customer, Reminder, CustomerMembership]), AdminAuthModule],
+    imports: [TypeOrmModule.forFeature([Customer, Reminder, CustomerMembership]), AdminAuthModule, BotSubscriberModule],
     controllers: [MeController, AdminCustomerController],
     providers: [CustomerService, CustomerImportService],
     exports: [CustomerService],

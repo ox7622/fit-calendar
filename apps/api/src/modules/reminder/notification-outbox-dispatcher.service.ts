@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { GrammyError, InlineKeyboard } from 'grammy';
 
+import { BotSubscriberService } from '../bot-subscriber/bot-subscriber.service';
 import { BotNotInitializedError, BotService } from '../bot/bot.service';
 
 import { NotificationOutboxService } from './notification-outbox.service';
@@ -30,7 +31,11 @@ export class NotificationOutboxDispatcher {
     private readonly logger = new Logger(NotificationOutboxDispatcher.name);
     private isProcessing = false;
 
-    constructor(private readonly outboxService: NotificationOutboxService, private readonly botService: BotService) {}
+    constructor(
+        private readonly outboxService: NotificationOutboxService,
+        private readonly botService: BotService,
+        private readonly botSubscribers: BotSubscriberService,
+    ) {}
 
     @Cron(CronExpression.EVERY_MINUTE)
     async tick(): Promise<void> {
@@ -88,8 +93,9 @@ export class NotificationOutboxDispatcher {
         );
 
         if (isPermanent) {
-            // User blocked the bot or chat doesn't exist — short-circuit retries.
-            // Force the row to terminal 'failed' regardless of attempt count.
+            // User blocked the bot or chat doesn't exist — stop targeting them and
+            // short-circuit retries. Force the row to terminal 'failed'.
+            await this.botSubscribers.deactivate(row.payload.telegramId);
             await this.outboxService.recordFailure(row.id, Number.MAX_SAFE_INTEGER, err);
             return;
         }

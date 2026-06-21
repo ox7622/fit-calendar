@@ -16,6 +16,16 @@ function forbiddenError(): GrammyError {
     );
 }
 
+function badRequestError(): GrammyError {
+    // 400 — permanent (terminal failure, no retry) but NOT a blocked user.
+    return new GrammyError(
+        'Call to sendMessage failed!',
+        { ok: false, error_code: 400, description: "Bad Request: can't parse entities" },
+        'sendMessage',
+        {},
+    );
+}
+
 describe('NotificationOutboxDispatcher — permanent failure deactivates subscriber', () => {
     let dispatcher: NotificationOutboxDispatcher;
     let outboxService: { findDue: jest.Mock; markSent: jest.Mock; recordFailure: jest.Mock };
@@ -51,6 +61,15 @@ describe('NotificationOutboxDispatcher — permanent failure deactivates subscri
     it('deactivates the subscriber and records a terminal failure on 403', async () => {
         await dispatcher.tick();
         expect(botSubscribers.deactivate).toHaveBeenCalledWith(111);
+        expect(outboxService.recordFailure).toHaveBeenCalledWith('o1', Number.MAX_SAFE_INTEGER, expect.anything());
+    });
+
+    it('records a terminal failure but does NOT deactivate on 400 (payload error, not a blocked user)', async () => {
+        botService.sendNotification.mockReset().mockRejectedValue(badRequestError());
+
+        await dispatcher.tick();
+
+        expect(botSubscribers.deactivate).not.toHaveBeenCalled();
         expect(outboxService.recordFailure).toHaveBeenCalledWith('o1', Number.MAX_SAFE_INTEGER, expect.anything());
     });
 });

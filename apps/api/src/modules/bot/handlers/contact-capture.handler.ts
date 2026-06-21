@@ -11,7 +11,8 @@ export function registerContactCapture(bot: Bot<Context>, subscribers: BotSubscr
     bot.use(async (ctx, next) => {
         const from = ctx.from;
         if (from && !from.is_bot) {
-            await subscribers
+            // Fire-and-forget: capture must not add latency to or block update handling.
+            void subscribers
                 .upsert({
                     telegramId: from.id,
                     firstName: from.first_name ?? null,

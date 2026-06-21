@@ -55,6 +55,8 @@ export class MeController {
         @CustomerDecorator() customer: CustomerEntity | null,
         @TelegramIdentity() identity: ITelegramUserData,
     ): MeLinkedDto | MeUnlinkedDto {
+        // Record the Mini-App open as a subscriber. Best-effort, intentionally not
+        // awaited — capture must never slow or fail the bootstrap response.
         void this.botSubscribers
             .upsert({
                 telegramId: identity.id,

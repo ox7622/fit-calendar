@@ -93,9 +93,13 @@ export class NotificationOutboxDispatcher {
         );
 
         if (isPermanent) {
-            // User blocked the bot or chat doesn't exist — stop targeting them and
-            // short-circuit retries. Force the row to terminal 'failed'.
-            await this.botSubscribers.deactivate(row.payload.telegramId);
+            // Permanent (403/400): short-circuit retries — force the row to terminal 'failed'.
+            // Only DEACTIVATE the subscriber on a 403 (bot blocked / user deactivated).
+            // A 400 means this specific payload was rejected (e.g. a template bug); the
+            // user is fine, so don't unsubscribe them over a bad message.
+            if (err instanceof GrammyError && err.error_code === 403) {
+                await this.botSubscribers.deactivate(row.payload.telegramId);
+            }
             await this.outboxService.recordFailure(row.id, Number.MAX_SAFE_INTEGER, err);
             return;
         }

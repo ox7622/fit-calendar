@@ -57,7 +57,7 @@ jobs:
       # ship despite a flagged CVE, document it in the workflow comments —
       # don't add a blanket allowlist.
       - name: Build API image (load only, scan before push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/apps/Dockerfile.api
@@ -75,7 +75,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Push API image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/apps/Dockerfile.api
@@ -85,7 +85,7 @@ jobs:
             ${{ env.API_IMAGE }}:${{ steps.meta.outputs.sha_tag }}
 
       - name: Build Bot image (load only, scan before push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/apps/Dockerfile.bot
@@ -103,7 +103,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Push Bot image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/apps/Dockerfile.bot

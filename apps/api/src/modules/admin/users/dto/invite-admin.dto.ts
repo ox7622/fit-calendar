@@ -1,15 +1,11 @@
+import { TrimLowercaseTransformer } from '@fitcalendar/nest-shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
-// Keep storage/lookup normalization identical to LoginDto so an admin can sign in
-// with whatever casing/spacing they type.
-const normalizeLogin = ({ value }: { value: unknown }): unknown =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value;
-
 export class InviteAdminDto {
     @ApiProperty({ example: 'masha', description: 'Unique login (case-insensitive). Free-form — may be a name.' })
-    @Transform(normalizeLogin)
+    @Transform(TrimLowercaseTransformer)
     @IsString()
     @IsNotEmpty()
     @MinLength(2)

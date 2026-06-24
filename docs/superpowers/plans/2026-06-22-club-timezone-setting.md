@@ -538,6 +538,21 @@ git commit -m "feat(api): bucket schedule days in the club timezone"
 
 ---
 
+> **⚠️ RE-BASELINE (Tasks 7–9):** After this plan was written, a bot message
+> redesign (commit `8990661`) rewrote `format.ts`, `week-message.ts`, and
+> `register-schedule-commands.ts`: `classLine` now returns Telegram **HTML**
+> (`<code>HH:MM</code>  Name · Coach`, struck-through when cancelled), `escapeHtml`
+> and `formatDayMonth` were added, `formatDateRu` is now **unused**, day/week
+> headers are `<b>…</b>`, and replies use `parse_mode: 'HTML'`. The code blocks
+> in Tasks 7–9 below reflect the OLD code — treat them as intent only. The
+> implementer is given current-code-accurate instructions at dispatch:
+> add a `timeZone` param to `formatTime`, `classLine`, `formatDayMonth`, and
+> `tomorrowDateKey` (leave `escapeHtml`/`formatDayHeader`/`formatWeekRange`/
+> `formatDateRu` untouched); `buildWeekMessage(days, offset, timeZone, miniAppUrl?)`;
+> resolve `dataSource.getTimeZone()` per command; and add `getTimeZone` to the
+> `register-schedule-commands.spec.ts` mock. The HTML output of `classLine`/headers
+> must be preserved — only the time-zone source changes.
+
 ### Task 7: bot-core format.ts takes a timeZone param
 
 **Files:**

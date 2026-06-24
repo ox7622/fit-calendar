@@ -8,7 +8,6 @@
 #         --domain club.ru \
 #         --email owner@club.ru \
 #         --bot-token 1234:ABC \
-#         --geocoder YANDEX_KEY \
 #         --admin-email owner@club.ru
 #
 # Запускать от root. Все секреты, не переданные флагами, генерируются автоматически
@@ -27,7 +26,6 @@ DOMAIN=""
 ACME_EMAIL=""
 TG_BOT_TOKEN=""
 TG_WEBHOOK_SECRET=""
-GEOCODER_KEY=""
 JWT_SECRET=""
 DB_PASS=""
 ADMIN_EMAIL=""
@@ -70,7 +68,6 @@ usage() {
   --domain <DOMAIN>           домен (без www), например club.ru
   --email <EMAIL>             email для Let's Encrypt
   --bot-token <TOKEN>         токен Telegram-бота из @BotFather
-  --geocoder <KEY>            API-ключ Yandex Geocoder
   --admin-email <EMAIL>       email первого администратора
 
 Опциональные:
@@ -135,7 +132,6 @@ while [[ $# -gt 0 ]]; do
         --domain)              DOMAIN="$2"; shift 2 ;;
         --email)               ACME_EMAIL="$2"; shift 2 ;;
         --bot-token)           TG_BOT_TOKEN="$2"; shift 2 ;;
-        --geocoder)            GEOCODER_KEY="$2"; shift 2 ;;
         --admin-email)         ADMIN_EMAIL="$2"; shift 2 ;;
         --admin-password)      ADMIN_PASSWORD="$2"; shift 2 ;;
         --admin-name)          ADMIN_NAME="$2"; shift 2 ;;
@@ -172,7 +168,6 @@ done
 [[ -n "$DOMAIN" ]]       || die "--domain обязателен"
 [[ -n "$ACME_EMAIL" ]]   || die "--email обязателен"
 [[ -n "$TG_BOT_TOKEN" ]] || die "--bot-token обязателен"
-[[ -n "$GEOCODER_KEY" ]] || die "--geocoder обязателен"
 [[ -n "$ADMIN_EMAIL" ]]  || die "--admin-email обязателен"
 
 [[ $EUID -eq 0 ]] || die "Запусти под root (sudo bash install.sh ...)"
@@ -306,8 +301,6 @@ NX_DB_LOGGING=error,warn
 JWT_SECRET=$JWT_SECRET
 TELEGRAM_BOT_TOKEN=$TG_BOT_TOKEN
 TELEGRAM_WEBHOOK_SECRET=$TG_WEBHOOK_SECRET
-
-YANDEX_GEOCODER_API_KEY=$GEOCODER_KEY
 
 CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY

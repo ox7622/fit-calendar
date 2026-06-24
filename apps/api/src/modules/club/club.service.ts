@@ -19,8 +19,7 @@ const DEFAULT_STUB: ClubInfoDto = {
         Sat: { open: '10:00', close: '18:00' },
         Sun: null,
     },
-    latitude: null,
-    longitude: null,
+    mapUrl: null,
     logoUrl: null,
 };
 
@@ -48,8 +47,7 @@ export class ClubService {
             address: record.address,
             phone: record.phone,
             workingHours: record.workingHours,
-            latitude: record.latitude,
-            longitude: record.longitude,
+            mapUrl: record.mapUrl,
             logoUrl: record.logoUrl,
         };
     }

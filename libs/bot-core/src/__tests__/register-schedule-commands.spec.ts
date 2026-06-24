@@ -43,16 +43,36 @@ describe('registerScheduleCommands', () => {
         expect(bot.callbackQuery).toHaveBeenCalledWith(expect.any(RegExp), expect.any(Function));
     });
 
-    it('/week replies with week 0', async () => {
+    it('/week replies with week 0 as HTML', async () => {
         const { bot, handlers } = makeBot();
         registerScheduleCommands(bot, dataSource);
         const reply = jest.fn().mockResolvedValue(undefined);
         await handlers.command['week']({ reply } as unknown as Context);
         expect(dataSource.getWeek).toHaveBeenCalledWith(0);
         expect(reply).toHaveBeenCalledWith(
-            expect.stringContaining('📅 Неделя'),
-            expect.objectContaining({ reply_markup: expect.anything() }),
+            expect.stringContaining('<b>Неделя'),
+            expect.objectContaining({ reply_markup: expect.anything(), parse_mode: 'HTML' }),
         );
+    });
+
+    it('/today replies with a bold HTML header', async () => {
+        const { bot, handlers } = makeBot();
+        dataSource.getToday.mockResolvedValueOnce([
+            {
+                name: 'Йога',
+                startTime: '2026-06-12T10:00:00.000Z',
+                durationMinutes: 60,
+                status: 'scheduled',
+                coachName: 'Анна',
+            },
+        ]);
+        registerScheduleCommands(bot, dataSource);
+        const reply = jest.fn().mockResolvedValue(undefined);
+        await handlers.command['today']({ reply } as unknown as Context);
+        const [text, options] = reply.mock.calls[0];
+        expect(text).toContain('<b>Расписание на сегодня,');
+        expect(text).toContain('<code>13:00</code>  Йога · Анна');
+        expect(options).toMatchObject({ parse_mode: 'HTML' });
     });
 
     it('the callback edits the message to the parsed offset and answers', async () => {
@@ -67,8 +87,8 @@ describe('registerScheduleCommands', () => {
         } as unknown as Context);
         expect(dataSource.getWeek).toHaveBeenCalledWith(3);
         expect(editMessageText).toHaveBeenCalledWith(
-            expect.stringContaining('📅 Неделя'),
-            expect.objectContaining({ reply_markup: expect.anything() }),
+            expect.stringContaining('<b>Неделя'),
+            expect.objectContaining({ reply_markup: expect.anything(), parse_mode: 'HTML' }),
         );
         expect(answerCallbackQuery).toHaveBeenCalled();
     });

@@ -32,8 +32,7 @@ async function seed(): Promise<void> {
                     saturday: { open: '09:00', close: '21:00' },
                     sunday: { open: '09:00', close: '21:00' },
                 },
-                latitude: 55.7558,
-                longitude: 37.6173,
+                mapUrl: 'https://yandex.ru/maps/?pt=37.6173,55.7558&z=16',
             });
             await clubInfoRepo.save(clubInfo);
             console.log('ClubInfo seeded');

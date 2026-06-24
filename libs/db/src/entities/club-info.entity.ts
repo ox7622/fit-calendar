@@ -24,11 +24,8 @@ export class ClubInfo {
     @Column({ type: 'jsonb', default: '{}' })
     workingHours: TWorkingHours;
 
-    @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })
-    latitude: number | null;
-
-    @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
-    longitude: number | null;
+    @Column({ type: 'varchar', length: 500, nullable: true })
+    mapUrl: string | null;
 
     @Column({ type: 'varchar', length: 500, nullable: true })
     logoUrl: string | null;

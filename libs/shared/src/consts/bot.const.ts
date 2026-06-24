@@ -3,7 +3,7 @@
  * messages (/start, /today, /tomorrow, /week). The app is more than a schedule,
  * so the wording is intentionally generic.
  */
-export const MINI_APP_BUTTON_TEXT = '📅 Открыть приложение';
+export const MINI_APP_BUTTON_TEXT = 'Открыть в приложении →';
 
 /** Furthest week the bot lets users page back to (weeks from the current one). */
 export const WEEK_OFFSET_MIN = -4;

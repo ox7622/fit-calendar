@@ -2,9 +2,19 @@ import { addDays, format } from 'date-fns';
 
 import type { IClassEntry } from './types';
 
+/** Escape the three characters that matter for Telegram HTML message text. */
+export function escapeHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 /** "12 июня 2026 г." style — full date for single-day headers. */
 export function formatDateRu(date: Date): string {
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** "30 мая" — day + genitive month, no weekday, no year. For day headers. */
+export function formatDayMonth(date: Date): string {
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 }
 
 /** "Пятница, 12 июня" from a YYYY-MM-DD key. */
@@ -46,10 +56,17 @@ export function formatWeekRange(startISO: string, endISO: string): string {
     return `${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth}`;
 }
 
-/** One schedule line, e.g. "⏰ 10:00 — Йога (Анна, 60мин)". */
+/**
+ * One schedule line as Telegram HTML. Active: monospace time + name · coach,
+ * e.g. "<code>10:00</code>  Йога · Анна". Cancelled classes are struck through
+ * and drop the coach. The monospace time renders teal-tinted in dark themes.
+ */
 export function classLine(cls: IClassEntry): string {
-    const suffix = cls.status === 'cancelled' ? ' ❌ отменено' : '';
-    return `⏰ ${formatTime(cls.startTime)} — ${cls.name} (${cls.coachName}, ${cls.durationMinutes}мин)${suffix}`;
+    const time = `<code>${formatTime(cls.startTime)}</code>`;
+    if (cls.status === 'cancelled') {
+        return `<s>${time}  ${escapeHtml(cls.name)}</s>`;
+    }
+    return `${time}  ${escapeHtml(cls.name)} · ${escapeHtml(cls.coachName)}`;
 }
 
 /** YYYY-MM-DD for tomorrow in local time. */

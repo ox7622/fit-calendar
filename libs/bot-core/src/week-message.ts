@@ -17,11 +17,11 @@ export interface WeekMessage {
 export function buildWeekMessage(days: IWeekDay[], offset: number, miniAppUrl?: string): WeekMessage {
     const startISO = days[0]?.date ?? '';
     const endISO = days[days.length - 1]?.date ?? startISO;
-    const header = `📅 Неделя ${formatWeekRange(startISO, endISO)}`;
+    const header = `<b>Неделя ${formatWeekRange(startISO, endISO)}</b>`;
 
     const blocks = days
         .filter((day) => day.classes.length > 0)
-        .map((day) => `— ${formatDayHeader(day.date)} —\n${day.classes.map(classLine).join('\n')}`);
+        .map((day) => `<b>${formatDayHeader(day.date)}</b>\n${day.classes.map(classLine).join('\n')}`);
     const body = blocks.length > 0 ? blocks.join('\n\n') : 'На этой неделе занятий нет 😴';
 
     const keyboard = new InlineKeyboard();

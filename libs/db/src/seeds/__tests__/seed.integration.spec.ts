@@ -76,10 +76,10 @@ describe('Seed Data Verification Tests', () => {
             });
         });
 
-        it('should have coordinates set', async () => {
+        it('should have mapUrl set', async () => {
             const club = await clubInfoRepo.findOne({ where: {} });
-            expect(club?.latitude).not.toBeNull();
-            expect(club?.longitude).not.toBeNull();
+            expect(club?.mapUrl).not.toBeNull();
+            expect(club?.mapUrl).toMatch(/^https?:\/\//);
         });
     });
 

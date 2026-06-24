@@ -24,11 +24,8 @@ export class ClubInfoDto {
     })
     workingHours: Record<string, IWorkingHoursEntryDto | null>;
 
-    @ApiProperty({ description: 'Latitude coordinate', nullable: true })
-    latitude: number | null;
-
-    @ApiProperty({ description: 'Longitude coordinate', nullable: true })
-    longitude: number | null;
+    @ApiProperty({ description: 'External maps URL (Yandex Maps, etc.) for the club location', nullable: true })
+    mapUrl: string | null;
 
     @ApiProperty({ description: 'Club logo URL', nullable: true })
     logoUrl: string | null;

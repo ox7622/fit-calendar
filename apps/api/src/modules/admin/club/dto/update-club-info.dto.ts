@@ -1,5 +1,7 @@
+import { TrimToUndefinedTransformer } from '@fitcalendar/nest-shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsLatitude, IsLongitude, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
 
 import { DayHoursDto } from './working-hours.dto';
 import { IsWorkingHours } from './working-hours.validator';
@@ -29,13 +31,10 @@ export class UpdateClubInfoDto {
     @IsWorkingHours()
     workingHours: Record<string, DayHoursDto | null>;
 
-    @ApiPropertyOptional()
+    @ApiPropertyOptional({ description: 'Maps URL (Yandex Maps, etc.) for the club location', maxLength: 500 })
     @IsOptional()
-    @IsLatitude()
-    latitude?: number;
-
-    @ApiPropertyOptional()
-    @IsOptional()
-    @IsLongitude()
-    longitude?: number;
+    @Transform(TrimToUndefinedTransformer)
+    @IsUrl({ require_protocol: true, protocols: ['http', 'https'] })
+    @MaxLength(500)
+    mapUrl?: string;
 }

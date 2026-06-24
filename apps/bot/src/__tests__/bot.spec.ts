@@ -15,6 +15,7 @@ jest.mock('grammy', () => ({
         command: jest.fn(),
         callbackQuery: jest.fn(),
         catch: jest.fn(),
+        on: jest.fn(),
     })),
 }));
 

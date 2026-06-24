@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { ClubLogoUpload } from '@/features/club/ClubLogoUpload';
-import { CoordinatesInput } from '@/features/club/CoordinatesInput';
 import { WorkingHoursEditor } from '@/features/club/WorkingHoursEditor';
 import { adminClubApi, ApiError, type IAdminClubInfo, type TWorkingHours } from '@/shared/api';
 
@@ -10,25 +9,14 @@ interface IFormState {
     address: string;
     phone: string;
     workingHours: TWorkingHours;
-    latitude: number | null;
-    longitude: number | null;
+    mapUrl: string;
 }
-
-const EMPTY_FORM: IFormState = {
-    name: '',
-    address: '',
-    phone: '',
-    workingHours: {},
-    latitude: null,
-    longitude: null,
-};
 
 export function ClubInfoPage() {
     const [club, setClub] = useState<IAdminClubInfo | null>(null);
-    const [form, setForm] = useState<IFormState>(EMPTY_FORM);
+    const [form, setForm] = useState<IFormState | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [geocoding, setGeocoding] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
@@ -44,8 +32,7 @@ export function ClubInfoPage() {
                     address: data.address,
                     phone: data.phone ?? '',
                     workingHours: data.workingHours,
-                    latitude: data.latitude,
-                    longitude: data.longitude,
+                    mapUrl: data.mapUrl ?? '',
                 });
                 setLoading(false);
             })
@@ -61,13 +48,9 @@ export function ClubInfoPage() {
 
     const handleSubmit = async (e: FormEvent): Promise<void> => {
         e.preventDefault();
+        if (!form) return;
         setError(null);
         setSuccess(false);
-
-        if ((form.latitude === null) !== (form.longitude === null)) {
-            setError('Укажите широту и долготу вместе или оставьте оба пустыми');
-            return;
-        }
 
         setSubmitting(true);
         try {
@@ -76,8 +59,7 @@ export function ClubInfoPage() {
                 address: form.address.trim(),
                 phone: form.phone.trim() || undefined,
                 workingHours: form.workingHours,
-                latitude: form.latitude ?? undefined,
-                longitude: form.longitude ?? undefined,
+                mapUrl: form.mapUrl.trim() || undefined,
             });
             setClub(updated);
             setSuccess(true);
@@ -93,31 +75,11 @@ export function ClubInfoPage() {
         }
     };
 
-    const handleGeocode = async (): Promise<void> => {
-        const address = form.address.trim();
-        if (!address) {
-            setError('Сначала укажите адрес');
-            return;
-        }
-        setError(null);
-        setGeocoding(true);
-        try {
-            const { latitude, longitude } = await adminClubApi.geocode(address);
-            setForm((f) => ({ ...f, latitude, longitude }));
-        } catch (err) {
-            if (err instanceof ApiError) {
-                const body = err.data as { message?: string } | null;
-                setError(body?.message ?? 'Не удалось определить координаты');
-            } else {
-                setError('Не удалось определить координаты');
-            }
-        } finally {
-            setGeocoding(false);
-        }
-    };
-
     if (loading) return <p className="p-6 text-body-secondary">Загрузка...</p>;
     if (error && !club) return <p className="p-6 text-destructive">{error}</p>;
+    if (!form) return null;
+
+    const trimmedMapUrl = form.mapUrl.trim();
 
     return (
         <div className="p-6">
@@ -150,7 +112,7 @@ export function ClubInfoPage() {
                                 id="club-name"
                                 type="text"
                                 value={form.name}
-                                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                                onChange={(e) => setForm((f) => (f ? { ...f, name: e.target.value } : f))}
                                 disabled={submitting}
                                 className="w-full rounded border border-border bg-surface p-2 text-body"
                                 maxLength={255}
@@ -166,7 +128,7 @@ export function ClubInfoPage() {
                                 id="club-address"
                                 type="text"
                                 value={form.address}
-                                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                                onChange={(e) => setForm((f) => (f ? { ...f, address: e.target.value } : f))}
                                 disabled={submitting}
                                 className="w-full rounded border border-border bg-surface p-2 text-body"
                                 maxLength={500}
@@ -181,7 +143,7 @@ export function ClubInfoPage() {
                                 id="club-phone"
                                 type="text"
                                 value={form.phone}
-                                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                                onChange={(e) => setForm((f) => (f ? { ...f, phone: e.target.value } : f))}
                                 disabled={submitting}
                                 className="w-full rounded border border-border bg-surface p-2 text-body"
                                 maxLength={50}
@@ -194,27 +156,37 @@ export function ClubInfoPage() {
                         <h3 className="heading-3">Часы работы</h3>
                         <WorkingHoursEditor
                             value={form.workingHours}
-                            onChange={(next) => setForm((f) => ({ ...f, workingHours: next }))}
+                            onChange={(next) => setForm((f) => (f ? { ...f, workingHours: next } : f))}
                             disabled={submitting}
                         />
                     </section>
 
                     <section className="space-y-3">
-                        <h3 className="heading-3">Местоположение</h3>
-                        <CoordinatesInput
-                            latitude={form.latitude}
-                            longitude={form.longitude}
-                            onChange={(lat, lon) => setForm((f) => ({ ...f, latitude: lat, longitude: lon }))}
-                            disabled={submitting || geocoding}
+                        <h3 className="heading-3">Ссылка на карту</h3>
+                        <p className="text-sm text-body-secondary">
+                            Откройте клуб в Яндекс.Картах, нажмите «Поделиться» и вставьте ссылку сюда. По ней
+                            посетители смогут построить маршрут.
+                        </p>
+                        <input
+                            id="club-map-url"
+                            type="url"
+                            value={form.mapUrl}
+                            onChange={(e) => setForm((f) => (f ? { ...f, mapUrl: e.target.value } : f))}
+                            disabled={submitting}
+                            className="w-full rounded border border-border bg-surface p-2 text-body"
+                            maxLength={500}
+                            placeholder="https://yandex.ru/maps/?pt=37.6173,55.7558&z=16"
                         />
-                        <button
-                            type="button"
-                            onClick={handleGeocode}
-                            disabled={submitting || geocoding || !form.address.trim()}
-                            className="rounded border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
-                        >
-                            {geocoding ? 'Определяем…' : '📍 Определить по адресу'}
-                        </button>
+                        {trimmedMapUrl && (
+                            <a
+                                href={trimmedMapUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline"
+                            >
+                                Открыть в новой вкладке →
+                            </a>
+                        )}
                     </section>
 
                     {error && <p className="text-destructive">{error}</p>}

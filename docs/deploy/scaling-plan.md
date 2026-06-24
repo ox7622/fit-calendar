@@ -115,12 +115,11 @@ set -euo pipefail
 
 # Использование:
 #   curl -fsSL https://raw.githubusercontent.com/<repo>/develop/scripts/install.sh | \
-#     bash -s -- --domain club.ru --email me@club.ru --bot-token XXX --geocoder YYY
+#     bash -s -- --domain club.ru --email me@club.ru --bot-token XXX
 
 DOMAIN=""
 ACME_EMAIL=""
 TG_BOT_TOKEN=""
-YANDEX_GEOCODER=""
 # … разбор флагов
 
 # 1. Установка Docker, UFW

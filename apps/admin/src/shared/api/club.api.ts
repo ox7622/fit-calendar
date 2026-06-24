@@ -15,8 +15,7 @@ export interface IAdminClubInfo {
     address: string;
     phone: string | null;
     workingHours: TWorkingHours;
-    latitude: number | null;
-    longitude: number | null;
+    mapUrl: string | null;
     logoUrl: string | null;
     updatedAt: string;
 }
@@ -26,17 +25,11 @@ export interface IClubInfoUpdatePayload {
     address: string;
     phone?: string;
     workingHours: TWorkingHours;
-    latitude?: number;
-    longitude?: number;
+    mapUrl?: string;
 }
 
 export interface IClubLogoUploadResponse {
     logoUrl: string;
-}
-
-export interface IGeocodeResult {
-    latitude: number;
-    longitude: number;
 }
 
 export const adminClubApi = {
@@ -44,9 +37,6 @@ export const adminClubApi = {
 
     update: (payload: IClubInfoUpdatePayload): Promise<IAdminClubInfo> =>
         adminApiClient.put<IAdminClubInfo>('/admin/club-info', payload),
-
-    geocode: (address: string): Promise<IGeocodeResult> =>
-        adminApiClient.post<IGeocodeResult>('/admin/club-info/geocode', { address }),
 
     uploadLogo: (file: File): Promise<IClubLogoUploadResponse> => {
         const form = new FormData();

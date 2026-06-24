@@ -1,4 +1,12 @@
-import { classLine, formatDayHeader, formatTime, formatWeekRange, tomorrowDateKey } from '../format';
+import {
+    classLine,
+    escapeHtml,
+    formatDayHeader,
+    formatDayMonth,
+    formatTime,
+    formatWeekRange,
+    tomorrowDateKey,
+} from '../format';
 import type { IClassEntry } from '../types';
 
 describe('formatTime', () => {
@@ -13,6 +21,18 @@ describe('formatDayHeader', () => {
     });
 });
 
+describe('formatDayMonth', () => {
+    it('renders day + genitive month, no weekday and no year', () => {
+        expect(formatDayMonth(new Date('2026-06-12T12:00:00'))).toBe('12 июня');
+    });
+});
+
+describe('escapeHtml', () => {
+    it('escapes the three HTML-significant characters', () => {
+        expect(escapeHtml('A & <b> "x"')).toBe('A &amp; &lt;b&gt; "x"');
+    });
+});
+
 describe('classLine', () => {
     const base: IClassEntry = {
         name: 'Йога',
@@ -22,12 +42,18 @@ describe('classLine', () => {
         coachName: 'Анна',
     };
 
-    it('renders a scheduled class (time in Europe/Moscow)', () => {
-        expect(classLine(base)).toBe('⏰ 13:00 — Йога (Анна, 60мин)');
+    it('renders a scheduled class as monospace time + name · coach (Europe/Moscow)', () => {
+        expect(classLine(base)).toBe('<code>13:00</code>  Йога · Анна');
     });
 
-    it('marks cancelled classes', () => {
-        expect(classLine({ ...base, status: 'cancelled' })).toContain('❌ отменено');
+    it('strikes cancelled classes and drops the coach', () => {
+        expect(classLine({ ...base, status: 'cancelled' })).toBe('<s><code>13:00</code>  Йога</s>');
+    });
+
+    it('escapes HTML-significant characters in name and coach', () => {
+        expect(classLine({ ...base, name: 'A & B', coachName: '<X>' })).toBe(
+            '<code>13:00</code>  A &amp; B · &lt;X&gt;',
+        );
     });
 });
 

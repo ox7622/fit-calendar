@@ -55,7 +55,7 @@ export function ConfirmDialog({
     );
 }
 
-interface IConfirmRequest {
+export interface IConfirmRequest {
     title: string;
     message: ReactNode;
     confirmLabel?: string;

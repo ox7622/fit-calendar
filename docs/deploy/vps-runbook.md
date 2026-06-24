@@ -63,7 +63,7 @@ ufw allow 80 && ufw allow 443 && ufw allow OpenSSH && ufw --force enable
 git clone -b develop https://github.com/ox7622/fit-calendar.git
 cd fit-calendar
 cp .env.prod.example .env.prod
-nano .env.prod   # заполни DOMAIN, ACME_EMAIL, NX_DB_PASS, JWT_SECRET, токены, YANDEX_GEOCODER_API_KEY
+nano .env.prod   # заполни DOMAIN, ACME_EMAIL, NX_DB_PASS, JWT_SECRET, токены
 ```
 
 ## ШАГ 6 — Запуск

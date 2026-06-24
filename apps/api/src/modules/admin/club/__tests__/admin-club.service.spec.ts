@@ -1,5 +1,4 @@
 import { ClubInfo } from '@fitcalendar/db';
-import { BadRequestException } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -14,8 +13,7 @@ const buildClub = (overrides: Partial<ClubInfo> = {}): ClubInfo =>
         address: 'ул. Тестовая, 1',
         phone: null,
         workingHours: { monday: { open: '09:00', close: '22:00' }, sunday: null },
-        latitude: null,
-        longitude: null,
+        mapUrl: null,
         logoUrl: null,
         updatedAt: new Date('2026-01-01'),
         ...overrides,
@@ -45,11 +43,11 @@ describe('AdminClubService', () => {
         service = module.get(AdminClubService);
     });
 
-    describe('getOrCreate', () => {
+    describe('get', () => {
         it('returns existing singleton when one exists', async () => {
             clubRepo.findOne.mockResolvedValueOnce(buildClub({ id: 'existing' }));
 
-            const result = await service.getOrCreate();
+            const result = await service.get();
 
             expect(result.id).toBe('existing');
             expect(clubRepo.save).not.toHaveBeenCalled();
@@ -59,7 +57,7 @@ describe('AdminClubService', () => {
             clubRepo.findOne.mockResolvedValueOnce(null);
             clubRepo.save.mockResolvedValueOnce(buildClub({ id: 'new', name: 'Fit Calendar Club' }));
 
-            const result = await service.getOrCreate();
+            const result = await service.get();
 
             expect(clubRepo.create).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -93,21 +91,7 @@ describe('AdminClubService', () => {
             expect(existing.phone).toBe('+7 999 555-12-34');
         });
 
-        it('rejects when only latitude is provided (paired guard from AC5)', async () => {
-            clubRepo.findOne.mockResolvedValueOnce(buildClub());
-
-            await expect(
-                service.update({
-                    name: 'X',
-                    address: '',
-                    workingHours: {},
-                    latitude: 55.7,
-                }),
-            ).rejects.toThrow(BadRequestException);
-            expect(clubRepo.save).not.toHaveBeenCalled();
-        });
-
-        it('accepts both lat + lon together', async () => {
+        it('persists mapUrl when provided', async () => {
             const existing = buildClub();
             clubRepo.findOne.mockResolvedValueOnce(existing);
 
@@ -115,12 +99,23 @@ describe('AdminClubService', () => {
                 name: 'X',
                 address: '',
                 workingHours: {},
-                latitude: 55.7,
-                longitude: 37.6,
+                mapUrl: 'https://yandex.ru/maps/?pt=37.6173,55.7558&z=16',
             });
 
-            expect(existing.latitude).toBe(55.7);
-            expect(existing.longitude).toBe(37.6);
+            expect(existing.mapUrl).toBe('https://yandex.ru/maps/?pt=37.6173,55.7558&z=16');
+        });
+
+        it('clears mapUrl when omitted', async () => {
+            const existing = buildClub({ mapUrl: 'https://yandex.ru/maps/?pt=37,55&z=16' });
+            clubRepo.findOne.mockResolvedValueOnce(existing);
+
+            await service.update({
+                name: 'X',
+                address: '',
+                workingHours: {},
+            });
+
+            expect(existing.mapUrl).toBeNull();
         });
 
         it('persists working hours with closed days as null', async () => {

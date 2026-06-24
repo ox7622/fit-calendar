@@ -11,8 +11,7 @@ export interface ClubInfo {
     address: string;
     phone: string | null;
     workingHours: Record<string, WorkingHoursEntry | null>;
-    latitude: number | null;
-    longitude: number | null;
+    mapUrl: string | null;
     logoUrl: string | null;
 }
 

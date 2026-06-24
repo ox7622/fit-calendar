@@ -11,25 +11,21 @@ export class AdminClubInfoDto {
         example: { monday: { open: '09:00', close: '22:00' }, sunday: null },
     })
     workingHours: TWorkingHours;
-    @ApiProperty({ nullable: true, type: Number }) latitude: number | null;
-    @ApiProperty({ nullable: true, type: Number }) longitude: number | null;
+    @ApiProperty({ nullable: true, type: String }) mapUrl: string | null;
     @ApiProperty({ nullable: true, type: String }) logoUrl: string | null;
     @ApiProperty() updatedAt: Date;
 }
 
+// Pins the response shape declared on AdminClubInfoDto so future ClubInfo
+// fields don't silently leak through the controller into Swagger / the wire.
 export function toAdminClubInfoDto(club: ClubInfo): AdminClubInfoDto {
-    // Postgres numeric columns surface as strings via TypeORM; coerce so the
-    // admin form gets real numbers without per-call massaging.
-    const lat = club.latitude;
-    const lon = club.longitude;
     return {
         id: club.id,
         name: club.name,
         address: club.address,
         phone: club.phone,
         workingHours: club.workingHours,
-        latitude: lat === null || lat === undefined ? null : Number(lat),
-        longitude: lon === null || lon === undefined ? null : Number(lon),
+        mapUrl: club.mapUrl,
         logoUrl: club.logoUrl,
         updatedAt: club.updatedAt,
     };

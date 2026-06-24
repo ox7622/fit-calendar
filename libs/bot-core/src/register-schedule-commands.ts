@@ -2,7 +2,7 @@ import { clampWeekOffset, MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 
-import { classLine, formatDateRu, formatDayHeader, tomorrowDateKey } from './format';
+import { classLine, formatDayMonth, tomorrowDateKey } from './format';
 import type { IClassEntry, ScheduleDataSource } from './types';
 import { buildWeekMessage } from './week-message';
 
@@ -25,12 +25,11 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
         header: string,
         emptyText: string,
     ): Promise<void> => {
-        if (classes.length === 0) {
-            await ctx.reply(`${header}\n\n${emptyText}`);
-            return;
-        }
-        const body = classes.map(classLine).join('\n');
-        await ctx.reply(`${header}\n\n${body}`, dayMarkup ? { reply_markup: dayMarkup } : undefined);
+        const body = classes.length === 0 ? emptyText : classes.map(classLine).join('\n');
+        await ctx.reply(`${header}\n\n${body}`, {
+            parse_mode: 'HTML',
+            ...(dayMarkup ? { reply_markup: dayMarkup } : {}),
+        });
     };
 
     bot.command('today', async (ctx) => {
@@ -39,7 +38,7 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
             await replyForDay(
                 ctx,
                 classes,
-                `📅 Расписание на сегодня, ${formatDateRu(new Date())}`,
+                `<b>Расписание на сегодня, ${formatDayMonth(new Date())}</b>`,
                 'Сегодня занятий нет 😴',
             );
         } catch {
@@ -54,7 +53,7 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
             await replyForDay(
                 ctx,
                 classes,
-                `📅 Расписание на завтра, ${formatDayHeader(dateKey)}`,
+                `<b>Расписание на завтра, ${formatDayMonth(new Date(`${dateKey}T00:00:00`))}</b>`,
                 'Завтра занятий нет 😴',
             );
         } catch {
@@ -66,7 +65,7 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
         try {
             const days = await dataSource.getWeek(0);
             const { text, replyMarkup } = buildWeekMessage(days, 0, miniAppUrl);
-            await ctx.reply(text, { reply_markup: replyMarkup });
+            await ctx.reply(text, { reply_markup: replyMarkup, parse_mode: 'HTML' });
         } catch {
             await ctx.reply(LOAD_ERROR);
         }
@@ -83,7 +82,7 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
             return;
         }
         try {
-            await ctx.editMessageText(message.text, { reply_markup: message.replyMarkup });
+            await ctx.editMessageText(message.text, { reply_markup: message.replyMarkup, parse_mode: 'HTML' });
         } catch {
             // "message is not modified" / stale message — safe to ignore.
         }

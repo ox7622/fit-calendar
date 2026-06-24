@@ -27,11 +27,11 @@ const week: IWeekDay[] = [
 const emptyWeek: IWeekDay[] = week.map((d) => ({ ...d, classes: [] }));
 
 describe('buildWeekMessage', () => {
-    it('puts a range header on top and lists only non-empty days', () => {
+    it('puts a bold range header on top and lists only non-empty days', () => {
         const { text } = buildWeekMessage(week, 0);
-        expect(text.startsWith('📅 Неделя 12–18 июня')).toBe(true);
-        expect(text).toContain('Пятница, 12 июня');
-        expect(text).toContain('⏰ 13:00 — Йога');
+        expect(text.startsWith('<b>Неделя 12–18 июня</b>')).toBe(true);
+        expect(text).toContain('<b>Пятница, 12 июня</b>');
+        expect(text).toContain('<code>13:00</code>  Йога');
         expect(text).not.toContain('Суббота'); // empty day omitted
     });
 

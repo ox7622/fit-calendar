@@ -187,16 +187,14 @@ describe('ClubInfo Entity', () => {
             monday: { open: '09:00', close: '21:00' },
             tuesday: { open: '09:00', close: '21:00' },
         };
-        clubInfo.latitude = 55.7558;
-        clubInfo.longitude = 37.6173;
+        clubInfo.mapUrl = 'https://yandex.ru/maps/?pt=37.6173,55.7558&z=16';
         clubInfo.logoUrl = 'https://example.com/logo.png';
 
         expect(clubInfo.name).toBe('FitCalendar Gym');
         expect(clubInfo.address).toBe('123 Main St');
         expect(clubInfo.phone).toBe('+1234567890');
         expect(clubInfo.workingHours.monday).toEqual({ open: '09:00', close: '21:00' });
-        expect(clubInfo.latitude).toBe(55.7558);
-        expect(clubInfo.longitude).toBe(37.6173);
+        expect(clubInfo.mapUrl).toBe('https://yandex.ru/maps/?pt=37.6173,55.7558&z=16');
     });
 });
 

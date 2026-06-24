@@ -7,12 +7,11 @@ import { UploadsModule } from '../uploads';
 
 import { AdminClubController } from './admin-club.controller';
 import { AdminClubService } from './admin-club.service';
-import { GeocodingService } from './geocoding.service';
 
 @Module({
     imports: [TypeOrmModule.forFeature([ClubInfo]), AdminAuthModule, UploadsModule],
     controllers: [AdminClubController],
-    providers: [AdminClubService, GeocodingService],
+    providers: [AdminClubService],
     exports: [AdminClubService],
 })
 export class AdminClubModule {}

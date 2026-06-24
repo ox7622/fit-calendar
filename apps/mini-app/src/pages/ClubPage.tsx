@@ -40,10 +40,7 @@ function getWorkingHoursRows(hours: Record<string, WorkingHoursEntry | null>): A
 }
 
 function openMap(club: ClubInfo): void {
-    const url =
-        club.latitude !== null && club.longitude !== null
-            ? `https://maps.google.com/?q=${club.latitude},${club.longitude}`
-            : `https://maps.google.com/?q=${encodeURIComponent(club.address)}`;
+    const url = club.mapUrl ?? `https://yandex.ru/maps/?text=${encodeURIComponent(club.address)}`;
     window.open(url);
 }
 

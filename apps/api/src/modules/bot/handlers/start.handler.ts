@@ -1,17 +1,8 @@
+import { buildWelcomeMessage } from '@fitcalendar/bot-core';
 import { MINI_APP_BUTTON_TEXT } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 
 import type { ClubService } from '../../club/club.service';
-
-/** Builds the /start greeting, naming the club when we know it. */
-export function buildWelcomeMessage(clubName: string | null): string {
-    const who = clubName ? `клуба «${clubName}»` : 'фитнес-клуба';
-    return (
-        '<b>Привет! 👋</b>\n\n' +
-        `Я бот ${who} — покажу расписание занятий.\n\n` +
-        'Команда /today покажет расписание на сегодня, а кнопка ниже откроет приложение с полным расписанием.'
-    );
-}
 
 export function registerStartCommand(bot: Bot<Context>, clubService: ClubService, miniAppUrl?: string): void {
     bot.command('start', async (ctx) => {

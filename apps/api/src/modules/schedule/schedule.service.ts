@@ -1,10 +1,13 @@
 import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
-import { clampWeekOffset, DIFFICULTY_LEVEL_LABELS, type TDifficultyLevel } from '@fitcalendar/shared';
+import { clampWeekOffset, DIFFICULTY_LEVEL_LABELS, formatInClubTz, type TDifficultyLevel } from '@fitcalendar/shared';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, format, startOfDay } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ArrayContains, Between, FindOptionsWhere } from 'typeorm';
 import { Repository } from 'typeorm';
+
+import { ClubService } from '../club/club.service';
 
 import { LabelValueDto } from './dto/label-value.dto';
 import { ScheduleFilterDto } from './dto/schedule-filter.dto';
@@ -21,6 +24,7 @@ export class ScheduleService {
         private readonly scheduleRepository: Repository<ScheduleEntry>,
         @InjectRepository(TrainingType)
         private readonly trainingTypeRepository: Repository<TrainingType>,
+        private readonly clubService: ClubService,
     ) {}
 
     /**
@@ -69,10 +73,13 @@ export class ScheduleService {
      */
     async getToday(filter: ScheduleFilterDto = {}): Promise<ClassResponseDto[]> {
         this.logger.log('Fetching today schedule');
-        const today = startOfDay(new Date());
-        const tomorrow = startOfDay(addDays(today, 1));
+        const tz = await this.clubService.getTimeZone();
+        // Wall-clock midnight in the club zone, expressed as the real UTC instant.
+        const startLocal = startOfDay(toZonedTime(new Date(), tz));
+        const start = fromZonedTime(startLocal, tz);
+        const end = fromZonedTime(addDays(startLocal, 1), tz);
 
-        return this.getByDateRange(today, tomorrow, filter);
+        return this.getByDateRange(start, end, filter);
     }
 
     /**
@@ -80,10 +87,12 @@ export class ScheduleService {
      */
     async getByDate(date: string, filter: ScheduleFilterDto = {}): Promise<ClassResponseDto[]> {
         this.logger.log(`Fetching schedule for date: ${date}`);
-        const parsedDate = startOfDay(new Date(date));
-        const nextDay = startOfDay(addDays(parsedDate, 1));
+        const tz = await this.clubService.getTimeZone();
+        const startLocal = startOfDay(new Date(`${date}T00:00:00`));
+        const start = fromZonedTime(startLocal, tz);
+        const end = fromZonedTime(addDays(startLocal, 1), tz);
 
-        return this.getByDateRange(parsedDate, nextDay, filter);
+        return this.getByDateRange(start, end, filter);
     }
 
     /**
@@ -93,22 +102,20 @@ export class ScheduleService {
     async getWeek(filter: ScheduleFilterDto = {}, weekOffset = 0): Promise<WeekScheduleDto> {
         const offset = clampWeekOffset(weekOffset);
         this.logger.log(`Fetching week schedule (offset ${offset})`);
-        const anchor = startOfDay(addDays(new Date(), 7 * offset));
-        const endOfWeek = startOfDay(addDays(anchor, 7));
+        const tz = await this.clubService.getTimeZone();
+        // anchorLocal holds club wall-clock fields; format() reads them directly.
+        const anchorLocal = startOfDay(addDays(toZonedTime(new Date(), tz), 7 * offset));
+        const anchor = fromZonedTime(anchorLocal, tz);
+        const endOfWeek = fromZonedTime(addDays(anchorLocal, 7), tz);
 
         const entries = await this.queryEntries(anchor, endOfWeek, filter);
 
-        // Generate 7 days
         const days: DayScheduleDto[] = [];
         for (let i = 0; i < 7; i++) {
-            const dayDate = addDays(anchor, i);
-            const dateStr = format(dayDate, 'yyyy-MM-dd');
+            const dateStr = format(addDays(anchorLocal, i), 'yyyy-MM-dd');
 
             const dayClasses = entries
-                .filter((entry) => {
-                    const entryDate = format(new Date(entry.startTime), 'yyyy-MM-dd');
-                    return entryDate === dateStr;
-                })
+                .filter((entry) => formatInClubTz(entry.startTime, tz, 'yyyy-MM-dd') === dateStr)
                 .map((entry) => this.mapToDto(entry));
 
             days.push({ date: dateStr, classes: dayClasses });

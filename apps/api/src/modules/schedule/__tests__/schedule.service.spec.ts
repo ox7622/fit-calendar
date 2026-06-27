@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
+import { ClubService } from '../../club/club.service';
 import { ScheduleService } from '../schedule.service';
 
 // Helper to create a mock ScheduleEntry
@@ -61,6 +62,7 @@ describe('ScheduleService', () => {
     let service: ScheduleService;
     let mockScheduleRepository: jest.Mocked<Repository<ScheduleEntry>>;
     let mockTrainingTypeRepository: jest.Mocked<Repository<TrainingType>>;
+    let mockClubService: { getTimeZone: jest.Mock };
 
     beforeEach(async () => {
         mockScheduleRepository = {
@@ -72,6 +74,10 @@ describe('ScheduleService', () => {
             find: jest.fn(),
         } as unknown as jest.Mocked<Repository<TrainingType>>;
 
+        mockClubService = {
+            getTimeZone: jest.fn().mockResolvedValue('UTC'),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 ScheduleService,
@@ -82,6 +88,10 @@ describe('ScheduleService', () => {
                 {
                     provide: getRepositoryToken(TrainingType),
                     useValue: mockTrainingTypeRepository,
+                },
+                {
+                    provide: ClubService,
+                    useValue: mockClubService,
                 },
             ],
         }).compile();
@@ -404,6 +414,44 @@ describe('ScheduleService', () => {
         it('getImpactTypes returns the four known impact tags', () => {
             const impacts = service.getImpactTypes();
             expect(impacts.map((i) => i.value)).toEqual(['cardio', 'strength', 'flexibility', 'balance']);
+        });
+    });
+
+    describe('timezone bucketing', () => {
+        it('getByDate queries the correct UTC window for a non-UTC club timezone', async () => {
+            // Asia/Yekaterinburg is UTC+5.
+            // Club day '2026-06-22' starts at 2026-06-21T19:00:00Z and ends at 2026-06-22T19:00:00Z.
+            mockClubService.getTimeZone.mockResolvedValue('Asia/Yekaterinburg');
+            mockScheduleRepository.find.mockResolvedValue([]);
+
+            await service.getByDate('2026-06-22');
+
+            const findCall = mockScheduleRepository.find.mock.calls[0];
+            expect(findCall).toBeDefined();
+            const where = findCall?.[0]?.where as Record<string, unknown>;
+            // TypeORM Between stores the values on the FindOperator instance.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const betweenOp = where['startTime'] as any;
+            const rangeStart: Date = betweenOp._value[0];
+            const rangeEnd: Date = betweenOp._value[1];
+
+            expect(rangeStart.toISOString()).toBe('2026-06-21T19:00:00.000Z');
+            expect(rangeEnd.toISOString()).toBe('2026-06-22T19:00:00.000Z');
+        });
+
+        it('a class at UTC midnight belongs to the next club day in UTC+5', async () => {
+            // 2026-06-22T20:00Z = 2026-06-23 01:00 in Yekaterinburg (+5)
+            // So it should appear on 2026-06-23, not 2026-06-22.
+            mockClubService.getTimeZone.mockResolvedValue('Asia/Yekaterinburg');
+            // Provide a window that covers the UTC instant we care about:
+            // query date '2026-06-23' in +5 → UTC window [2026-06-22T19:00Z, 2026-06-23T19:00Z)
+            const entryInstant = new Date('2026-06-22T20:00:00Z');
+            mockScheduleRepository.find.mockResolvedValue([createMockEntry({}, entryInstant)]);
+
+            const result = await service.getByDate('2026-06-23');
+
+            expect(result).toHaveLength(1);
+            expect(result[0]?.startTime).toBe('2026-06-22T20:00:00.000Z');
         });
     });
 });

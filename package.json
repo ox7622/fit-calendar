@@ -156,6 +156,7 @@
         "class-validator": "^0.14.2",
         "cloudinary": "^2.10.0",
         "date-fns": "^4.1.0",
+        "date-fns-tz": "^3.2.0",
         "dayjs": "^1.11.13",
         "framer-motion": "^12.29.2",
         "grammy": "^1.39.3",

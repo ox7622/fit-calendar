@@ -1,4 +1,4 @@
-import { addDays, format } from 'date-fns';
+import { formatInClubTz } from '@fitcalendar/shared';
 
 import type { IClassEntry } from './types';
 
@@ -12,9 +12,9 @@ export function formatDateRu(date: Date): string {
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-/** "30 мая" — day + genitive month, no weekday, no year. For day headers. */
-export function formatDayMonth(date: Date): string {
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+/** "30 мая" — day + genitive month in the club zone, no weekday, no year. For day headers. */
+export function formatDayMonth(date: Date, timeZone: string): string {
+    return formatInClubTz(date, timeZone, 'd MMMM');
 }
 
 /** "Пятница, 12 июня" from a YYYY-MM-DD key. */
@@ -27,17 +27,9 @@ export function formatDayHeader(isoDate: string): string {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-/** The club's timezone — class times are displayed in it, not UTC. */
-const CLUB_TIME_ZONE = 'Europe/Moscow';
-
-/** Club-local (Europe/Moscow) HH:MM from an ISO timestamp. */
-export function formatTime(isoString: string): string {
-    return new Date(isoString).toLocaleTimeString('ru-RU', {
-        timeZone: CLUB_TIME_ZONE,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-    });
+/** Club-local HH:MM from an ISO timestamp, in the given IANA timeZone. */
+export function formatTime(isoString: string, timeZone: string): string {
+    return formatInClubTz(isoString, timeZone, 'HH:mm');
 }
 
 /** "12–18 июня" within a month, or "30 июня – 6 июля" across a boundary. */
@@ -61,15 +53,15 @@ export function formatWeekRange(startISO: string, endISO: string): string {
  * e.g. "<code>10:00</code>  Йога · Анна". Cancelled classes are struck through
  * and drop the coach. The monospace time renders teal-tinted in dark themes.
  */
-export function classLine(cls: IClassEntry): string {
-    const time = `<code>${formatTime(cls.startTime)}</code>`;
+export function classLine(cls: IClassEntry, timeZone: string): string {
+    const time = `<code>${formatTime(cls.startTime, timeZone)}</code>`;
     if (cls.status === 'cancelled') {
         return `<s>${time}  ${escapeHtml(cls.name)}</s>`;
     }
     return `${time}  ${escapeHtml(cls.name)} · ${escapeHtml(cls.coachName)}`;
 }
 
-/** YYYY-MM-DD for tomorrow in local time. */
-export function tomorrowDateKey(): string {
-    return format(addDays(new Date(), 1), 'yyyy-MM-dd');
+/** YYYY-MM-DD for tomorrow in the club zone. (Russia has no DST, so now+24h is safe.) */
+export function tomorrowDateKey(timeZone: string): string {
+    return formatInClubTz(new Date(Date.now() + 24 * 60 * 60 * 1000), timeZone, 'yyyy-MM-dd');
 }

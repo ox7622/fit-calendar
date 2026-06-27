@@ -14,14 +14,17 @@ export interface WeekMessage {
  * to be pre-clamped by the caller (the command/callback entry points); this is a
  * pure formatter and does not re-validate it.
  */
-export function buildWeekMessage(days: IWeekDay[], offset: number, miniAppUrl?: string): WeekMessage {
+export function buildWeekMessage(days: IWeekDay[], offset: number, timeZone: string, miniAppUrl?: string): WeekMessage {
     const startISO = days[0]?.date ?? '';
     const endISO = days[days.length - 1]?.date ?? startISO;
     const header = `<b>Неделя ${formatWeekRange(startISO, endISO)}</b>`;
 
     const blocks = days
         .filter((day) => day.classes.length > 0)
-        .map((day) => `<b>${formatDayHeader(day.date)}</b>\n${day.classes.map(classLine).join('\n')}`);
+        .map(
+            (day) =>
+                `<b>${formatDayHeader(day.date)}</b>\n${day.classes.map((c) => classLine(c, timeZone)).join('\n')}`,
+        );
     const body = blocks.length > 0 ? blocks.join('\n\n') : 'На этой неделе занятий нет 😴';
 
     const keyboard = new InlineKeyboard();

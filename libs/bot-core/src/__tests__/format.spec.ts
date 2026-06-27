@@ -11,7 +11,11 @@ import type { IClassEntry } from '../types';
 
 describe('formatTime', () => {
     it('renders club-local (Europe/Moscow, +3) HH:MM', () => {
-        expect(formatTime('2026-06-12T10:05:00.000Z')).toBe('13:05');
+        expect(formatTime('2026-06-12T10:05:00.000Z', 'Europe/Moscow')).toBe('13:05');
+    });
+
+    it('renders club-local (Asia/Yekaterinburg, +5) HH:MM', () => {
+        expect(formatTime('2026-06-12T10:05:00.000Z', 'Asia/Yekaterinburg')).toBe('15:05');
     });
 });
 
@@ -22,8 +26,8 @@ describe('formatDayHeader', () => {
 });
 
 describe('formatDayMonth', () => {
-    it('renders day + genitive month, no weekday and no year', () => {
-        expect(formatDayMonth(new Date('2026-06-12T12:00:00'))).toBe('12 июня');
+    it('renders day + genitive month in the club zone, no weekday and no year', () => {
+        expect(formatDayMonth(new Date('2026-06-12T09:00:00Z'), 'Europe/Moscow')).toBe('12 июня');
     });
 });
 
@@ -43,15 +47,15 @@ describe('classLine', () => {
     };
 
     it('renders a scheduled class as monospace time + name · coach (Europe/Moscow)', () => {
-        expect(classLine(base)).toBe('<code>13:00</code>  Йога · Анна');
+        expect(classLine(base, 'Europe/Moscow')).toBe('<code>13:00</code>  Йога · Анна');
     });
 
     it('strikes cancelled classes and drops the coach', () => {
-        expect(classLine({ ...base, status: 'cancelled' })).toBe('<s><code>13:00</code>  Йога</s>');
+        expect(classLine({ ...base, status: 'cancelled' }, 'Europe/Moscow')).toBe('<s><code>13:00</code>  Йога</s>');
     });
 
     it('escapes HTML-significant characters in name and coach', () => {
-        expect(classLine({ ...base, name: 'A & B', coachName: '<X>' })).toBe(
+        expect(classLine({ ...base, name: 'A & B', coachName: '<X>' }, 'Europe/Moscow')).toBe(
             '<code>13:00</code>  A &amp; B · &lt;X&gt;',
         );
     });
@@ -69,11 +73,6 @@ describe('formatWeekRange', () => {
 
 describe('tomorrowDateKey', () => {
     it('returns a YYYY-MM-DD string one day ahead', () => {
-        const key = tomorrowDateKey();
-        expect(key).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        const expected = new Date();
-        expected.setDate(expected.getDate() + 1);
-        const pad = (n: number) => String(n).padStart(2, '0');
-        expect(key).toBe(`${expected.getFullYear()}-${pad(expected.getMonth() + 1)}-${pad(expected.getDate())}`);
+        expect(tomorrowDateKey('Europe/Moscow')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 });

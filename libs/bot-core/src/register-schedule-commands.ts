@@ -24,8 +24,9 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
         classes: IClassEntry[],
         header: string,
         emptyText: string,
+        timeZone: string,
     ): Promise<void> => {
-        const body = classes.length === 0 ? emptyText : classes.map(classLine).join('\n');
+        const body = classes.length === 0 ? emptyText : classes.map((c) => classLine(c, timeZone)).join('\n');
         await ctx.reply(`${header}\n\n${body}`, {
             parse_mode: 'HTML',
             ...(dayMarkup ? { reply_markup: dayMarkup } : {}),
@@ -34,12 +35,14 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
 
     bot.command('today', async (ctx) => {
         try {
+            const tz = await dataSource.getTimeZone();
             const classes = await dataSource.getToday();
             await replyForDay(
                 ctx,
                 classes,
-                `<b>Расписание на сегодня, ${formatDayMonth(new Date())}</b>`,
+                `<b>Расписание на сегодня, ${formatDayMonth(new Date(), tz)}</b>`,
                 'Сегодня занятий нет 😴',
+                tz,
             );
         } catch {
             await ctx.reply(LOAD_ERROR);
@@ -48,13 +51,15 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
 
     bot.command('tomorrow', async (ctx) => {
         try {
-            const dateKey = tomorrowDateKey();
+            const tz = await dataSource.getTimeZone();
+            const dateKey = tomorrowDateKey(tz);
             const classes = await dataSource.getByDate(dateKey);
             await replyForDay(
                 ctx,
                 classes,
-                `<b>Расписание на завтра, ${formatDayMonth(new Date(`${dateKey}T00:00:00`))}</b>`,
+                `<b>Расписание на завтра, ${formatDayMonth(new Date(`${dateKey}T00:00:00`), tz)}</b>`,
                 'Завтра занятий нет 😴',
+                tz,
             );
         } catch {
             await ctx.reply(LOAD_ERROR);
@@ -63,8 +68,9 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
 
     bot.command('week', async (ctx) => {
         try {
+            const tz = await dataSource.getTimeZone();
             const days = await dataSource.getWeek(0);
-            const { text, replyMarkup } = buildWeekMessage(days, 0, miniAppUrl);
+            const { text, replyMarkup } = buildWeekMessage(days, 0, tz, miniAppUrl);
             await ctx.reply(text, { reply_markup: replyMarkup, parse_mode: 'HTML' });
         } catch {
             await ctx.reply(LOAD_ERROR);
@@ -75,8 +81,9 @@ export function registerScheduleCommands(bot: Bot<Context>, dataSource: Schedule
         const target = clampWeekOffset(Number.parseInt(ctx.match[1] ?? '', 10));
         let message;
         try {
+            const tz = await dataSource.getTimeZone();
             const days = await dataSource.getWeek(target);
-            message = buildWeekMessage(days, target, miniAppUrl);
+            message = buildWeekMessage(days, target, tz, miniAppUrl);
         } catch {
             await ctx.answerCallbackQuery({ text: 'Не удалось загрузить расписание' });
             return;

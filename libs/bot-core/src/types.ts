@@ -22,4 +22,6 @@ export interface ScheduleDataSource {
     getToday(): Promise<IClassEntry[]>;
     getByDate(dateKey: string): Promise<IClassEntry[]>;
     getWeek(weekOffset: number): Promise<IWeekDay[]>;
+    /** The club's IANA timezone, resolved per command so admin edits take effect live. */
+    getTimeZone(): Promise<string>;
 }

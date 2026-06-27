@@ -31,6 +31,7 @@ describe('registerScheduleCommands', () => {
             getToday: jest.fn().mockResolvedValue([]),
             getByDate: jest.fn().mockResolvedValue([]),
             getWeek: jest.fn().mockResolvedValue(makeWeek()),
+            getTimeZone: jest.fn().mockResolvedValue('Europe/Moscow'),
         };
     });
 

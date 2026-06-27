@@ -3,4 +3,5 @@
 // out of the mini-app bundle (the eager call counts as a side effect).
 // Import it directly via `@fitcalendar/shared/utils/date-time.util` if you
 // need it — the only consumers historically were inside libs/shared itself.
+export * from './club-tz.util';
 export * from './format-russian.util';

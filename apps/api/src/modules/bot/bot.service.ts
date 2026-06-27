@@ -99,7 +99,7 @@ export class BotService implements OnModuleInit {
 
         // Register commands
         registerStartCommand(this.bot, this.clubService, miniAppUrl);
-        registerScheduleCommands(this.bot, this.scheduleService, miniAppUrl);
+        registerScheduleCommands(this.bot, this.scheduleService, this.clubService, miniAppUrl);
         registerClubCommand(this.bot, this.clubService);
         registerStopCommand(this.bot, this.botSubscribers);
 

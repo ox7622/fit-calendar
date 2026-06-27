@@ -2,6 +2,7 @@ import type { IClassEntry, ScheduleDataSource } from '@fitcalendar/bot-core';
 import { BOT_COMMANDS, registerScheduleCommands as registerShared } from '@fitcalendar/bot-core';
 import type { Bot, Context } from 'grammy';
 
+import type { ClubService } from '../../club/club.service';
 import type { ClassResponseDto } from '../../schedule/dto/schedule-response.dto';
 import type { ScheduleService } from '../../schedule/schedule.service';
 
@@ -18,7 +19,7 @@ function toEntry(cls: ClassResponseDto): IClassEntry {
 }
 
 /** In-process data source: the webhook bot calls ScheduleService directly. */
-function serviceDataSource(scheduleService: ScheduleService): ScheduleDataSource {
+function serviceDataSource(scheduleService: ScheduleService, clubService: ClubService): ScheduleDataSource {
     return {
         getToday: async () => (await scheduleService.getToday()).map(toEntry),
         getByDate: async (dateKey) => (await scheduleService.getByDate(dateKey)).map(toEntry),
@@ -26,6 +27,7 @@ function serviceDataSource(scheduleService: ScheduleService): ScheduleDataSource
             const { days } = await scheduleService.getWeek({}, weekOffset);
             return days.map((day) => ({ date: day.date, classes: day.classes.map(toEntry) }));
         },
+        getTimeZone: () => clubService.getTimeZone(),
     };
 }
 
@@ -33,7 +35,8 @@ function serviceDataSource(scheduleService: ScheduleService): ScheduleDataSource
 export function registerScheduleCommands(
     bot: Bot<Context>,
     scheduleService: ScheduleService,
+    clubService: ClubService,
     miniAppUrl?: string,
 ): void {
-    registerShared(bot, serviceDataSource(scheduleService), miniAppUrl);
+    registerShared(bot, serviceDataSource(scheduleService, clubService), miniAppUrl);
 }

@@ -1,5 +1,6 @@
 import type { IClassEntry, IWeekDay, ScheduleDataSource } from '@fitcalendar/bot-core';
 import { BOT_COMMANDS, registerScheduleCommands as registerShared } from '@fitcalendar/bot-core';
+import { DEFAULT_TIME_ZONE } from '@fitcalendar/shared';
 import type { Bot, Context } from 'grammy';
 
 export { BOT_COMMANDS };
@@ -25,6 +26,14 @@ function httpDataSource(): ScheduleDataSource {
                 `${apiUrl()}/api/schedule/week?weekOffset=${weekOffset}`,
             );
             return days;
+        },
+        getTimeZone: async () => {
+            try {
+                const club = await getJson<{ timezone?: string }>(`${apiUrl()}/api/club-info`);
+                return club.timezone ?? DEFAULT_TIME_ZONE;
+            } catch {
+                return DEFAULT_TIME_ZONE;
+            }
         },
     };
 }

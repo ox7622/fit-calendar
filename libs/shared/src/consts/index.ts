@@ -5,5 +5,6 @@ export * from './duration-options.const';
 export * from './impact-types.const';
 export * from './notify.const';
 export * from './taxonomy-colors.const';
+export * from './time-zones.const';
 export * from './upload-limits.const';
 export * from './validation-messages.const';

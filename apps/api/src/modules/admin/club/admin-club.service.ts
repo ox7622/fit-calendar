@@ -1,4 +1,5 @@
 import { ClubInfo, TWorkingHours } from '@fitcalendar/db';
+import { DEFAULT_TIME_ZONE } from '@fitcalendar/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -41,6 +42,7 @@ export class AdminClubService {
         club.phone = dto.phone ?? null;
         club.workingHours = dto.workingHours;
         club.mapUrl = dto.mapUrl ?? null;
+        club.timezone = dto.timezone;
 
         const saved = await this.clubRepo.save(club);
         return toAdminClubInfoDto(saved);
@@ -66,6 +68,7 @@ export class AdminClubService {
                 workingHours: DEFAULT_HOURS,
                 mapUrl: null,
                 logoUrl: null,
+                timezone: DEFAULT_TIME_ZONE,
             }),
         );
         this.logger.log(`Auto-created singleton ClubInfo ${created.id}`);

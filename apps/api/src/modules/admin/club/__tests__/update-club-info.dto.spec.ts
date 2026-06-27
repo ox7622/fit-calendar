@@ -9,6 +9,7 @@ const runValidation = (overrides: Record<string, unknown> = {}) => {
         name: 'Fit Calendar Club',
         address: 'ул. Тестовая, 1',
         workingHours: {},
+        timezone: 'Europe/Moscow',
         ...overrides,
     });
     return validateSync(dto as object, { whitelist: true, forbidNonWhitelisted: true });
@@ -85,6 +86,7 @@ describe('UpdateClubInfoDto mapUrl validation', () => {
             name: 'Fit Calendar Club',
             address: 'ул. Тестовая, 1',
             workingHours: {},
+            timezone: 'Europe/Moscow',
             mapUrl: '  https://yandex.ru/maps/?pt=37.6173,55.7558&z=16  ',
         });
         expect(validateSync(dto as object, { whitelist: true, forbidNonWhitelisted: true })).toHaveLength(0);
@@ -100,5 +102,17 @@ describe('UpdateClubInfoDto mapUrl validation', () => {
     it('rejects a URL without protocol', () => {
         const errors = runValidation({ mapUrl: 'yandex.ru/maps/?pt=37,55' });
         expect(errors).toHaveLength(1);
+    });
+});
+
+describe('UpdateClubInfoDto timezone validation', () => {
+    it('accepts a known Russian timezone', () => {
+        const errors = runValidation({ timezone: 'Asia/Yekaterinburg' });
+        expect(errors.find((e) => e.property === 'timezone')).toBeUndefined();
+    });
+
+    it('rejects an unknown timezone', () => {
+        const errors = runValidation({ timezone: 'Mars/Olympus' });
+        expect(errors.find((e) => e.property === 'timezone')).toBeDefined();
     });
 });

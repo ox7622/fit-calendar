@@ -1,7 +1,8 @@
+import { RUSSIA_TIME_ZONE_IDS } from '@fitcalendar/shared';
 import { TrimToUndefinedTransformer } from '@fitcalendar/nest-shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
 
 import { DayHoursDto } from './working-hours.dto';
 import { IsWorkingHours } from './working-hours.validator';
@@ -12,6 +13,11 @@ export class UpdateClubInfoDto {
     @MinLength(1)
     @MaxLength(255)
     name: string;
+
+    @ApiProperty({ description: 'Club IANA timezone (one of the supported Russian zones)' })
+    @IsString()
+    @IsIn(RUSSIA_TIME_ZONE_IDS)
+    timezone: string;
 
     @ApiProperty({ maxLength: 500 })
     @IsString()

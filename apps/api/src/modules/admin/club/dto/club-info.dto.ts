@@ -13,6 +13,7 @@ export class AdminClubInfoDto {
     workingHours: TWorkingHours;
     @ApiProperty({ nullable: true, type: String }) mapUrl: string | null;
     @ApiProperty({ nullable: true, type: String }) logoUrl: string | null;
+    @ApiProperty({ description: 'Club IANA timezone' }) timezone: string;
     @ApiProperty() updatedAt: Date;
 }
 
@@ -27,6 +28,7 @@ export function toAdminClubInfoDto(club: ClubInfo): AdminClubInfoDto {
         workingHours: club.workingHours,
         mapUrl: club.mapUrl,
         logoUrl: club.logoUrl,
+        timezone: club.timezone,
         updatedAt: club.updatedAt,
     };
 }

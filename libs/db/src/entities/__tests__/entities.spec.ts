@@ -189,12 +189,14 @@ describe('ClubInfo Entity', () => {
         };
         clubInfo.mapUrl = 'https://yandex.ru/maps/?pt=37.6173,55.7558&z=16';
         clubInfo.logoUrl = 'https://example.com/logo.png';
+        clubInfo.timezone = 'Europe/Moscow';
 
         expect(clubInfo.name).toBe('FitCalendar Gym');
         expect(clubInfo.address).toBe('123 Main St');
         expect(clubInfo.phone).toBe('+1234567890');
         expect(clubInfo.workingHours.monday).toEqual({ open: '09:00', close: '21:00' });
         expect(clubInfo.mapUrl).toBe('https://yandex.ru/maps/?pt=37.6173,55.7558&z=16');
+        expect(clubInfo.timezone).toBe('Europe/Moscow');
     });
 });
 

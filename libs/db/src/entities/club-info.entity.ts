@@ -30,6 +30,9 @@ export class ClubInfo {
     @Column({ type: 'varchar', length: 500, nullable: true })
     logoUrl: string | null;
 
+    @Column({ type: 'varchar', length: 64, default: 'Europe/Moscow' })
+    timezone: string;
+
     @UpdateDateColumn({ type: 'timestamptz' })
     updatedAt: Date;
 }

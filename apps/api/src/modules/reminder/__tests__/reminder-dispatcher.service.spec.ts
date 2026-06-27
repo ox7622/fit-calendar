@@ -3,6 +3,7 @@ import type { ConfigService } from '@nestjs/config';
 import { GrammyError } from 'grammy';
 
 import type { BotService } from '../../bot/bot.service';
+import type { ClubService } from '../../club/club.service';
 import { ReminderDispatcherService } from '../reminder-dispatcher.service';
 import type { ReminderService } from '../reminder.service';
 
@@ -48,6 +49,10 @@ function buildConfig(miniAppUrl: string | undefined = 'https://app.example.com')
     return { get: jest.fn().mockReturnValue(miniAppUrl) } as unknown as ConfigService;
 }
 
+function buildClubService(timeZone = 'Europe/Moscow'): ClubService {
+    return { getTimeZone: async () => timeZone } as unknown as ClubService;
+}
+
 describe('ReminderDispatcherService', () => {
     let reminderService: ReturnType<typeof buildMockReminderService>;
     let botService: ReturnType<typeof buildMockBot>;
@@ -60,6 +65,7 @@ describe('ReminderDispatcherService', () => {
             reminderService as unknown as ReminderService,
             botService as unknown as BotService,
             buildConfig(),
+            buildClubService(),
         );
     });
 

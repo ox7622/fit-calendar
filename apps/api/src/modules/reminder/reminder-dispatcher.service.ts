@@ -14,6 +14,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { GrammyError, InlineKeyboard } from 'grammy';
 
 import { BotNotInitializedError, BotService } from '../bot/bot.service';
+import { ClubService } from '../club/club.service';
 
 import { escapeHtml, formatTimingRu } from './notification-format';
 import { MAX_RETRY_ATTEMPTS, ReminderService } from './reminder.service';
@@ -31,6 +32,7 @@ export class ReminderDispatcherService {
         private readonly reminderService: ReminderService,
         private readonly botService: BotService,
         configService: ConfigService,
+        private readonly clubService: ClubService,
     ) {
         this.miniAppUrl = configService.get<string>('MINI_APP_URL');
         if (!this.miniAppUrl) {
@@ -51,9 +53,10 @@ export class ReminderDispatcherService {
             const due = await this.reminderService.findDueReminders();
             if (due.length === 0) return;
 
+            const tz = await this.clubService.getTimeZone();
             this.logger.log(`Processing ${due.length} due reminder(s)`);
             await this.runWithConcurrency(due, SEND_CONCURRENCY, (reminder) =>
-                this.processOne(reminder).catch((err) => {
+                this.processOne(reminder, tz).catch((err) => {
                     // Defense in depth — processOne already catches/logs its own errors,
                     // but a programmer mistake (e.g. throwing during status update) must
                     // not abort the whole batch (AC10).
@@ -65,7 +68,7 @@ export class ReminderDispatcherService {
         }
     }
 
-    private async processOne(reminder: Reminder): Promise<void> {
+    private async processOne(reminder: Reminder, tz: string): Promise<void> {
         if (!reminder.customer || !reminder.scheduleEntry) {
             // Loaded by `findDueReminders` with relations, but guard anyway.
             this.logger.error({ reminderId: reminder.id }, 'Reminder missing customer/scheduleEntry relations');
@@ -79,7 +82,7 @@ export class ReminderDispatcherService {
             return;
         }
 
-        const message = this.buildMessageBody(reminder);
+        const message = this.buildMessageBody(reminder, tz);
         const keyboard = this.buildKeyboard(reminder.scheduleEntryId);
         const telegramId = Number(reminder.customer.telegramId);
 
@@ -127,11 +130,11 @@ export class ReminderDispatcherService {
      * Build the message body (HTML for grammY's `parse_mode: 'HTML'`).
      * Format defined in Story 5.3 Dev Notes §"Message format".
      */
-    private buildMessageBody(reminder: Reminder): string {
+    private buildMessageBody(reminder: Reminder, tz: string): string {
         const entry = reminder.scheduleEntry;
         const className = entry.trainingType?.name ?? 'Занятие';
         const coachName = entry.coach?.name ?? '—';
-        const timing = formatTimingRu(entry.startTime);
+        const timing = formatTimingRu(entry.startTime, tz);
 
         return [
             '🔔 <b>Напоминание о занятии</b>',

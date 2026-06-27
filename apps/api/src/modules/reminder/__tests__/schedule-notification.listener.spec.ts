@@ -9,6 +9,7 @@ import type {
     IScheduleSnapshot,
 } from '../../admin/schedule/schedule.events';
 import { BotSubscriberService } from '../../bot-subscriber/bot-subscriber.service';
+import { ClubService } from '../../club/club.service';
 import { ScheduleNotificationListener } from '../listeners/schedule-notification.listener';
 import { NotificationOutboxService } from '../notification-outbox.service';
 
@@ -37,6 +38,7 @@ describe('ScheduleNotificationListener', () => {
                 { provide: BotSubscriberService, useValue: botSubscriberService },
                 { provide: NotificationOutboxService, useValue: outboxService },
                 { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('https://app.example.com') } },
+                { provide: ClubService, useValue: { getTimeZone: async () => 'Europe/Moscow' } },
             ],
         }).compile();
 

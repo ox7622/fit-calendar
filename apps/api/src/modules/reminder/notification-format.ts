@@ -1,5 +1,5 @@
-import { format, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { formatInTimeZone } from 'date-fns-tz';
 
 /** Escapes the HTML special characters Telegram's HTML parse mode cares about. */
 export function escapeHtml(value: string): string {
@@ -7,16 +7,17 @@ export function escapeHtml(value: string): string {
 }
 
 /**
- * Renders a class start time in Russian: "Сегодня в HH:mm", "Завтра в HH:mm",
- * or "d MMMM в HH:mm". Shared by the reminder dispatcher and the schedule
- * notification listener so the wording stays in sync.
+ * Renders a class start time in Russian club-local wording: "Сегодня в HH:mm",
+ * "Завтра в HH:mm", or "d MMMM в HH:mm". `timeZone` is the club's IANA zone so
+ * the wording matches what users see in the bot and apps. Shared by the reminder
+ * dispatcher and the schedule notification listener.
  */
-export function formatTimingRu(startTime: Date, now: Date = new Date()): string {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
+export function formatTimingRu(startTime: Date, timeZone: string, now: Date = new Date()): string {
+    const dayKey = (d: Date): string => formatInTimeZone(d, timeZone, 'yyyy-MM-dd');
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const hhmm = format(startTime, 'HH:mm', { locale: ru });
-    if (isSameDay(startTime, now)) return `Сегодня в ${hhmm}`;
-    if (isSameDay(startTime, tomorrow)) return `Завтра в ${hhmm}`;
-    return `${format(startTime, 'd MMMM', { locale: ru })} в ${hhmm}`;
+    const hhmm = formatInTimeZone(startTime, timeZone, 'HH:mm', { locale: ru });
+    if (dayKey(startTime) === dayKey(now)) return `Сегодня в ${hhmm}`;
+    if (dayKey(startTime) === dayKey(tomorrow)) return `Завтра в ${hhmm}`;
+    return `${formatInTimeZone(startTime, timeZone, 'd MMMM', { locale: ru })} в ${hhmm}`;
 }

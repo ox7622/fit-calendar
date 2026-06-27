@@ -17,6 +17,7 @@ import {
     SCHEDULE_DELETED_EVENT,
 } from '../../admin/schedule/schedule.events';
 import { BotSubscriberService } from '../../bot-subscriber/bot-subscriber.service';
+import { ClubService } from '../../club/club.service';
 import { escapeHtml, formatTimingRu } from '../notification-format';
 import { NotificationOutboxService } from '../notification-outbox.service';
 import { isWithinNotifyWindow } from '../notify-window';
@@ -35,48 +36,53 @@ export class ScheduleNotificationListener {
         private readonly botSubscribers: BotSubscriberService,
         private readonly outboxService: NotificationOutboxService,
         configService: ConfigService,
+        private readonly clubService: ClubService,
     ) {
         this.miniAppUrl = configService.get<string>('MINI_APP_URL');
     }
 
     @OnEvent(SCHEDULE_CREATED_EVENT)
     async handleCreated(payload: IScheduleCreatedPayload): Promise<void> {
+        const tz = await this.clubService.getTimeZone();
         await this.broadcast({
             type: 'schedule_created',
             scheduleEntryId: payload.scheduleEntryId,
             gateStartTime: payload.snapshot.startTime,
-            text: this.createdMessage(payload.snapshot),
+            text: this.createdMessage(payload.snapshot, tz),
         });
     }
 
     @OnEvent(SCHEDULE_CHANGED_EVENT)
     async handleChanged(payload: IScheduleChangedPayload): Promise<void> {
+        const tz = await this.clubService.getTimeZone();
         await this.broadcast({
             type: 'schedule_changed',
             scheduleEntryId: payload.scheduleEntryId,
             gateStartTime: payload.newStartTime,
-            text: this.changedMessage(payload),
+            text: this.changedMessage(payload, tz),
         });
     }
 
     @OnEvent(SCHEDULE_CANCELLED_EVENT)
     async handleCancelled(payload: IScheduleCancelledPayload): Promise<void> {
+        const tz = await this.clubService.getTimeZone();
         await this.broadcast({
             type: 'schedule_cancelled',
             scheduleEntryId: payload.scheduleEntryId,
             gateStartTime: payload.snapshot.startTime,
-            text: this.cancelledMessage(payload.snapshot, payload.cancellationReason),
+            text: this.cancelledMessage(payload.snapshot, payload.cancellationReason, tz),
         });
     }
 
     @OnEvent(SCHEDULE_DELETED_EVENT)
     async handleDeleted(payload: IScheduleDeletedPayload): Promise<void> {
+        const tz = await this.clubService.getTimeZone();
         await this.broadcast({
             type: 'schedule_deleted',
             scheduleEntryId: payload.scheduleEntryId,
             gateStartTime: payload.snapshot.startTime,
             // A deleted class reads to the user as a cancellation — reuse that copy by design.
-            text: this.cancelledMessage(payload.snapshot, null),
+            text: this.cancelledMessage(payload.snapshot, null, tz),
         });
     }
 
@@ -122,27 +128,27 @@ export class ScheduleNotificationListener {
         );
     }
 
-    private createdMessage(s: IScheduleSnapshot): string {
+    private createdMessage(s: IScheduleSnapshot, tz: string): string {
         return [
             '🆕 <b>Новое занятие</b>',
             '',
             `<b>${escapeHtml(s.className)}</b>`,
-            `🗓 ${formatTimingRu(s.startTime)}`,
+            `🗓 ${formatTimingRu(s.startTime, tz)}`,
             `👤 Тренер: ${escapeHtml(s.coachName)}`,
         ].join('\n');
     }
 
-    private changedMessage(p: IScheduleChangedPayload): string {
+    private changedMessage(p: IScheduleChangedPayload, tz: string): string {
         const timeChanged = p.oldStartTime.getTime() !== p.newStartTime.getTime();
         const durationChanged = p.oldDurationMinutes !== p.newDurationMinutes;
 
         const lines = ['⚠️ <b>Изменение в расписании</b>', '', `Занятие <b>${escapeHtml(p.snapshot.className)}</b>`];
         if (timeChanged) {
-            lines.push(`❌ <s>Было: ${formatTimingRu(p.oldStartTime)}</s>`);
-            lines.push(`✅ Будет: <b>${formatTimingRu(p.newStartTime)}</b>`);
+            lines.push(`❌ <s>Было: ${formatTimingRu(p.oldStartTime, tz)}</s>`);
+            lines.push(`✅ Будет: <b>${formatTimingRu(p.newStartTime, tz)}</b>`);
         } else {
             // Duration-only edit: the time didn't move, so show it once (no Было/Будет diff).
-            lines.push(`🗓 ${formatTimingRu(p.newStartTime)}`);
+            lines.push(`🗓 ${formatTimingRu(p.newStartTime, tz)}`);
         }
         if (durationChanged) {
             lines.push(`⏱ Длительность: ${p.oldDurationMinutes} → ${p.newDurationMinutes} мин`);
@@ -151,12 +157,12 @@ export class ScheduleNotificationListener {
         return lines.join('\n');
     }
 
-    private cancelledMessage(s: IScheduleSnapshot, reason: string | null): string {
+    private cancelledMessage(s: IScheduleSnapshot, reason: string | null, tz: string): string {
         const lines = [
             '❌ <b>Занятие отменено</b>',
             '',
             `<b>${escapeHtml(s.className)}</b>`,
-            `🗓 ${formatTimingRu(s.startTime)}`,
+            `🗓 ${formatTimingRu(s.startTime, tz)}`,
             `👤 Тренер: ${escapeHtml(s.coachName)}`,
         ];
         const trimmed = reason?.trim();

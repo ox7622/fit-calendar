@@ -1,4 +1,5 @@
 import { ClubInfo } from '@fitcalendar/db';
+import { DEFAULT_TIME_ZONE } from '@fitcalendar/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,6 +22,7 @@ const DEFAULT_STUB: ClubInfoDto = {
     },
     mapUrl: null,
     logoUrl: null,
+    timezone: DEFAULT_TIME_ZONE,
 };
 
 @Injectable()
@@ -49,6 +51,17 @@ export class ClubService {
             workingHours: record.workingHours,
             mapUrl: record.mapUrl,
             logoUrl: record.logoUrl,
+            timezone: record.timezone,
         };
+    }
+
+    /**
+     * The club's IANA timezone — the single source of truth for rendering class
+     * times (bot, push, schedule bucketing). Falls back to the app default when
+     * no club record exists yet.
+     */
+    async getTimeZone(): Promise<string> {
+        const record = await this.clubInfoRepository.findOne({ where: {} });
+        return record?.timezone ?? DEFAULT_TIME_ZONE;
     }
 }

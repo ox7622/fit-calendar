@@ -29,4 +29,7 @@ export class ClubInfoDto {
 
     @ApiProperty({ description: 'Club logo URL', nullable: true })
     logoUrl: string | null;
+
+    @ApiProperty({ description: 'Club IANA timezone, e.g. Europe/Moscow' })
+    timezone: string;
 }

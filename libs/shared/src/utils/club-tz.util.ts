@@ -1,4 +1,4 @@
-import type { Locale } from 'date-fns/locale/types';
+import type { Locale } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
 

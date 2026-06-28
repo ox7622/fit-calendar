@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
+import { DEFAULT_TIME_ZONE, RUSSIA_TIME_ZONES } from '@fitcalendar/shared';
+
 import { ClubLogoUpload } from '@/features/club/ClubLogoUpload';
 import { WorkingHoursEditor } from '@/features/club/WorkingHoursEditor';
 import { adminClubApi, ApiError, type IAdminClubInfo, type TWorkingHours } from '@/shared/api';
@@ -10,6 +12,7 @@ interface IFormState {
     phone: string;
     workingHours: TWorkingHours;
     mapUrl: string;
+    timezone: string;
 }
 
 export function ClubInfoPage() {
@@ -33,6 +36,7 @@ export function ClubInfoPage() {
                     phone: data.phone ?? '',
                     workingHours: data.workingHours,
                     mapUrl: data.mapUrl ?? '',
+                    timezone: data.timezone ?? DEFAULT_TIME_ZONE,
                 });
                 setLoading(false);
             })
@@ -60,6 +64,7 @@ export function ClubInfoPage() {
                 phone: form.phone.trim() || undefined,
                 workingHours: form.workingHours,
                 mapUrl: form.mapUrl.trim() || undefined,
+                timezone: form.timezone,
             });
             setClub(updated);
             setSuccess(true);
@@ -149,6 +154,25 @@ export function ClubInfoPage() {
                                 maxLength={50}
                                 placeholder="+7 999 555-12-34"
                             />
+                        </div>
+
+                        <div>
+                            <label htmlFor="club-timezone" className="text-body mb-1 block">
+                                Часовой пояс <span className="text-destructive">*</span>
+                            </label>
+                            <select
+                                id="club-timezone"
+                                value={form.timezone}
+                                onChange={(e) => setForm((f) => (f ? { ...f, timezone: e.target.value } : f))}
+                                disabled={submitting}
+                                className="w-full rounded border border-border bg-surface p-2 text-body"
+                            >
+                                {RUSSIA_TIME_ZONES.map((z) => (
+                                    <option key={z.id} value={z.id}>
+                                        {z.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </section>
 

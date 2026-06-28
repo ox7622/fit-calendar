@@ -17,6 +17,7 @@ export interface IAdminClubInfo {
     workingHours: TWorkingHours;
     mapUrl: string | null;
     logoUrl: string | null;
+    timezone: string;
     updatedAt: string;
 }
 
@@ -26,6 +27,7 @@ export interface IClubInfoUpdatePayload {
     phone?: string;
     workingHours: TWorkingHours;
     mapUrl?: string;
+    timezone: string;
 }
 
 export interface IClubLogoUploadResponse {

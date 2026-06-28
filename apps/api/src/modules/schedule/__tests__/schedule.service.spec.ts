@@ -430,7 +430,7 @@ describe('ScheduleService', () => {
             expect(findCall).toBeDefined();
             const where = findCall?.[0]?.where as Record<string, unknown>;
             // TypeORM Between stores the values on the FindOperator instance.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             const betweenOp = where['startTime'] as any;
             const rangeStart: Date = betweenOp._value[0];
             const rangeEnd: Date = betweenOp._value[1];

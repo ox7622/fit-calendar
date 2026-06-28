@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ClubModule } from '../club/club.module';
+
 import { ScheduleController } from './schedule.controller';
 import { ScheduleService } from './schedule.service';
 

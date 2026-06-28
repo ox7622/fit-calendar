@@ -1,10 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
-import { DEFAULT_TIME_ZONE, RUSSIA_TIME_ZONES } from '@fitcalendar/shared';
-
 import { ClubLogoUpload } from '@/features/club/ClubLogoUpload';
 import { WorkingHoursEditor } from '@/features/club/WorkingHoursEditor';
 import { adminClubApi, ApiError, type IAdminClubInfo, type TWorkingHours } from '@/shared/api';
+import { DEFAULT_TIME_ZONE, RUSSIA_TIME_ZONES } from '@fitcalendar/shared';
 
 interface IFormState {
     name: string;

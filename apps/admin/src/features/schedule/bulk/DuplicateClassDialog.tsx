@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 import { type IAdminScheduleItem, type IScheduleFormPayload } from '@/shared/api';
-import { DatePicker } from '@/shared/components/DatePicker';
 import { useClubTimeZone } from '@/shared/club-timezone';
+import { DatePicker } from '@/shared/components/DatePicker';
 import { Modal } from '@/shared/components/Modal';
 import { formatInClubTz } from '@fitcalendar/shared';
 import { format } from 'date-fns';

@@ -1,6 +1,6 @@
 import type { Locale } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
+import { ru } from 'date-fns/locale';
 
 /**
  * Formats an instant (ISO string or Date) at the wall-clock time of `timeZone`,

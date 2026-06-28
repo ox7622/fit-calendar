@@ -1,5 +1,5 @@
-import { RUSSIA_TIME_ZONE_IDS } from '@fitcalendar/shared';
 import { TrimToUndefinedTransformer } from '@fitcalendar/nest-shared';
+import { RUSSIA_TIME_ZONE_IDS } from '@fitcalendar/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsIn, IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';

@@ -1,5 +1,5 @@
-import { ru } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
+import { ru } from 'date-fns/locale';
 
 /** Escapes the HTML special characters Telegram's HTML parse mode cares about. */
 export function escapeHtml(value: string): string {

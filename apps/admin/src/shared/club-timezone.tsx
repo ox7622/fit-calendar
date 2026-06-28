@@ -1,5 +1,6 @@
-import { DEFAULT_TIME_ZONE } from '@fitcalendar/shared';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+import { DEFAULT_TIME_ZONE } from '@fitcalendar/shared';
 
 import { adminClubApi } from './api';
 

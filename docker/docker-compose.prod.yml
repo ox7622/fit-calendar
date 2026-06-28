@@ -30,10 +30,9 @@ services:
             - ../.env.prod
         environment:
             NODE_ENV: production
-            # Single-city club: run the API in the club's timezone so date-fns day
-            # bucketing (bot /today, /tomorrow, /week) matches the browser-based
-            # admin + mini-app. Override per deployment via TZ in .env.prod.
-            TZ: ${TZ:-Europe/Moscow}
+            # Timezone is a club setting (ClubInfo.timezone) — all class-time
+            # rendering and day-bucketing read it explicitly, so the container's
+            # own TZ is irrelevant and intentionally left unset (defaults to UTC).
             NX_DB_HOST: postgres
             NX_DB_PORT: '5432'
             NX_DB_SSL: 'false' # internal docker network, no TLS needed

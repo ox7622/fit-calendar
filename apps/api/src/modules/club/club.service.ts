@@ -59,9 +59,22 @@ export class ClubService {
      * The club's IANA timezone — the single source of truth for rendering class
      * times (bot, push, schedule bucketing). Falls back to the app default when
      * no club record exists yet.
+     *
+     * Cached for a short TTL: the value changes only on rare admin edits, but this
+     * is hit on every schedule request and bot command (a single command can call
+     * it more than once). The TTL keeps reads cheap while still picking up an admin
+     * change within seconds — no restart needed.
      */
     async getTimeZone(): Promise<string> {
+        const now = Date.now();
+        if (this.tzCache && this.tzCache.expiresAt > now) return this.tzCache.value;
+
         const record = await this.clubInfoRepository.findOne({ where: {} });
-        return record?.timezone ?? DEFAULT_TIME_ZONE;
+        const value = record?.timezone ?? DEFAULT_TIME_ZONE;
+        this.tzCache = { value, expiresAt: now + ClubService.TZ_CACHE_TTL_MS };
+        return value;
     }
+
+    private tzCache: { value: string; expiresAt: number } | null = null;
+    private static readonly TZ_CACHE_TTL_MS = 60_000;
 }

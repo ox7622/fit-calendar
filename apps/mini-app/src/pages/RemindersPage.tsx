@@ -1,6 +1,4 @@
 import { formatInClubTz } from '@fitcalendar/shared';
-import { format, isSameDay, isTomorrow } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { ArrowLeft, Bell, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,10 +13,13 @@ interface DayGroup {
     items: ReminderListItem[];
 }
 
-function formatDayHeader(date: Date): string {
-    if (isSameDay(date, new Date())) return 'Сегодня';
-    if (isTomorrow(date)) return 'Завтра';
-    return format(date, 'd MMMM, EEEE', { locale: ru });
+function formatDayHeader(startTime: string, tz: string): string {
+    const key = formatInClubTz(startTime, tz, 'yyyy-MM-dd');
+    const todayKey = formatInClubTz(new Date(), tz, 'yyyy-MM-dd');
+    const tomorrowKey = formatInClubTz(new Date(Date.now() + 24 * 60 * 60 * 1000), tz, 'yyyy-MM-dd');
+    if (key === todayKey) return 'Сегодня';
+    if (key === tomorrowKey) return 'Завтра';
+    return formatInClubTz(startTime, tz, 'd MMMM, EEEE');
 }
 
 function groupByDate(items: ReminderListItem[], tz: string): DayGroup[] {
@@ -29,8 +30,7 @@ function groupByDate(items: ReminderListItem[], tz: string): DayGroup[] {
         if (group) {
             group.items.push(item);
         } else {
-            const startDate = new Date(item.class.startTime);
-            map.set(key, { headerLabel: formatDayHeader(startDate), items: [item] });
+            map.set(key, { headerLabel: formatDayHeader(item.class.startTime, tz), items: [item] });
         }
     }
     return Array.from(map.values());

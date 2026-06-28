@@ -2,7 +2,7 @@ import { ScheduleEntry, TrainingType } from '@fitcalendar/db';
 import { clampWeekOffset, DIFFICULTY_LEVEL_LABELS, formatInClubTz, type TDifficultyLevel } from '@fitcalendar/shared';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { addDays, format, startOfDay } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ArrayContains, Between, FindOptionsWhere } from 'typeorm';
 import { Repository } from 'typeorm';
@@ -74,12 +74,19 @@ export class ScheduleService {
     async getToday(filter: ScheduleFilterDto = {}): Promise<ClassResponseDto[]> {
         this.logger.log('Fetching today schedule');
         const tz = await this.clubService.getTimeZone();
-        // Wall-clock midnight in the club zone, expressed as the real UTC instant.
-        const startLocal = startOfDay(toZonedTime(new Date(), tz));
-        const start = fromZonedTime(startLocal, tz);
-        const end = fromZonedTime(addDays(startLocal, 1), tz);
+        const { start, end } = this.clubDayWindow(toZonedTime(new Date(), tz), tz);
 
         return this.getByDateRange(start, end, filter);
+    }
+
+    /**
+     * The real UTC [start, end) instants spanning `spanDays` club-local calendar
+     * days, starting from the club wall-clock day of `localDayStart`. Used so
+     * day boundaries follow ClubInfo.timezone, not the server's zone.
+     */
+    private clubDayWindow(localDayStart: Date, tz: string, spanDays = 1): { start: Date; end: Date } {
+        const startLocal = startOfDay(localDayStart);
+        return { start: fromZonedTime(startLocal, tz), end: fromZonedTime(addDays(startLocal, spanDays), tz) };
     }
 
     /**
@@ -88,9 +95,7 @@ export class ScheduleService {
     async getByDate(date: string, filter: ScheduleFilterDto = {}): Promise<ClassResponseDto[]> {
         this.logger.log(`Fetching schedule for date: ${date}`);
         const tz = await this.clubService.getTimeZone();
-        const startLocal = startOfDay(new Date(`${date}T00:00:00`));
-        const start = fromZonedTime(startLocal, tz);
-        const end = fromZonedTime(addDays(startLocal, 1), tz);
+        const { start, end } = this.clubDayWindow(new Date(`${date}T00:00:00`), tz);
 
         return this.getByDateRange(start, end, filter);
     }
@@ -103,22 +108,24 @@ export class ScheduleService {
         const offset = clampWeekOffset(weekOffset);
         this.logger.log(`Fetching week schedule (offset ${offset})`);
         const tz = await this.clubService.getTimeZone();
-        // anchorLocal holds club wall-clock fields; format() reads them directly.
         const anchorLocal = startOfDay(addDays(toZonedTime(new Date(), tz), 7 * offset));
-        const anchor = fromZonedTime(anchorLocal, tz);
-        const endOfWeek = fromZonedTime(addDays(anchorLocal, 7), tz);
+        const { start: anchor, end: endOfWeek } = this.clubDayWindow(anchorLocal, tz, 7);
 
         const entries = await this.queryEntries(anchor, endOfWeek, filter);
 
+        // Bucket each entry by its club-local calendar day in a single pass.
+        const byDay = new Map<string, ScheduleEntry[]>();
+        for (const entry of entries) {
+            const key = formatInClubTz(entry.startTime, tz, 'yyyy-MM-dd');
+            const bucket = byDay.get(key);
+            if (bucket) bucket.push(entry);
+            else byDay.set(key, [entry]);
+        }
+
         const days: DayScheduleDto[] = [];
         for (let i = 0; i < 7; i++) {
-            const dateStr = format(addDays(anchorLocal, i), 'yyyy-MM-dd');
-
-            const dayClasses = entries
-                .filter((entry) => formatInClubTz(entry.startTime, tz, 'yyyy-MM-dd') === dateStr)
-                .map((entry) => this.mapToDto(entry));
-
-            days.push({ date: dateStr, classes: dayClasses });
+            const dateStr = formatInClubTz(addDays(anchor, i), tz, 'yyyy-MM-dd');
+            days.push({ date: dateStr, classes: (byDay.get(dateStr) ?? []).map((entry) => this.mapToDto(entry)) });
         }
 
         return { days };

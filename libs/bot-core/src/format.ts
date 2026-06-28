@@ -7,11 +7,6 @@ export function escapeHtml(value: string): string {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** "12 июня 2026 г." style — full date for single-day headers. */
-export function formatDateRu(date: Date): string {
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
 /** "30 мая" — day + genitive month in the club zone, no weekday, no year. For day headers. */
 export function formatDayMonth(date: Date, timeZone: string): string {
     return formatInClubTz(date, timeZone, 'd MMMM');

@@ -1,5 +1,4 @@
-import { formatInTimeZone } from 'date-fns-tz';
-import { ru } from 'date-fns/locale';
+import { formatInClubTz } from '@fitcalendar/shared';
 
 /** Escapes the HTML special characters Telegram's HTML parse mode cares about. */
 export function escapeHtml(value: string): string {
@@ -13,11 +12,12 @@ export function escapeHtml(value: string): string {
  * dispatcher and the schedule notification listener.
  */
 export function formatTimingRu(startTime: Date, timeZone: string, now: Date = new Date()): string {
-    const dayKey = (d: Date): string => formatInTimeZone(d, timeZone, 'yyyy-MM-dd');
+    const dayKey = (d: Date): string => formatInClubTz(d, timeZone, 'yyyy-MM-dd');
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const hhmm = formatInTimeZone(startTime, timeZone, 'HH:mm', { locale: ru });
-    if (dayKey(startTime) === dayKey(now)) return `Сегодня в ${hhmm}`;
-    if (dayKey(startTime) === dayKey(tomorrow)) return `Завтра в ${hhmm}`;
-    return `${formatInTimeZone(startTime, timeZone, 'd MMMM', { locale: ru })} в ${hhmm}`;
+    const hhmm = formatInClubTz(startTime, timeZone, 'HH:mm');
+    const startKey = dayKey(startTime);
+    if (startKey === dayKey(now)) return `Сегодня в ${hhmm}`;
+    if (startKey === dayKey(tomorrow)) return `Завтра в ${hhmm}`;
+    return `${formatInClubTz(startTime, timeZone, 'd MMMM')} в ${hhmm}`;
 }

@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 
 import type { IAdminScheduleItem } from '@/shared/api';
+import { useClubTimeZone } from '@/shared/club-timezone';
+import { formatInClubTz } from '@fitcalendar/shared';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Plus, SquarePen } from 'lucide-react';
@@ -14,11 +16,11 @@ interface IDayGroup {
     items: IAdminScheduleItem[];
 }
 
-function groupByDate(items: IAdminScheduleItem[]): IDayGroup[] {
+function groupByDate(items: IAdminScheduleItem[], tz: string): IDayGroup[] {
     const map = new Map<string, IDayGroup>();
     for (const item of items) {
         const start = parseISO(item.startTime);
-        const key = format(start, 'yyyy-MM-dd');
+        const key = formatInClubTz(item.startTime, tz, 'yyyy-MM-dd');
         const group = map.get(key);
         if (group) {
             group.items.push(item);
@@ -47,7 +49,8 @@ interface IScheduleListProps {
 
 export function ScheduleList({ items, onCreateForDay }: IScheduleListProps): JSX.Element {
     const navigate = useNavigate();
-    const groups = groupByDate(items);
+    const tz = useClubTimeZone();
+    const groups = useMemo(() => groupByDate(items, tz), [items, tz]);
     const overlappingIds = useMemo(() => findOverlappingIds(items), [items]);
 
     if (items.length === 0) {
@@ -65,7 +68,6 @@ export function ScheduleList({ items, onCreateForDay }: IScheduleListProps): JSX
                         {group.items.map((item) => {
                             const isCancelled = item.status === 'cancelled';
                             const isOverlapping = overlappingIds.has(item.id);
-                            const start = parseISO(item.startTime);
                             return (
                                 <button
                                     key={item.id}
@@ -77,7 +79,7 @@ export function ScheduleList({ items, onCreateForDay }: IScheduleListProps): JSX
                                     }`}
                                 >
                                     <span className="w-36 shrink-0 font-mono whitespace-nowrap">
-                                        {format(start, 'HH:mm', { locale: ru })}
+                                        {formatInClubTz(item.startTime, tz, 'HH:mm')}
                                         <span className="ml-1 text-xs text-muted-foreground">
                                             · {item.durationMinutes} мин
                                         </span>

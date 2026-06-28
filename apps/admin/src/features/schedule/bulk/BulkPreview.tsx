@@ -1,6 +1,6 @@
 import type { IScheduleFormPayload } from '@/shared/api';
-import { format, parseISO } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { useClubTimeZone } from '@/shared/club-timezone';
+import { formatInClubTz } from '@fitcalendar/shared';
 
 interface IBulkPreviewProps {
     entries: IScheduleFormPayload[];
@@ -11,6 +11,7 @@ interface IBulkPreviewProps {
 }
 
 export function BulkPreview({ entries, submitting, error, onConfirm, onCancel }: IBulkPreviewProps) {
+    const tz = useClubTimeZone();
     const count = entries.length;
     return (
         <div className="mt-4 space-y-3">
@@ -20,7 +21,7 @@ export function BulkPreview({ entries, submitting, error, onConfirm, onCancel }:
                 ) : (
                     entries.slice(0, 50).map((e, i) => (
                         <div key={`${e.startTime}-${i}`} className="flex justify-between py-0.5">
-                            <span>{format(parseISO(e.startTime), 'EEE, d MMM HH:mm', { locale: ru })}</span>
+                            <span>{formatInClubTz(e.startTime, tz, 'EEE, d MMM HH:mm')}</span>
                         </div>
                     ))
                 )}

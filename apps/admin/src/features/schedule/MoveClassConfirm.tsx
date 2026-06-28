@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
 import { adminScheduleApi, extractApiMessage, type IAdminScheduleItem } from '@/shared/api';
+import { useClubTimeZone } from '@/shared/club-timezone';
 import { Modal } from '@/shared/components/Modal';
 import { NotifyCheckbox } from '@/shared/components/NotifyCheckbox';
-import { format, parseISO } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { formatInClubTz } from '@fitcalendar/shared';
 
 import { isWithinNotifyWindow, PUSH_WARNING } from './notify-window';
 
@@ -17,11 +17,12 @@ interface IMoveClassConfirmProps {
     onClose: () => void;
 }
 
-function fmt(iso: string): string {
-    return format(parseISO(iso), 'EEE d MMM, HH:mm', { locale: ru });
+function fmt(iso: string, tz: string): string {
+    return formatInClubTz(iso, tz, 'EEE d MMM, HH:mm');
 }
 
 export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMoveClassConfirmProps): JSX.Element {
+    const tz = useClubTimeZone();
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [notify, setNotify] = useState(true);
@@ -43,8 +44,8 @@ export function MoveClassConfirm({ item, newStartTime, onMoved, onClose }: IMove
     return (
         <Modal title="Перенести занятие" onClose={onClose}>
             <p className="text-body mb-4">
-                Перенести «{item.trainingType.name}» с <strong>{fmt(item.startTime)}</strong> на{' '}
-                <strong>{fmt(newStartTime)}</strong>?
+                Перенести «{item.trainingType.name}» с <strong>{fmt(item.startTime, tz)}</strong> на{' '}
+                <strong>{fmt(newStartTime, tz)}</strong>?
             </p>
             {isWithinNotifyWindow(newStartTime) && (
                 <>

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 
 import type { IAdminScheduleItem } from '@/shared/api';
+import { useClubTimeZone } from '@/shared/club-timezone';
+import { formatInClubTz } from '@fitcalendar/shared';
 import { addDays, format, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Plus } from 'lucide-react';
@@ -43,6 +45,7 @@ export function ScheduleCalendar({
     onCreateForDay,
 }: IScheduleCalendarProps): JSX.Element {
     const navigate = useNavigate();
+    const tz = useClubTimeZone();
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverKey, setDragOverKey] = useState<string | null>(null);
     const days = useMemo(() => Array.from({ length: DAYS_IN_WEEK }, (_, i) => addDays(rangeStart, i)), [rangeStart]);
@@ -62,21 +65,28 @@ export function ScheduleCalendar({
     };
 
     const itemsByDay = useMemo(() => {
-        const map: Record<string, IAdminScheduleItem[]> = {};
+        const map = new Map<string, IAdminScheduleItem[]>();
         for (const day of days) {
-            const key = format(day, 'yyyy-MM-dd');
-            map[key] = items
-                .filter((item) => isSameDay(parseISO(item.startTime), day))
-                .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
+            map.set(format(day, 'yyyy-MM-dd'), []);
+        }
+        for (const item of items) {
+            const clubDayKey = formatInClubTz(item.startTime, tz, 'yyyy-MM-dd');
+            const bucket = map.get(clubDayKey);
+            if (bucket) {
+                bucket.push(item);
+            }
+        }
+        for (const bucket of map.values()) {
+            bucket.sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
         }
         return map;
-    }, [days, items]);
+    }, [days, items, tz]);
 
     return (
         <div className="grid grid-cols-7 gap-2 min-h-[400px]">
             {days.map((day) => {
                 const key = format(day, 'yyyy-MM-dd');
-                const dayItems = itemsByDay[key] ?? [];
+                const dayItems = itemsByDay.get(key) ?? [];
                 const isToday = isSameDay(day, new Date());
                 return (
                     <div
@@ -171,7 +181,7 @@ export function ScheduleCalendar({
                                             <span className="font-semibold truncate">{item.trainingType.name}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-[10px] mt-0.5 opacity-80">
-                                            <span>{format(parseISO(item.startTime), 'HH:mm')}</span>
+                                            <span>{formatInClubTz(item.startTime, tz, 'HH:mm')}</span>
                                             <span>{coachInitials(item.coach.name)}</span>
                                         </div>
                                     </button>

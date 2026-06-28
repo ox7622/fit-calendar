@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { ClubTimeZoneProvider } from '@/shared/club-timezone';
 import { useAdminStore } from '@/shared/stores/adminStore';
 import { LogOut, Menu, Moon, Sun, X, Zap } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
@@ -143,7 +144,9 @@ export function AdminShell() {
                 )}
             </header>
             <main className="flex-1">
-                <Outlet />
+                <ClubTimeZoneProvider>
+                    <Outlet />
+                </ClubTimeZoneProvider>
             </main>
         </div>
     );

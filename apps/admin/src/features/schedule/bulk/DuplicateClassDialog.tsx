@@ -2,8 +2,10 @@ import { useState } from 'react';
 
 import { type IAdminScheduleItem, type IScheduleFormPayload } from '@/shared/api';
 import { DatePicker } from '@/shared/components/DatePicker';
+import { useClubTimeZone } from '@/shared/club-timezone';
 import { Modal } from '@/shared/components/Modal';
-import { format, parseISO } from 'date-fns';
+import { formatInClubTz } from '@fitcalendar/shared';
+import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 import { buildDuplicate } from './build-duplicate';
@@ -17,6 +19,7 @@ interface IDuplicateClassDialogProps {
 }
 
 export function DuplicateClassDialog({ source, onClose, onCreated }: IDuplicateClassDialogProps) {
+    const tz = useClubTimeZone();
     const [dates, setDates] = useState<string[]>([]);
     const [draft, setDraft] = useState<string>('');
     const { submitting, error, confirm } = useBulkCreate(onCreated, onClose, 'Не удалось скопировать занятие');
@@ -35,7 +38,7 @@ export function DuplicateClassDialog({ source, onClose, onCreated }: IDuplicateC
     return (
         <Modal title="Копировать занятие" onClose={onClose}>
             <p className="text-body-secondary mb-4 text-sm">
-                {source.trainingType.name} · {source.coach.name} · {format(parseISO(source.startTime), 'HH:mm')} (
+                {source.trainingType.name} · {source.coach.name} · {formatInClubTz(source.startTime, tz, 'HH:mm')} (
                 {source.durationMinutes} мин)
             </p>
             <label className="text-body mb-1 block">Добавить дату</label>

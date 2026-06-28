@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { ClubTimeZoneProvider } from '@/shared/club-timezone';
 import { useTaxonomyStore } from '@/shared/stores';
 
 import { AuthProvider, ThemeProvider } from './providers';
@@ -16,7 +17,9 @@ export function App(): JSX.Element {
     return (
         <ThemeProvider>
             <AuthProvider>
-                <AppRouter />
+                <ClubTimeZoneProvider>
+                    <AppRouter />
+                </ClubTimeZoneProvider>
             </AuthProvider>
         </ThemeProvider>
     );

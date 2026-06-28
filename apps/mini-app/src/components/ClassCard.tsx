@@ -1,7 +1,7 @@
+import { formatInClubTz } from '@fitcalendar/shared';
 import { useTaxonomyStore } from '@/shared/stores';
+import { useClubTimeZone } from '@/shared/club-timezone';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
 
 import { TaxonomyBadge } from './TaxonomyBadge';
 
@@ -27,9 +27,9 @@ function isInProgress(startTime: string, endTime: string): boolean {
 }
 
 export function ClassCard({ class: cls, onClick }: ClassCardProps): JSX.Element {
-    const startDate = new Date(cls.startTime);
+    const tz = useClubTimeZone();
     const endDate = new Date(cls.endTime);
-    const timeRange = `${format(startDate, 'HH:mm', { locale: ru })}–${format(endDate, 'HH:mm', { locale: ru })}`;
+    const timeRange = `${formatInClubTz(cls.startTime, tz, 'HH:mm')}–${formatInClubTz(cls.endTime, tz, 'HH:mm')}`;
     const inProgress = isInProgress(cls.startTime, cls.endTime);
     const isPast = endDate.getTime() < Date.now();
     const isCancelled = cls.status === 'cancelled';

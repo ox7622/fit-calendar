@@ -1,3 +1,4 @@
+import { formatInClubTz } from '@fitcalendar/shared';
 import { format, isSameDay, isTomorrow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ArrowLeft, Bell, Settings, X } from 'lucide-react';
@@ -6,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { SettingsSheet, showToast } from '@/components';
 import { meApi, remindersApi, type ReminderListItem, type TReminderMinutes } from '@/shared/api';
+import { useClubTimeZone } from '@/shared/club-timezone';
 import { useCustomerStore, useRemindersStore } from '@/shared/stores';
 
 interface DayGroup {
@@ -19,15 +21,15 @@ function formatDayHeader(date: Date): string {
     return format(date, 'd MMMM, EEEE', { locale: ru });
 }
 
-function groupByDate(items: ReminderListItem[]): DayGroup[] {
+function groupByDate(items: ReminderListItem[], tz: string): DayGroup[] {
     const map = new Map<string, DayGroup>();
     for (const item of items) {
-        const startDate = new Date(item.class.startTime);
-        const key = format(startDate, 'yyyy-MM-dd');
+        const key = formatInClubTz(item.class.startTime, tz, 'yyyy-MM-dd');
         const group = map.get(key);
         if (group) {
             group.items.push(item);
         } else {
+            const startDate = new Date(item.class.startTime);
             map.set(key, { headerLabel: formatDayHeader(startDate), items: [item] });
         }
     }
@@ -70,6 +72,7 @@ function EmptyState(): JSX.Element {
 
 export function RemindersPage(): JSX.Element {
     const navigate = useNavigate();
+    const tz = useClubTimeZone();
     const reminders = useRemindersStore((s) => s.reminders);
     const isLoading = useRemindersStore((s) => s.isLoading);
     const error = useRemindersStore((s) => s.error);
@@ -110,7 +113,7 @@ export function RemindersPage(): JSX.Element {
         }
     };
 
-    const groups = groupByDate(reminders);
+    const groups = groupByDate(reminders, tz);
 
     return (
         <div className="flex flex-col h-full">
@@ -184,9 +187,7 @@ export function RemindersPage(): JSX.Element {
                                                 >
                                                     <p className="font-semibold text-foreground">{item.class.name}</p>
                                                     <p className="text-sm text-muted-foreground mt-0.5">
-                                                        {format(new Date(item.class.startTime), 'HH:mm', {
-                                                            locale: ru,
-                                                        })}
+                                                        {formatInClubTz(item.class.startTime, tz, 'HH:mm')}
                                                         {' · '}
                                                         {item.class.durationMinutes} мин
                                                     </p>

@@ -1,3 +1,4 @@
+import { formatInClubTz } from '@fitcalendar/shared';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ArrowLeft } from 'lucide-react';
@@ -5,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ClassCard, SkeletonCard } from '@/components';
+import { useClubTimeZone } from '@/shared/club-timezone';
 import { coachesApi } from '@/shared/api';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
 
@@ -13,11 +15,11 @@ interface DayGroup {
     classes: ScheduleClass[];
 }
 
-function groupByDate(classes: ScheduleClass[]): DayGroup[] {
+function groupByDate(classes: ScheduleClass[], tz: string): DayGroup[] {
     const map = new Map<string, ScheduleClass[]>();
 
     for (const cls of classes) {
-        const dateKey = format(new Date(cls.startTime), 'yyyy-MM-dd');
+        const dateKey = formatInClubTz(cls.startTime, tz, 'yyyy-MM-dd');
         const existing = map.get(dateKey);
         if (existing) {
             existing.push(cls);
@@ -43,6 +45,7 @@ function formatDateHeader(dateStr: string): string {
 export function CoachSchedulePage(): JSX.Element {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const tz = useClubTimeZone();
 
     const [classes, setClasses] = useState<ScheduleClass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +82,7 @@ export function CoachSchedulePage(): JSX.Element {
         };
     }, [id]);
 
-    const groups = groupByDate(classes);
+    const groups = groupByDate(classes, tz);
 
     return (
         <div className="flex flex-col h-full">

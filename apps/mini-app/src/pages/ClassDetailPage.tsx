@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 
+import { formatInClubTz } from '@fitcalendar/shared';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { TaxonomyBadge, showToast } from '@/components';
 import { ApiError, remindersApi, scheduleApi, type ReminderListItem } from '@/shared/api';
+import { useClubTimeZone } from '@/shared/club-timezone';
 import { useCustomerStore, useRemindersStore, useTaxonomyStore } from '@/shared/stores';
 import type { ScheduleClass } from '@/shared/types/schedule.types';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { ArrowLeft, Bell, BellOff, Clock, Dumbbell as DumbbellIcon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -59,6 +59,7 @@ export function ClassDetailPage(): JSX.Element {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { status } = useAuth();
+    const tz = useClubTimeZone();
     const customer = useCustomerStore((s) => s.customer);
     const difficultyMap = useTaxonomyStore((s) => s.difficultyMap);
     const impactMap = useTaxonomyStore((s) => s.impactMap);
@@ -214,14 +215,13 @@ export function ClassDetailPage(): JSX.Element {
                     <div className="bg-card rounded-xl p-4 space-y-2">
                         <div className="flex items-center gap-2 text-sm text-foreground">
                             <span className="text-muted-foreground">
-                                {format(new Date(cls.startTime), 'd MMMM yyyy, EEEE', { locale: ru })}
+                                {formatInClubTz(cls.startTime, tz, 'd MMMM yyyy, EEEE')}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                             <Clock size={15} className="text-primary" />
                             <span className="font-mono">
-                                {format(new Date(cls.startTime), 'HH:mm', { locale: ru })}–
-                                {format(new Date(cls.endTime), 'HH:mm', { locale: ru })}
+                                {formatInClubTz(cls.startTime, tz, 'HH:mm')}–{formatInClubTz(cls.endTime, tz, 'HH:mm')}
                             </span>
                         </div>
 

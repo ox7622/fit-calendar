@@ -13,6 +13,7 @@ export interface ClubInfo {
     workingHours: Record<string, WorkingHoursEntry | null>;
     mapUrl: string | null;
     logoUrl: string | null;
+    timezone: string;
 }
 
 export const clubApi = {
